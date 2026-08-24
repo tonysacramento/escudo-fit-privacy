@@ -43,19 +43,19 @@
   <section class="box">
     <h1>Política de Privacidade</h1>
     <div class="meta">
-      <span>Última atualização: 19 de agosto de 2026</span>
+      <span>Última atualização: 24 de agosto de 2026</span>
       <span>Versão Beta / Teste Fechado — Google Play</span>
     </div>
 
     <div class="notice">
-      <strong>Resumo:</strong> o Escudo Fit mantém a maior parte dos registros de rotina no próprio aparelho, não vende dados pessoais, não utiliza dados de saúde para publicidade e, nesta versão, não solicita GPS nem consulta serviços meteorológicos externos.
+      <strong>Resumo:</strong> o Escudo Fit mantém os registros de rotina no próprio aparelho e transmite somente eventos técnicos mínimos e pseudônimos para avaliar o Beta. Não vende dados pessoais, não utiliza dados de saúde para publicidade, não solicita GPS e não consulta serviços meteorológicos externos.
     </div>
 
     <div class="notice health">
       <strong>Health Connect:</strong> quando autorizado pelo usuário, o Escudo Fit solicita somente leitura de passos para exibir a contagem automática do dia e recursos relacionados ao movimento. Esses dados não são utilizados para publicidade nem transferidos a plataformas de anúncios ou corretores de dados.
     </div>
 
-    <p><span class="tag">LGPD</span><span class="tag">Health Connect</span><span class="tag">Dados locais</span><span class="tag">Sem GPS</span></p>
+    <p><span class="tag">LGPD</span><span class="tag">Health Connect</span><span class="tag">Dados locais</span><span class="tag">Telemetria pseudônima</span><span class="tag">Sem GPS</span></p>
 
     <nav class="toc" aria-label="Índice da política">
       <a href="#visao-geral">1. Visão geral</a>
@@ -131,13 +131,15 @@
     <h3>4.2. Dados administrativos do Beta</h3>
     <p>Os dados fornecidos para participação no programa Beta podem ser armazenados na infraestrutura Google utilizada para o programa, incluindo Google Forms, Google Sheets e Google Play Console, conforme o serviço utilizado.</p>
 
-    <h3>4.3. Telemetria técnica</h3>
-    <p>O aplicativo pode manter localmente identificadores aleatórios e eventos técnicos anônimos destinados a observar o funcionamento das telas e conquistas do produto. Na configuração atual da versão Beta, esses eventos permanecem no aparelho quando não existe um endpoint de telemetria configurado.</p>
-    <p>Caso seja implantado futuramente um serviço remoto de telemetria, esta Política e a seção Data Safety do Google Play serão revisadas antes da ativação.</p>
+    <h3>4.3. Telemetria técnica pseudônima</h3>
+    <p>Na versão Beta v32, o Escudo Fit pode transmitir eventos técnicos mínimos para compreender adoção, ativação e uso das funcionalidades durante o teste. Cada instalação utiliza um identificador aleatório (<code>anonymousId</code>) e o participante pode informar opcionalmente um código pseudônimo no formato <code>P-XX</code>. Esses identificadores não contêm nome ou e-mail.</p>
+    <p>Os eventos permitidos registram fatos como abertura diária do aplicativo, início e conclusão do onboarding, registros de água, refeição, movimento e aplicação, proteção dos quatro escudos, dia de cuidado ativo e dia protegido. Algumas propriedades técnicas limitadas podem indicar categoria da refeição, tipo e faixa de duração da atividade ou se um registro de aplicação foi retroativo.</p>
+    <p><strong>A telemetria não transmite nome, e-mail, CPF, peso, histórico de peso, descrição de refeição, quantidade de proteína, nome de medicamento, dose, local corporal da aplicação, anotações, contagem de passos do Health Connect ou localização geográfica.</strong></p>
+    <p>Os eventos são enviados por conexão HTTPS para infraestrutura Google controlada pelo responsável pelo Escudo Fit e utilizados somente para analisar o Beta, identificar dificuldades de uso e aprimorar o produto. Quando o envio não estiver disponível, os eventos podem permanecer temporariamente na fila local do aparelho por até sete dias, limitada a 200 eventos.</p>
 
     <h2 id="compartilhamento">5. Compartilhamento</h2>
     <p>O Escudo Fit não vende nem aluga dados pessoais.</p>
-    <p>Os dados administrativos do programa Beta podem ser processados por serviços Google utilizados para administrar o teste, sujeitos às respectivas condições e políticas desses serviços.</p>
+    <p>Os dados administrativos do programa Beta e os eventos técnicos pseudônimos podem ser processados por serviços Google utilizados para administrar e analisar o teste, incluindo Google Forms, Google Sheets, Google Play e Google Apps Script, sujeitos às respectivas condições e políticas desses serviços.</p>
     <p>Dados pessoais ou de saúde não serão compartilhados com terceiros para publicidade ou criação de perfis publicitários. Dados provenientes do Health Connect não serão transferidos para plataformas de anúncios, data brokers ou outros revendedores de informações.</p>
 
     <h2 id="retencao">6. Retenção e exclusão</h2>
@@ -146,6 +148,8 @@
     <h3>6.2. Dados do programa Beta</h3>
     <p>Os dados administrativos do Beta serão mantidos somente pelo período necessário para administrar o teste, analisar resultados, solucionar problemas e atender obrigações aplicáveis. Quando deixarem de ser necessários, serão eliminados ou anonimizados, quando aplicável.</p>
     <p>O participante pode solicitar a exclusão dos dados administrativos vinculados à sua participação pelo e-mail <a href="mailto:escudofit@gmail.com">escudofit@gmail.com</a>, observadas eventuais hipóteses legais de conservação.</p>
+    <h3>6.3. Eventos técnicos pseudônimos</h3>
+    <p>Os eventos recebidos remotamente serão mantidos somente pelo período necessário para analisar o Beta, diagnosticar problemas e consolidar aprendizados do produto. Quando deixarem de ser necessários, serão eliminados ou agregados de forma que não permitam acompanhar uma instalação individual.</p>
 
     <h2 id="seguranca">7. Segurança</h2>
     <p>Adotamos medidas razoáveis para reduzir riscos de acesso não autorizado, uso indevido, alteração ou divulgação indevida de dados. Entre elas estão o armazenamento local protegido pelo ambiente do aplicativo, controle de acesso às ferramentas administrativas do programa Beta e uso de conexões seguras pelos serviços externos quando houver comunicação em rede.</p>
@@ -189,7 +193,7 @@
     <strong>Responsável:</strong> Tony Sacramento</p>
   </section>
 
-  <p class="footer">Escudo Fit • Política de Privacidade • Atualizada em 19/08/2026</p>
+  <p class="footer">Escudo Fit • Política de Privacidade • Atualizada em 24/08/2026</p>
 </main>
 </body>
 </html>
