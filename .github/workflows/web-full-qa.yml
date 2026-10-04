@@ -1,0 +1,42 @@
+name: Escudo Fit Full Web QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'qa/**'
+      - '.github/workflows/web-full-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-login-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Start static site
+        run: |
+          python3 -m http.server 4173 --directory . > /tmp/escudofit-web.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/app/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/escudofit-web.log
+          exit 1
+
+      - name: Test login state transition
+        run: npx playwright test qa/web-login-flow.spec.mjs --reporter=line
