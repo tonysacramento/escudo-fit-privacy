@@ -1,0 +1,14 @@
+{
+  "name": "Escudo Fit Full Web",
+  "short_name": "Escudo Fit",
+  "description": "Escudo Fit Full Web Beta",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0F2B33",
+  "theme_color": "#0F2B33",
+  "orientation": "portrait",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
