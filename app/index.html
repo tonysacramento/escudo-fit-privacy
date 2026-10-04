@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0F2B33">
+  <meta name="description" content="Escudo Fit Full Web Beta — acompanhe hidratação, movimento, nutrição, peso e medidas corporais.">
+  <title>Escudo Fit Full Web</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="./icon.svg" alt="Escudo Fit">
+        <div><strong>Escudo Fit</strong><span>Full Web Beta</span></div>
+      </div>
+      <span class="beta-pill">WEB</span>
+    </header>
+
+    <main>
+      <section class="view active" data-view="home">
+        <div class="hero">
+          <div>
+            <p class="eyebrow">Seu Escudo Fit em qualquer lugar</p>
+            <h1>Proteção que transforma seu dia.</h1>
+            <p>Use pelo navegador ou instale na tela inicial. Seus registros desta versão ficam somente neste aparelho.</p>
+          </div>
+          <div class="hero-actions">
+            <button id="installBtn" class="btn primary hidden">Instalar no celular</button>
+            <a class="btn secondary" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Abrir versão Android</a>
+          </div>
+        </div>
+
+        <div class="notice secure">
+          <strong>Modo local seguro</strong>
+          <span>Login Google, sincronização entre aparelhos e reconhecimento automático de PREMIUM/VIP estão em ativação segura no backend. Nenhum dado desta versão web é enviado para terceiros.</span>
+        </div>
+
+        <div class="grid">
+          <article class="card shield-card">
+            <div class="card-head"><span>💧 Hidratação</span><strong id="waterPct">0%</strong></div>
+            <div class="progress"><i id="waterBar"></i></div>
+            <p><strong id="waterMl">0 ml</strong> de <span id="waterGoalLabel">2000 ml</span></p>
+            <div class="actions">
+              <button class="mini" data-water="250">+250 ml</button>
+              <button class="mini" data-water="500">+500 ml</button>
+              <button class="mini ghost" id="waterReset">Reiniciar</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span>🚶 Movimento</span><strong id="stepsPct">0%</strong></div>
+            <div class="progress"><i id="stepsBar"></i></div>
+            <label>Passos de hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric"></label>
+            <small>Na versão Android, os passos podem ser integrados ao Health Connect.</small>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span>🥗 Nutrição</span><strong id="proteinPct">0%</strong></div>
+            <div class="progress"><i id="proteinBar"></i></div>
+            <label>Proteína consumida (g)<input id="proteinInput" type="number" min="0" step="1" inputmode="decimal"></label>
+            <label>Meta diária (g)<input id="proteinGoalInput" type="number" min="1" step="1" inputmode="decimal"></label>
+          </article>
+
+          <article class="card">
+            <div class="card-head"><span>⚖️ Peso</span><strong id="lastWeight">—</strong></div>
+            <div class="inline-form">
+              <input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5">
+              <button id="addWeight" class="mini">Registrar</button>
+            </div>
+            <div id="weightHistory" class="history"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" data-view="measurements">
+        <div class="section-title"><p class="eyebrow">Evolução</p><h2>Medidas corporais</h2><p>Registre suas medidas em centímetros.</p></div>
+        <div class="card form-card">
+          <div class="measure-grid">
+            <label>Cintura<input id="mWaist" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Abdômen<input id="mAbdomen" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Quadril<input id="mHip" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Braço<input id="mArm" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Coxa<input id="mThigh" type="number" min="0" step="0.1" inputmode="decimal"></label>
+            <label>Peitoral<input id="mChest" type="number" min="0" step="0.1" inputmode="decimal"></label>
+          </div>
+          <button id="saveMeasurements" class="btn primary">Salvar medidas</button>
+          <p id="measureSaved" class="saved"></p>
+        </div>
+      </section>
+
+      <section class="view" data-view="profile">
+        <div class="section-title"><p class="eyebrow">Perfil</p><h2>Meu Escudo Fit</h2></div>
+        <div class="card form-card">
+          <label>Como deseja ser chamado?<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
+          <button id="saveProfile" class="btn primary">Salvar perfil local</button>
+        </div>
+
+        <div class="card plan-card">
+          <div><span class="plan-label">Acesso</span><h3>Full Web Beta</h3></div>
+          <p>O reconhecimento online de FREE, PREMIUM, VIP temporário e VIP vitalício será ativado após a validação do login web seguro.</p>
+          <a class="btn secondary full" href="https://play.google.com/apps/testing/com.escudofit.app" target="_blank" rel="noopener">Participar do teste Android</a>
+        </div>
+
+        <div class="card form-card">
+          <h3>Meus dados</h3>
+          <p class="muted">Nesta etapa, seus registros ficam apenas no navegador deste aparelho.</p>
+          <div class="actions vertical-mobile">
+            <button id="exportData" class="btn secondary">Exportar backup</button>
+            <button id="clearData" class="btn danger">Apagar dados locais</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Navegação">
+      <button class="nav-item active" data-target="home"><span>🛡️</span>Hoje</button>
+      <button class="nav-item" data-target="measurements"><span>📏</span>Medidas</button>
+      <button class="nav-item" data-target="profile"><span>👤</span>Perfil</button>
+    </nav>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
