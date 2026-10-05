@@ -136,7 +136,15 @@ function initGoogle(){
     return;
   }
   try{
-    window.google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false,cancel_on_tap_outside:true});
+    try{window.google.accounts.id.disableAutoSelect()}catch{}
+    window.google.accounts.id.initialize({
+      client_id:GOOGLE_CLIENT_ID,
+      callback:handleGoogleCredential,
+      auto_select:false,
+      button_auto_select:false,
+      use_fedcm_for_button:true,
+      cancel_on_tap_outside:true
+    });
     const slot=$('googleLoginSlot');
     slot.innerHTML='';
     window.google.accounts.id.renderButton(slot,{theme:'outline',size:'large',shape:'pill',text:'continue_with',width:320,logo_alignment:'left'});
