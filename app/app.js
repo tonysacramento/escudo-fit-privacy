@@ -66,7 +66,7 @@ function renderApp(){
   $('appGreeting').textContent='Olá, '+displayName.split(' ')[0];
   $('profileUserName').textContent=auth.user.name||displayName;
   $('profileEmail').textContent=auth.user.email;
-  if(auth.user.picture)$('profilePicture').src=auth.user.picture;
+  $('profilePicture').src=auth.user.picture||'./icon.svg';
 
   const p=planLabel(auth.entitlement?.mode);
   $('planBadge').textContent=p;
@@ -98,13 +98,16 @@ async function validateStoredSession(){
     if(res.status===401&&await refreshSession())res=await apiFetch('/me');
     if(!res.ok)return false;
     const me=await res.json();
+    if(!me?.user?.id||!me?.user?.email)return false;
     const entRes=await apiFetch('/entitlement/me');
-    const entitlement=entRes.ok?await entRes.json():auth.entitlement;
-    auth={...auth,user:me.user||auth.user,entitlement:entitlement||auth.entitlement};
+    if(!entRes.ok)return false;
+    const entitlement=await entRes.json();
+    if(!entitlement?.mode)return false;
+    auth={...auth,user:me.user,entitlement};
     saveAuth(auth);
     return true;
   }catch{
-    return Boolean(auth?.user);
+    return false;
   }
 }
 
@@ -157,13 +160,24 @@ function initGoogle(){
   }
 }
 
-async function logout(){
+async function resetGoogleSession(message){
   try{if(auth?.access_token)await apiFetch('/auth/logout',{method:'POST'})}catch{}
   saveAuth(null);auth=null;state={...defaults,weights:[],measurements:{},profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
+  setLoginStatus(message);
+  setTimeout(()=>document.getElementById('loginSection')?.scrollIntoView({behavior:'smooth'}),100);
+}
+
+async function logout(){
+  await resetGoogleSession('Sessão encerrada. Use sua Conta Google cadastrada para entrar novamente.');
   toast('Você saiu do Escudo Fit');
+}
+
+async function switchGoogleAccount(){
+  await resetGoogleSession('Escolha a Conta Google que deseja usar no Escudo Fit.');
+  toast('Escolha outra Conta Google');
 }
 
 document.querySelectorAll('[data-scroll-login]').forEach(el=>el.addEventListener('click',()=>document.getElementById('loginSection').scrollIntoView({behavior:'smooth'})));
@@ -188,6 +202,7 @@ $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:ne
 $('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,weights:[],measurements:{},profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
+$('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installButtonFloating').classList.remove('hidden')});
 $('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installButtonFloating').classList.add('hidden')});
