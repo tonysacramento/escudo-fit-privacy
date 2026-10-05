@@ -161,3 +161,46 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
   await expect(page.locator('.bottom-nav')).toBeVisible();
   await expect(page.locator('#welcomeName')).toHaveText('QA Mobile');
 });
+
+
+test('stale cached profile is not trusted when backend validation fails', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
+      user: { id:'stale-user', email:'old-profile@example.com', name:'Perfil Antigo' },
+      entitlement: { mode:'VIP_LIFETIME' },
+      access_token:'stale-access',
+      refresh_token:'stale-refresh'
+    }));
+  });
+
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.id = 'mock-google-login-stale';
+              btn.textContent = 'Continuar com Google';
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: mock });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', async route => {
+    await route.fulfill({ status: 500, contentType:'application/json', body:'{"code":"INTERNAL_ERROR"}' });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+
+  await expect(page.locator('#marketingExperience')).toBeVisible();
+  await expect(page.locator('#appExperience')).toBeHidden();
+  await expect(page.locator('#mock-google-login-stale')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('escudofit_web_auth_v1'))).toBeNull();
+});
