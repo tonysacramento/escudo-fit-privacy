@@ -1,5 +1,12 @@
-const CACHE='escudo-fit-web-v6';
-const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon.svg'];
+const CACHE='escudo-fit-web-v7';
+const ASSETS=[
+  './',
+  './index.html',
+  './styles.css?v=web-full-v42-2',
+  './app.js?v=web-full-v42-2',
+  './manifest.webmanifest',
+  './icon.svg'
+];
 
 self.addEventListener('install',event=>{
   event.waitUntil(
@@ -32,7 +39,7 @@ self.addEventListener('fetch',event=>{
 
   if(networkFirst){
     event.respondWith(
-      fetch(request)
+      fetch(request,{cache:'no-store'})
         .then(response=>{
           const copy=response.clone();
           caches.open(CACHE).then(cache=>cache.put(request,copy));
