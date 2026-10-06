@@ -25,14 +25,35 @@ function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
 }
 
+function experienceForEntitlement(mode){
+  return mode==='FREE'?'WELLNESS':'FULL';
+}
+
+function applyExperience(){
+  const mode=auth?.entitlement?.mode||'FREE';
+  const experience=experienceForEntitlement(mode);
+  document.body.dataset.experience=experience.toLowerCase();
+  document.querySelectorAll('[data-full-only]').forEach(el=>{
+    el.classList.toggle('entitlement-hidden',experience==='WELLNESS');
+  });
+  setText('experienceLabel',experience);
+  setText('planBadge',experience==='WELLNESS'?'WELLNESS':planLabel(mode));
+  setText('profilePlan',experience==='WELLNESS'?'WELLNESS • FREE':planLabel(mode));
+  return experience;
+}
+
 function setLoginStatus(message,isError=false){
-  const el=$('loginStatus');if(!el)return;el.textContent=message;el.classList.toggle('error',isError);
+  const el=$('loginStatus');if(!el)return;
+  el.textContent=message||'';
+  el.classList.toggle('error',isError);
+  el.classList.toggle('hidden',!message);
 }
 
 function showMarketing(){
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
   document.body.classList.remove('is-app');
+  delete document.body.dataset.experience;
   setTimeout(initGoogle,50);
 }
 
@@ -56,6 +77,9 @@ function setText(id,value){
 }
 
 function activateView(target){
+  const experience=experienceForEntitlement(auth?.entitlement?.mode||'FREE');
+  const requested=document.querySelector('.app-view[data-view="'+target+'"]');
+  if(experience==='WELLNESS'&&requested?.hasAttribute('data-full-only'))target='home';
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.target===target));
   document.querySelectorAll('.app-view').forEach(v=>v.classList.toggle('active',v.dataset.view===target));
   window.scrollTo({top:0,behavior:'smooth'});
@@ -63,6 +87,7 @@ function activateView(target){
 
 function renderApp(){
   if(!auth?.user)return;
+  const experience=applyExperience();
   const wp=pct(state.water,state.waterGoal);
   const sp=pct(state.steps,state.stepsGoal);
   const pp=pct(state.protein,state.proteinGoal);
@@ -129,9 +154,10 @@ function renderApp(){
   if($('topProfilePicture'))$('topProfilePicture').src=auth.user.picture||'./icon.svg';
 
   const p=planLabel(auth.entitlement?.mode);
-  setText('planBadge',p);
-  setText('profilePlan',p);
-}
+  if(experience==='FULL'){
+    setText('planBadge',p);
+    setText('profilePlan',p);
+  }
 
 async function apiFetch(path,options={}){
   const headers={...(options.headers||{})};
@@ -174,14 +200,14 @@ async function validateStoredSession(){
 async function handleGoogleCredential(response){
   const credential=response?.credential;
   if(!credential)return setLoginStatus('Não foi possível obter a credencial Google.',true);
-  setLoginStatus('Validando sua conta e seu acesso…');
+  setLoginStatus('Entrando…');
   try{
     const res=await fetch(API+'/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id_token:credential})});
     const data=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     saveAuth(data);
     state=loadState();
-    setLoginStatus('Acesso confirmado.');
+    setLoginStatus('');
     showApp();
     toast('Bem-vindo ao Escudo Fit');
   }catch(error){
@@ -194,7 +220,7 @@ async function handleGoogleCredential(response){
 function initGoogle(){
   if(auth||googleReady)return;
   if(!window.google?.accounts?.id){
-    setLoginStatus('Carregando login seguro…');
+    setLoginStatus('');
     setTimeout(initGoogle,500);
     return;
   }
@@ -212,7 +238,7 @@ function initGoogle(){
     slot.innerHTML='';
     window.google.accounts.id.renderButton(slot,{theme:'outline',size:'large',shape:'pill',text:'continue_with',width:320,logo_alignment:'left'});
     googleReady=true;
-    setLoginStatus('Use sua Conta Google cadastrada no Escudo Fit.');
+    setLoginStatus('');
     $('retryGoogleButton').classList.add('hidden');
   }catch{
     setLoginStatus('Não foi possível carregar o login Google.',true);
