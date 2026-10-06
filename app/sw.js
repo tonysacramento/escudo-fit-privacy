@@ -1,9 +1,9 @@
-const CACHE='escudo-fit-web-v7';
+const CACHE='escudo-fit-web-v8';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-full-v42-2',
-  './app.js?v=web-full-v42-2',
+  './styles.css?v=web-v42-profile-history-1',
+  './app.js?v=web-v42-profile-history-1',
   './manifest.webmanifest',
   './icon.svg'
 ];
