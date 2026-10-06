@@ -124,59 +124,180 @@
 
   <section id="appExperience" class="app-experience hidden" aria-live="polite">
     <div class="app-shell">
-      <header class="app-topbar">
-        <div class="brand-lockup compact"><img src="./icon.svg" alt=""><span><strong>Escudo Fit</strong><small id="appGreeting">FULL</small></span></div>
+      <header class="app-topbar app-like-topbar">
+        <div class="app-brand">
+          <img src="./icon.svg" alt="">
+          <div>
+            <strong>Escudo <span>Fit</span></strong>
+            <small>Proteção que transforma seu dia</small>
+          </div>
+        </div>
         <div class="user-area">
           <span id="planBadge" class="plan-badge">FULL</span>
+          <button class="profile-icon-button" data-view-link="profile" aria-label="Abrir perfil">
+            <img id="topProfilePicture" src="./icon.svg" alt="">
+          </button>
           <button id="logoutButton" class="icon-button" aria-label="Sair da conta" title="Sair">↗</button>
         </div>
       </header>
 
       <main class="app-main">
         <section class="app-view active" data-view="home">
-          <div class="welcome-card">
-            <div><span class="eyebrow">HOJE</span><h2 id="welcomeName">Seu Escudo</h2><p>Acompanhe seus principais indicadores.</p></div>
-            <div class="shield-score"><span id="dailyScore">0%</span><small>do dia</small></div>
+          <div class="dashboard-heading">
+            <div>
+              <span class="eyebrow">MEU ESCUDO</span>
+              <h1 id="welcomeName">Seu Escudo</h1>
+              <p id="appGreeting">FULL</p>
+            </div>
           </div>
 
-          <div class="app-grid">
-            <article class="metric-card hydration">
-              <div class="metric-head"><span class="metric-icon">💧</span><div><small>Hidratação</small><strong id="waterPct">0%</strong></div></div>
-              <div class="progress"><i id="waterBar"></i></div>
-              <p><b id="waterMl">0 ml</b> de <span id="waterGoalLabel">2000 ml</span></p>
-              <div class="chip-row"><button class="chip" data-water="250">+250 ml</button><button class="chip" data-water="500">+500 ml</button><button class="chip chip-muted" id="waterReset">Reiniciar</button></div>
+          <article class="screen-card hero-shield-card">
+            <div id="dailyShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
+              <div class="shield-fill"></div>
+              <small>Escudo</small>
+              <strong id="dailyScore">0%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title"><span>🛡️</span><b>ESCUDO DO DIA</b></div>
+              <h2><span id="protectedCount">0</span> de <span id="evaluableCount">3</span> protegidos</h2>
+              <div class="app-progress gold"><i id="dailyBar"></i></div>
+              <p id="dailyStatus">Comece com uma ação simples de cuidado.</p>
+            </div>
+          </article>
+
+          <div class="shield-list">
+            <article class="screen-card shield-card">
+              <div class="shield-card-top">
+                <div class="shield-card-title">
+                  <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO</b></div>
+                  <span id="waterStatusPill" class="status-pill cyan">PENDENTE</span>
+                </div>
+                <div id="waterShieldBadge" class="shield-badge shield-cyan" style="--fill:0%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong id="waterPct">0%</strong>
+                </div>
+              </div>
+              <div class="metric-primary"><strong id="waterMl">0 ml</strong><span> / <span id="waterGoalLabel">2000 ml</span></span></div>
+              <p id="waterRemaining">Registre sua hidratação de hoje.</p>
+              <div class="app-progress cyan"><i id="waterBar"></i></div>
+              <div class="quick-row">
+                <button class="app-action" data-water="200">+ 200 ml</button>
+                <button class="app-action" data-water="350">+ 350 ml</button>
+                <button class="app-action" data-water="500">+ 500 ml</button>
+              </div>
+              <button class="card-link" data-view-link="water">Abrir escudo de hidratação</button>
             </article>
 
-            <article class="metric-card movement">
-              <div class="metric-head"><span class="metric-icon">🚶</span><div><small>Movimento</small><strong id="stepsPct">0%</strong></div></div>
-              <div class="progress"><i id="stepsBar"></i></div>
-              <label>Passos hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+            <article class="screen-card shield-card">
+              <div class="shield-card-top">
+                <div class="shield-card-title">
+                  <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
+                  <span id="movementStatusPill" class="status-pill green">PENDENTE</span>
+                </div>
+                <div id="movementShieldBadge" class="shield-badge shield-green" style="--fill:0%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong id="stepsPct">0%</strong>
+                </div>
+              </div>
+              <label class="app-field">Passos hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+              <div class="app-progress green"><i id="stepsBar"></i></div>
+              <p id="movementHint">Registre seus passos de hoje.</p>
             </article>
 
-            <article class="metric-card nutrition">
-              <div class="metric-head"><span class="metric-icon">🥗</span><div><small>Nutrição</small><strong id="proteinPct">0%</strong></div></div>
-              <div class="progress"><i id="proteinBar"></i></div>
-              <div class="two-inputs"><label>Consumido (g)<input id="proteinInput" type="number" min="0" step="1"></label><label>Meta (g)<input id="proteinGoalInput" type="number" min="1" step="1"></label></div>
+            <article class="screen-card shield-card">
+              <div class="shield-card-top">
+                <div class="shield-card-title">
+                  <div class="section-title gold"><span>🍽️</span><b>NUTRIÇÃO</b></div>
+                  <span id="nutritionStatusPill" class="status-pill gold">PENDENTE</span>
+                </div>
+                <div id="nutritionShieldBadge" class="shield-badge shield-gold" style="--fill:0%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong id="proteinPct">0%</strong>
+                </div>
+              </div>
+              <div class="two-inputs app-input-grid">
+                <label class="app-field">Consumido (g)<input id="proteinInput" type="number" min="0" step="1"></label>
+                <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" step="1"></label>
+              </div>
+              <div class="app-progress gold"><i id="proteinBar"></i></div>
+              <p id="nutritionHint">Acompanhe sua meta diária de proteína.</p>
             </article>
 
-            <article class="metric-card weight">
-              <div class="metric-head"><span class="metric-icon">⚖️</span><div><small>Peso atual</small><strong id="lastWeight">—</strong></div></div>
-              <div class="inline-form"><input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5"><button id="addWeight" class="chip">Registrar</button></div>
+            <article class="screen-card shield-card medication-card">
+              <div class="shield-card-top">
+                <div class="shield-card-title">
+                  <div class="section-title gold"><span>💉</span><b>APLICAÇÃO</b></div>
+                  <span class="status-pill neutral">EM DIA</span>
+                </div>
+                <div class="shield-badge shield-gold" style="--fill:100%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+                </div>
+              </div>
+              <h3>Seu ciclo permanece disponível no Android</h3>
+              <p>A sincronização do ciclo de aplicação com a versão Web será liberada separadamente.</p>
+            </article>
+
+            <article class="screen-card shield-card weight-card">
+              <div class="section-title cyan"><span>⚖️</span><b>PESO ATUAL</b></div>
+              <div class="metric-primary"><strong id="lastWeight">—</strong></div>
+              <div class="inline-form">
+                <input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5">
+                <button id="addWeight" class="app-action">Registrar</button>
+              </div>
               <div id="weightHistory" class="history"></div>
             </article>
           </div>
+
+          <div class="quick-access">
+            <div class="section-title cyan"><span>⚡</span><b>ACESSOS RÁPIDOS</b></div>
+            <button class="quick-access-button" data-view-link="water"><span>💧</span>REGISTRAR ÁGUA</button>
+            <button class="quick-access-button gold" data-focus-target="proteinInput"><span>🍽️</span>REGISTRAR PROTEÍNA</button>
+            <button class="quick-access-button" data-view-link="measurements"><span>📏</span>MEDIDAS CORPORAIS</button>
+          </div>
+        </section>
+
+        <section class="app-view" data-view="water">
+          <div class="app-section-title">
+            <span class="eyebrow">ESCUDO DE ÁGUA</span>
+            <h2>💧 Hidratação</h2>
+            <p>Seu escudo de água de hoje.</p>
+          </div>
+
+          <article class="screen-card hero-shield-card compact-hero">
+            <div id="waterDetailBadge" class="shield-badge shield-cyan shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="waterDetailPct">0%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title cyan"><b id="waterDetailStatus">META SUGERIDA DO DIA</b></div>
+              <div class="metric-primary"><strong id="waterDetailMl">0 ml</strong><span> / <span id="waterDetailGoal">2000 ml</span></span></div>
+              <div class="app-progress cyan"><i id="waterDetailBar"></i></div>
+              <p id="waterDetailRemaining">Registre sua hidratação.</p>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><span>＋</span><b>REGISTRAR ÁGUA</b></div>
+            <div class="water-actions">
+              <button class="quick-access-button" data-water="200">+ 200 ml</button>
+              <button class="quick-access-button" data-water="350">+ 350 ml</button>
+              <button class="quick-access-button" data-water="500">+ 500 ml</button>
+              <button id="waterReset" class="quick-access-button muted-action">Reiniciar hoje</button>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
+            <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+          </article>
         </section>
 
         <section class="app-view" data-view="measurements">
-          <div class="app-section-title"><span class="eyebrow">EVOLUÇÃO</span><h2>Medidas corporais</h2><p>Registre suas medidas em centímetros.</p></div>
-          <div class="surface-card">
+          <div class="app-section-title"><span class="eyebrow">EVOLUÇÃO</span><h2>📏 Medidas corporais</h2><p>Registre suas medidas em centímetros.</p></div>
+          <div class="screen-card">
             <div class="measure-grid">
-              <label>Cintura<input id="mWaist" type="number" min="0" step="0.1"></label>
-              <label>Abdômen<input id="mAbdomen" type="number" min="0" step="0.1"></label>
-              <label>Quadril<input id="mHip" type="number" min="0" step="0.1"></label>
-              <label>Braço<input id="mArm" type="number" min="0" step="0.1"></label>
-              <label>Coxa<input id="mThigh" type="number" min="0" step="0.1"></label>
-              <label>Peitoral<input id="mChest" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Cintura<input id="mWaist" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Abdômen<input id="mAbdomen" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Quadril<input id="mHip" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Braço<input id="mArm" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Coxa<input id="mThigh" type="number" min="0" step="0.1"></label>
+              <label class="app-field">Peitoral<input id="mChest" type="number" min="0" step="0.1"></label>
             </div>
             <button id="saveMeasurements" class="button button-primary full-width">Salvar medidas</button>
             <p id="measureSaved" class="saved"></p>
@@ -185,19 +306,19 @@
 
         <section class="app-view" data-view="profile">
           <div class="app-section-title"><span class="eyebrow">CONTA</span><h2>Meu perfil</h2></div>
-          <div class="surface-card profile-summary">
+          <div class="screen-card profile-summary">
             <img id="profilePicture" src="./icon.svg" alt="">
             <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
             <span id="profilePlan" class="plan-badge">FULL</span>
           </div>
 
-          <div class="surface-card">
-            <label>Como deseja ser chamado?<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
+          <div class="screen-card">
+            <label class="app-field">Como deseja ser chamado?<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
             <button id="saveProfile" class="button button-outline full-width">Salvar nome local</button>
           </div>
 
-          <div class="surface-card">
-            <h3>Seus dados desta versão web</h3>
+          <div class="screen-card">
+            <h3>Seus dados desta versão Web</h3>
             <p class="muted">Os registros desta fase ficam salvos neste navegador. A sincronização completa entre Web e Android será liberada separadamente.</p>
             <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
           </div>
@@ -207,8 +328,9 @@
         </section>
       </main>
 
-      <nav class="bottom-nav" aria-label="Navegação do app">
-        <button class="nav-item active" data-target="home"><span>🛡️</span>Hoje</button>
+      <nav class="bottom-nav app-like-bottom-nav" aria-label="Navegação do app">
+        <button class="nav-item active" data-target="home"><span>🛡️</span>Escudo</button>
+        <button class="nav-item" data-target="water"><span>💧</span>Água</button>
         <button class="nav-item" data-target="measurements"><span>📏</span>Medidas</button>
         <button class="nav-item" data-target="profile"><span>👤</span>Perfil</button>
       </nav>
