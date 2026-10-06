@@ -2,8 +2,8 @@ const CACHE='escudo-fit-web-v8';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v42-profile-history-1',
-  './app.js?v=web-v42-profile-history-1',
+  './styles.css?v=web-v42-trial-1',
+  './app.js?v=web-v42-trial-1',
   './manifest.webmanifest',
   './icon.svg'
 ];
@@ -26,7 +26,6 @@ self.addEventListener('activate',event=>{
 
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
-
   const request=event.request;
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
