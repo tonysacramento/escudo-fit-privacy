@@ -132,7 +132,7 @@
             <div>
               <span class="eyebrow">MEU ESCUDO</span>
               <h1 id="welcomeName">Seu Escudo</h1>
-              <p id="appGreeting">FULL</p>
+              <p id="appGreeting">Olá</p><span id="experienceLabel" class="experience-label">FULL</span>
             </div>
           </div>
 
@@ -205,7 +205,7 @@
               <p id="nutritionHint">Acompanhe sua meta diária de proteína.</p>
             </article>
 
-            <article class="screen-card shield-card medication-card">
+            <article class="screen-card shield-card medication-card" data-full-only>
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title gold"><span>💉</span><b>APLICAÇÃO</b></div>
@@ -222,7 +222,7 @@
             <article class="screen-card shield-card weight-card">
               <div class="section-title cyan"><span>⚖️</span><b>PESO ATUAL</b></div>
               <div class="metric-primary"><strong id="lastWeight">—</strong></div>
-              <div class="inline-form">
+              <div class="inline-form" data-full-only>
                 <input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5">
                 <button id="addWeight" class="app-action">Registrar</button>
               </div>
@@ -234,7 +234,7 @@
             <div class="section-title cyan"><span>⚡</span><b>ACESSOS RÁPIDOS</b></div>
             <button class="quick-access-button" data-view-link="water"><span>💧</span>REGISTRAR ÁGUA</button>
             <button class="quick-access-button gold" data-focus-target="proteinInput"><span>🍽️</span>REGISTRAR PROTEÍNA</button>
-            <button class="quick-access-button" data-view-link="measurements"><span>📏</span>MEDIDAS CORPORAIS</button>
+            <button class="quick-access-button" data-view-link="measurements" data-full-only><span>📏</span>MEDIDAS CORPORAIS</button>
           </div>
         </section>
 
@@ -273,7 +273,7 @@
           </article>
         </section>
 
-        <section class="app-view" data-view="measurements">
+        <section class="app-view" data-view="measurements" data-full-only>
           <div class="app-section-title"><span class="eyebrow">EVOLUÇÃO</span><h2>📏 Medidas corporais</h2><p>Registre suas medidas em centímetros.</p></div>
           <div class="screen-card">
             <div class="measure-grid">
@@ -316,7 +316,7 @@
       <nav class="bottom-nav app-like-bottom-nav" aria-label="Navegação do app">
         <button class="nav-item active" data-target="home"><span>🛡️</span>Escudo</button>
         <button class="nav-item" data-target="water"><span>💧</span>Água</button>
-        <button class="nav-item" data-target="measurements"><span>📏</span>Medidas</button>
+        <button class="nav-item" data-target="measurements" data-full-only><span>📏</span>Medidas</button>
         <button class="nav-item" data-target="profile"><span>👤</span>Perfil</button>
       </nav>
     </div>
