@@ -531,3 +531,27 @@ body.is-app .nav-item span{
   .quick-row{display:grid;grid-template-columns:repeat(3,1fr)}
   .app-action{padding:0 7px;font-size:.74rem}
 }
+
+
+.entitlement-hidden{display:none!important}
+.experience-label{
+  display:inline-flex;
+  width:max-content;
+  margin-top:7px;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid var(--app-border);
+  background:#08262B;
+  color:var(--app-cyan);
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+body[data-experience="wellness"] .experience-label{
+  color:var(--app-green);
+  border-color:rgba(99,216,106,.45);
+  background:var(--app-green-soft);
+}
+body[data-experience="wellness"] .app-like-bottom-nav{
+  grid-template-columns:repeat(3,1fr);
+}
