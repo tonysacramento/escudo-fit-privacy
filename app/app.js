@@ -42,7 +42,23 @@ function showApp(){
   document.body.classList.add('is-app');
   state=loadState();
   renderApp();
+  activateView('home');
   window.scrollTo({top:0,behavior:'instant'});
+}
+
+function setShieldFill(id,value){
+  const el=$(id);if(!el)return;
+  el.style.setProperty('--fill',clamp(value,0,100)+'%');
+}
+
+function setText(id,value){
+  const el=$(id);if(el)el.textContent=value;
+}
+
+function activateView(target){
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.target===target));
+  document.querySelectorAll('.app-view').forEach(v=>v.classList.toggle('active',v.dataset.view===target));
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function renderApp(){
@@ -51,26 +67,70 @@ function renderApp(){
   const sp=pct(state.steps,state.stepsGoal);
   const pp=pct(state.protein,state.proteinGoal);
   const score=Math.round((wp+sp+pp)/3);
+  const protectedCount=[wp,sp,pp].filter(value=>value>=100).length;
 
-  $('waterPct').textContent=wp+'%';$('waterBar').style.width=wp+'%';$('waterMl').textContent=state.water+' ml';$('waterGoalLabel').textContent=state.waterGoal+' ml';
-  $('stepsPct').textContent=sp+'%';$('stepsBar').style.width=sp+'%';$('stepsInput').value=state.steps||'';
-  $('proteinPct').textContent=pp+'%';$('proteinBar').style.width=pp+'%';$('proteinInput').value=state.protein||'';$('proteinGoalInput').value=state.proteinGoal||100;
-  $('dailyScore').textContent=score+'%';
-  $('lastWeight').textContent=state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—';
-  $('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
-  const m=state.measurements||{};[['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hip'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>$(id).value=m[k]??'');
-  $('profileName').value=state.profile?.name||'';
+  setText('waterPct',wp+'%');
+  setText('waterDetailPct',wp+'%');
+  setText('waterMl',state.water+' ml');
+  setText('waterDetailMl',state.water+' ml');
+  setText('waterGoalLabel',state.waterGoal+' ml');
+  setText('waterDetailGoal',state.waterGoal+' ml');
+  if($('waterBar'))$('waterBar').style.width=wp+'%';
+  if($('waterDetailBar'))$('waterDetailBar').style.width=wp+'%';
+  setShieldFill('waterShieldBadge',wp);
+  setShieldFill('waterDetailBadge',wp);
+
+  const waterRemaining=Math.max(0,state.waterGoal-state.water);
+  setText('waterRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterDetailRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterStatusPill',wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('waterDetailStatus',wp>=100?'ESCUDO PROTEGIDO':'META SUGERIDA DO DIA');
+
+  setText('stepsPct',sp+'%');
+  if($('stepsBar'))$('stepsBar').style.width=sp+'%';
+  if($('stepsInput'))$('stepsInput').value=state.steps||'';
+  setShieldFill('movementShieldBadge',sp);
+  setText('movementStatusPill',sp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('movementHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
+
+  setText('proteinPct',pp+'%');
+  if($('proteinBar'))$('proteinBar').style.width=pp+'%';
+  if($('proteinInput'))$('proteinInput').value=state.protein||'';
+  if($('proteinGoalInput'))$('proteinGoalInput').value=state.proteinGoal||100;
+  setShieldFill('nutritionShieldBadge',pp);
+  setText('nutritionStatusPill',pp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('nutritionHint',pp>=100?'Meta de proteína de hoje alcançada.':'Faltam '+Math.max(0,state.proteinGoal-state.protein)+' g para a meta.');
+
+  setText('dailyScore',score+'%');
+  setShieldFill('dailyShieldBadge',score);
+  if($('dailyBar'))$('dailyBar').style.width=score+'%';
+  setText('protectedCount',String(protectedCount));
+  setText('evaluableCount','3');
+  setText('dailyStatus',
+    protectedCount>=2
+      ? 'Dia de Cuidado Ativo atingido!'
+      : protectedCount===1
+        ? 'Continue: falta ativar mais uma categoria.'
+        : 'Comece com uma ação simples de cuidado.'
+  );
+
+  setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
+  if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  const m=state.measurements||{};
+  [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hip'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
+  if($('profileName'))$('profileName').value=state.profile?.name||'';
 
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
-  $('welcomeName').textContent=displayName;
-  $('appGreeting').textContent='Olá, '+displayName.split(' ')[0];
-  $('profileUserName').textContent=auth.user.name||displayName;
-  $('profileEmail').textContent=auth.user.email;
-  $('profilePicture').src=auth.user.picture||'./icon.svg';
+  setText('welcomeName',displayName);
+  setText('appGreeting','Olá, '+displayName.split(' ')[0]);
+  setText('profileUserName',auth.user.name||displayName);
+  setText('profileEmail',auth.user.email);
+  if($('profilePicture'))$('profilePicture').src=auth.user.picture||'./icon.svg';
+  if($('topProfilePicture'))$('topProfilePicture').src=auth.user.picture||'./icon.svg';
 
   const p=planLabel(auth.entitlement?.mode);
-  $('planBadge').textContent=p;
-  $('profilePlan').textContent=p;
+  setText('planBadge',p);
+  setText('profilePlan',p);
 }
 
 async function apiFetch(path,options={}){
@@ -192,11 +252,17 @@ $('addWeight').addEventListener('click',()=>{const v=num($('weightInput').value)
 $('saveMeasurements').addEventListener('click',()=>{state.measurements={waist:num($('mWaist').value)||null,abdomen:num($('mAbdomen').value)||null,hip:num($('mHip').value)||null,arm:num($('mArm').value)||null,thigh:num($('mThigh').value)||null,chest:num($('mChest').value)||null,savedAt:new Date().toISOString()};saveState();$('measureSaved').textContent='Medidas salvas neste aparelho em '+new Date().toLocaleString('pt-BR')+'.';toast('Medidas salvas')});
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
 
-document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
-  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x===btn));
-  document.querySelectorAll('.app-view').forEach(v=>v.classList.toggle('active',v.dataset.view===btn.dataset.target));
-  window.scrollTo({top:0,behavior:'smooth'});
+document.querySelectorAll('[data-view-link]').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.viewLink)));
+
+document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListener('click',()=>{
+  activateView('home');
+  setTimeout(()=>{
+    const target=$(btn.dataset.focusTarget);
+    if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus();}
+  },120);
 }));
+
+document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
 $('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,weights:[],measurements:{},profile:{name:''}};renderApp();toast('Dados locais apagados')});
