@@ -64,6 +64,7 @@ function showApp(){
   state=loadState();
   renderApp();
   activateView('home');
+  void loadAccountHistory().then(changed=>{if(changed)renderApp()});
   void hydrateAccountHistory();
   window.scrollTo({top:0,behavior:'instant'});
 }
@@ -144,6 +145,14 @@ function renderApp(){
   if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   const m=state.measurements||{};
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hip'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
+  if($('measurementHistoryList')){
+    const fields=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']];
+    $('measurementHistoryList').innerHTML=(state.measurementHistory||[]).slice(0,6).map(entry=>{
+      const values=fields.filter(([key])=>entry[key]!=null).map(([key,label])=>label+': '+Number(entry[key]).toLocaleString('pt-BR')+' cm').join(' • ');
+      const date=new Date(entry.date+'T12:00:00').toLocaleDateString('pt-BR');
+      return '<div class="history-row measurement-history-row"><span>'+date+'</span><strong>'+values+'</strong></div>';
+    }).join('')||'<small class="muted">Nenhuma medida sincronizada ainda.</small>';
+  }
   if($('profileName'))$('profileName').value=state.profile?.name||'';
 
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
@@ -256,6 +265,66 @@ async function hydrateAccountHistory(){
     saveState();
     renderApp();
   }catch{}
+}
+
+async function loadAccountHistory(){
+  if(!auth?.access_token)return false;
+  try{
+    let res=await apiFetch('/history');
+    if(res.status===401&&await refreshSession())res=await apiFetch('/history');
+    if(!res.ok)return false;
+    const data=await res.json();
+    const weights=Array.isArray(data?.weights)?data.weights:[];
+    const measurements=Array.isArray(data?.measurements)?data.measurements:[];
+
+    state.weights=weights
+      .filter(item=>Number.isFinite(Number(item?.weightKg))&&Number.isFinite(Number(item?.timestampMs)))
+      .map(item=>({
+        id:String(item.id||''),
+        value:Number(item.weightKg),
+        at:new Date(Number(item.timestampMs)).toISOString(),
+        origin:item.origin||'PROFILE'
+      }))
+      .sort((a,b)=>new Date(b.at)-new Date(a.at));
+
+    state.measurementHistory=measurements
+      .filter(item=>/^\d{4}-\d{2}-\d{2}$/.test(String(item?.date||'')))
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+
+    const latest=state.measurementHistory[0];
+    if(latest){
+      state.measurements={
+        waist:latest.waist??null,
+        abdomen:latest.abdomen??null,
+        hip:latest.hips??null,
+        arm:latest.arm??null,
+        thigh:latest.thigh??null,
+        chest:latest.chest??null,
+        savedAt:latest.date+'T12:00:00'
+      };
+    }
+    saveState();
+    return true;
+  }catch{return false}
+}
+
+async function syncAccountHistory(payload){
+  if(!auth?.access_token)return false;
+  try{
+    let res=await apiFetch('/history/sync',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    if(res.status===401&&await refreshSession()){
+      res=await apiFetch('/history/sync',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+    }
+    return res.ok;
+  }catch{return false}
 }
 
 async function refreshSession(){
