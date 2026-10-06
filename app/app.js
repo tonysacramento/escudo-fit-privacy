@@ -49,6 +49,55 @@ function setLoginStatus(message,isError=false){
   el.classList.toggle('hidden',!message);
 }
 
+function setTrialStatus(message,isError=false){
+  const el=$('trialStatus');if(!el)return;
+  el.textContent=message||'';
+  el.classList.toggle('error',isError);
+  el.classList.toggle('hidden',!message);
+}
+
+async function registerQuickTrial(event){
+  event?.preventDefault?.();
+  const name=$('trialName')?.value.trim()||'';
+  const email=$('trialEmail')?.value.trim().toLowerCase()||'';
+  const company=$('trialCompany')?.value||'';
+  if(name.length<2){
+    $('trialName')?.focus();
+    return setTrialStatus('Informe seu nome.',true);
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    $('trialEmail')?.focus();
+    return setTrialStatus('Informe um e-mail válido.',true);
+  }
+
+  const button=$('trialSubmit');
+  if(button){button.disabled=true;button.textContent='Reservando seu acesso…'}
+  setTrialStatus('');
+  try{
+    const res=await fetch(API+'/trial/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,email,company})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
+    sessionStorage.setItem('escudofit_trial_email',email);
+    setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis.');
+    $('trialLoginButton')?.classList.remove('hidden');
+    if(button)button.classList.add('hidden');
+  }catch(error){
+    const code=String(error?.message||'TRIAL_REGISTER_FAILED');
+    setTrialStatus(
+      /Failed to fetch|NetworkError|Load failed/i.test(code)
+        ? 'Não foi possível concluir o cadastro agora. Tente novamente em instantes.'
+        : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
+      true
+    );
+    if(button){button.disabled=false;button.textContent='Começar 14 dias grátis'}
+  }
+}
+
+
 function showMarketing(){
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
@@ -371,7 +420,12 @@ async function handleGoogleCredential(response){
     state=loadState();
     setLoginStatus('');
     showApp();
-    toast('Bem-vindo ao Escudo Fit');
+    const reservedTrialEmail=sessionStorage.getItem('escudofit_trial_email');
+    const trialActivated=data?.entitlement?.mode==='TRIAL_14D' &&
+      reservedTrialEmail &&
+      reservedTrialEmail===String(data?.user?.email||'').toLowerCase();
+    if(trialActivated)sessionStorage.removeItem('escudofit_trial_email');
+    toast(trialActivated?'Trial de 14 dias ativado':'Bem-vindo ao Escudo Fit');
   }catch(error){
     const code=String(error?.message||'LOGIN_FAILED');
     const cors=/Failed to fetch|NetworkError|Load failed/i.test(code);
@@ -429,6 +483,8 @@ async function switchGoogleAccount(){
 }
 
 document.querySelectorAll('[data-scroll-login]').forEach(el=>el.addEventListener('click',()=>document.getElementById('loginSection').scrollIntoView({behavior:'smooth'})));
+document.querySelectorAll('[data-scroll-trial]').forEach(el=>el.addEventListener('click',()=>document.getElementById('trialSection')?.scrollIntoView({behavior:'smooth'})));
+$('trialForm')?.addEventListener('submit',registerQuickTrial);
 $('retryGoogleButton').addEventListener('click',()=>{googleReady=false;initGoogle()});
 
 document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{state.water=clamp(state.water+Number(b.dataset.water),0,10000);saveState();renderApp();toast('Hidratação atualizada')}));
