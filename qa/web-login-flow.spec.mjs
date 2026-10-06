@@ -204,3 +204,66 @@ test('stale cached profile is not trusted when backend validation fails', async 
   await expect(page.locator('#mock-google-login-stale')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('escudofit_web_auth_v1'))).toBeNull();
 });
+
+
+test('FREE account opens Wellness and hydrates account history', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.id = 'mock-google-login-wellness';
+              btn.textContent = 'Continuar com Google';
+              btn.onclick = () => window.__googleCallback({ credential: 'mock-free-token' });
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: mock });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/google', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        user: { id:'qa-free', email:'qa.free@example.com', name:'QA Wellness' },
+        entitlement: { mode:'FREE', source:'SYSTEM_DEFAULT', isActive:true, expiresAt:null, revalidateAfter:null },
+        access_token:'qa-free-access',
+        refresh_token:'qa-free-refresh'
+      })
+    });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        weights: [{ id:'w-1', weightKg:82.4, timestampMs:Date.UTC(2026,9,5,12,0,0), origin:'PROFILE' }],
+        measurements: [{ date:'2026-10-05', waist:92.5, abdomen:96.0, hips:101.2 }]
+      })
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-login]').first().click();
+  await page.locator('#mock-google-login-wellness').click();
+
+  await expect(page.locator('#appExperience')).toBeVisible();
+  await expect(page.locator('#experienceLabel')).toHaveText('WELLNESS');
+  await expect(page.locator('#planBadge')).toHaveText('WELLNESS');
+  await expect(page.locator('#profilePlan')).toHaveText('WELLNESS • FREE');
+  await expect(page.locator('[data-target="measurements"]')).toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
+});
