@@ -267,3 +267,49 @@ test('FREE account opens Wellness and hydrates account history', async ({ page }
   await expect(page.locator('[data-target="measurements"]')).toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 });
+
+
+test('quick trial signup reserves access before Google login', async ({ page }) => {
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.id = 'mock-google-login-trial';
+              btn.textContent = 'Continuar com Google';
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: mock });
+  });
+
+  let captured = null;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
+    captured = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({ registered:true, next:'GOOGLE_LOGIN' })
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await expect(page.getByRole('button', { name:'Começar 14 dias grátis' }).first()).toBeVisible();
+
+  await page.locator('[data-scroll-trial]').first().click();
+  await page.locator('#trialName').fill('Maria Silva');
+  await page.locator('#trialEmail').fill('maria@example.com');
+  await page.locator('#trialForm').evaluate(form => form.requestSubmit());
+
+  await expect(page.locator('#trialStatus')).toContainText('Cadastro concluído');
+  await expect(page.locator('#trialLoginButton')).toBeVisible();
+  expect(captured).toEqual({ name:'Maria Silva', email:'maria@example.com', company:'' });
+});
