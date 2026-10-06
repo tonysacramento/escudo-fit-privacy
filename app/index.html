@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v42-profile-history-1">
+  <meta name="escudo-fit-build" content="web-v42-trial-1">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v42-profile-history-1">
+  <link rel="stylesheet" href="./styles.css?v=web-v42-trial-1">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -21,6 +21,7 @@
       </a>
       <div class="nav-actions">
         <a class="text-link" href="#beneficios">Benefícios</a>
+        <button class="button button-small button-primary" data-scroll-trial>Testar grátis</button>
         <button class="button button-small button-outline" data-scroll-login>Entrar</button>
       </div>
     </header>
@@ -32,13 +33,14 @@
           <h1>Sua rotina. Sua evolução. <em>Um único escudo.</em></h1>
           <p class="lead">Organize hábitos importantes do dia a dia em uma experiência simples, visual e feita para acompanhar você no celular ou no navegador.</p>
           <div class="hero-ctas">
-            <button class="button button-primary" data-scroll-login>Entrar no Escudo Fit</button>
-            <a class="button button-ghost" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Baixar no Android</a>
+            <button class="button button-primary trial-hero-button" data-scroll-trial>Começar 14 dias grátis</button>
+            <button class="button button-outline" data-scroll-login>Já tenho acesso</button>
+            <a class="button button-ghost" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Android</a>
           </div>
           <div class="trust-row">
-            <span>✓ Login com Google</span>
-            <span>✓ Versão instalável</span>
-            <span>✓ Acesso conforme seu perfil</span>
+            <span>✓ 14 dias grátis</span>
+            <span>✓ Sem cartão</span>
+            <span>✓ Ativação com Conta Google</span>
           </div>
         </div>
 
@@ -83,12 +85,42 @@
         </div>
       </section>
 
+      <section id="trialSection" class="section trial-section">
+        <div class="trial-panel">
+          <div class="trial-copy">
+            <span class="eyebrow">TESTE GRÁTIS</span>
+            <h2>Experimente o Escudo Fit Full por 14 dias</h2>
+            <p>Faça um cadastro rápido. O período começa quando você entrar pela primeira vez com a mesma Conta Google.</p>
+            <div class="trial-points">
+              <span>✓ Nome + e-mail</span>
+              <span>✓ Sem cartão</span>
+              <span>✓ Histórico vinculado à sua conta</span>
+            </div>
+          </div>
+          <form id="trialForm" class="trial-form" novalidate>
+            <label>Nome
+              <input id="trialName" name="name" type="text" maxlength="80" autocomplete="name" placeholder="Como podemos chamar você?" required>
+            </label>
+            <label>E-mail
+              <input id="trialEmail" name="email" type="email" maxlength="254" autocomplete="email" placeholder="seuemail@gmail.com" required>
+            </label>
+            <div class="trial-honeypot" aria-hidden="true">
+              <label>Empresa<input id="trialCompany" name="company" type="text" tabindex="-1" autocomplete="off"></label>
+            </div>
+            <button id="trialSubmit" class="button button-primary full-width" type="submit">Começar 14 dias grátis</button>
+            <p class="trial-note">Use o mesmo e-mail da Conta Google que você utilizará para entrar. Seus dados serão usados para liberar e operar o acesso trial.</p>
+            <p id="trialStatus" class="trial-status hidden" aria-live="polite"></p>
+            <button id="trialLoginButton" class="button button-outline full-width hidden" type="button" data-scroll-login>Entrar com Google e ativar trial</button>
+          </form>
+        </div>
+      </section>
+
       <section id="loginSection" class="section login-section">
         <div class="login-panel">
           <div class="login-copy">
-            <span class="eyebrow">ACESSO</span>
-            <h2>Entre no Escudo Fit</h2>
-            <p>Continue com a Conta Google vinculada ao seu acesso.</p>
+            <span class="eyebrow">JÁ TEM ACESSO?</span>
+            <h2>Entrar no Escudo Fit</h2>
+            <p>Use sua Conta Google para abrir seu perfil.</p>
           </div>
           <div class="login-box">
             <img src="./icon.svg" alt="Escudo Fit">
@@ -330,6 +362,6 @@
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=web-v42-profile-history-1" defer></script>
+  <script src="./app.js?v=web-v42-trial-1" defer></script>
 </body>
 </html>
