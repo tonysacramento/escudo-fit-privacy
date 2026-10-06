@@ -274,7 +274,19 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installProm
 $('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installButtonFloating').classList.add('hidden')});
 window.addEventListener('appinstalled',()=>toast('Escudo Fit instalado'));
 
-if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+if('serviceWorker'in navigator){
+  let reloadingForWorker=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(reloadingForWorker)return;
+    reloadingForWorker=true;
+    location.reload();
+  });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'})
+      .then(registration=>registration.update())
+      .catch(()=>{});
+  });
+}
 
 (async function boot(){
   if(auth&&await validateStoredSession())showApp();
