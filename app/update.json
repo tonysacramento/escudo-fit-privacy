@@ -1,0 +1,10 @@
+{
+  "available": false,
+  "latestBuild": 41,
+  "latestVersion": "1.0.41",
+  "title": "Nova atualização disponível",
+  "message": "Uma nova versão do Escudo Fit Wellness está disponível.",
+  "updateUrl": "https://tonysacramento.github.io/escudo-fit-privacy/app/",
+  "mandatory": false,
+  "publishedAt": null
+}
