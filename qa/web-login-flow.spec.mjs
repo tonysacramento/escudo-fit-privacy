@@ -379,7 +379,7 @@ test('same Google account restores remote history after local data is cleared', 
   await page.locator('[data-target="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
 
-  await page.locator('#logoutButtonBottom').click();
+  await page.locator('#logoutButton').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   // Simulate a clean/new device: remove only this account's local app state.
@@ -464,7 +464,7 @@ test('switching Google accounts never leaks the previous account history', async
   await expect(page.locator('#welcomeName')).toHaveText('Conta A');
   await expect(page.locator('#lastWeight')).toHaveText('81,2 kg');
 
-  await page.locator('#logoutButtonBottom').click();
+  await page.locator('#logoutButton').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   await page.locator('[data-scroll-login]').first().click();
