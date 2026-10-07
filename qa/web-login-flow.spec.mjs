@@ -601,6 +601,18 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
     })});
   });
 
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', async route => {
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
+      user:{id:'qa-water-user',email:'water@example.com',name:'QA Water'}
+    })});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/entitlement/me', async route => {
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
+      mode:'PREMIUM',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null
+    })});
+  });
+
   await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
     await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
       weights:[],measurements:[],water:[remoteWater]
