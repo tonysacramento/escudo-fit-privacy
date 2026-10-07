@@ -568,3 +568,61 @@ test('pending local history survives login hydration and is not overwritten', as
 
   await expect.poll(() => historyRequests).toBe(1);
 });
+
+
+test('Web hydration writes account history and reloads from remote', async ({ page }) => {
+  let remoteWater = { date:'2026-10-07', consumedMl:1000, updatedAtMs:1000 };
+
+  await page.addInitScript(() => {
+    const OriginalDate = Date;
+    class FixedDate extends OriginalDate {
+      constructor(...args) { super(...(args.length ? args : ['2026-10-07T13:00:00.000Z'])); }
+      static now() { return OriginalDate.parse('2026-10-07T13:00:00.000Z'); }
+    }
+    window.Date = FixedDate;
+  });
+
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google={accounts:{id:{
+        initialize(opts){window.__googleCallback=opts.callback},
+        renderButton(el){const b=document.createElement('button');b.id='mock-water-login';b.onclick=()=>window.__googleCallback({credential:'water-token'});el.appendChild(b)},
+        disableAutoSelect(){}
+      }}};
+    `;
+    await route.fulfill({status:200,contentType:'application/javascript',body:mock});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/google', async route => {
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
+      user:{id:'qa-water-user',email:'water@example.com',name:'QA Water'},
+      entitlement:{mode:'PREMIUM',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null},
+      access_token:'water-access',refresh_token:'water-refresh'
+    })});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
+      weights:[],measurements:[],water:[remoteWater]
+    })});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history/sync', async route => {
+    const body=route.request().postDataJSON();
+    if(Array.isArray(body.water)&&body.water[0]) remoteWater=body.water[0];
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({synced:true,water:1})});
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/',{waitUntil:'networkidle'});
+  await page.locator('[data-scroll-login]').first().click();
+  await page.locator('#mock-water-login').click();
+
+  await expect(page.locator('#waterMl')).toHaveText('1000 ml');
+  await page.locator('[data-water="200"]').first().click();
+  await expect(page.locator('#waterMl')).toHaveText('1200 ml');
+  await expect.poll(()=>remoteWater.consumedMl).toBe(1200);
+
+  await page.evaluate(()=>localStorage.removeItem('escudofit_web_user_v2_qa-water-user'));
+  await page.reload({waitUntil:'networkidle'});
+  await expect(page.locator('#waterMl')).toHaveText('1200 ml');
+});
