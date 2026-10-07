@@ -313,3 +313,165 @@ test('quick trial signup reserves access before Google login', async ({ page }) 
   await expect(page.locator('#trialLoginButton')).toBeVisible();
   expect(captured).toEqual({ name:'Maria Silva', email:'maria@example.com', company:'' });
 });
+
+
+test('same Google account restores remote history after local data is cleared', async ({ page }) => {
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.className = 'mock-google-history-login';
+              btn.textContent = 'Continuar com Google';
+              btn.onclick = () => window.__googleCallback({ credential: 'mock-history-token' });
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: mock });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/google', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        user: { id:'qa-history-user', email:'history@example.com', name:'QA Histórico' },
+        entitlement: { mode:'PREMIUM', source:'ADMIN_GRANT', isActive:true, expiresAt:null, revalidateAfter:null },
+        access_token:'qa-history-access',
+        refresh_token:'qa-history-refresh'
+      })
+    });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        weights: [
+          { id:'history-weight-1', weightKg:79.6, timestampMs:Date.UTC(2026,9,6,12,0,0), origin:'PROFILE' }
+        ],
+        measurements: [
+          { date:'2026-10-06', waist:90.2, abdomen:94.1, hips:100.4, arm:34.0 }
+        ]
+      })
+    });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/logout', async route => {
+    await route.fulfill({ status:200, contentType:'application/json', headers:{'access-control-allow-origin':'*'}, body:'{"logged_out":true}' });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-login]').first().click();
+  await page.locator('.mock-google-history-login').click();
+
+  await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
+  await page.locator('[data-target="measurements"]').click();
+  await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
+
+  await page.locator('#logoutButtonBottom').click();
+  await expect(page.locator('#marketingExperience')).toBeVisible();
+
+  // Simulate a clean/new device: remove only this account's local app state.
+  await page.evaluate(() => localStorage.removeItem('escudofit_web_user_v2_qa-history-user'));
+
+  await page.locator('[data-scroll-login]').first().click();
+  await expect(page.locator('.mock-google-history-login')).toBeVisible();
+  await page.locator('.mock-google-history-login').click();
+
+  // History must be restored from the account backend, not from localStorage.
+  await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
+  await page.locator('[data-target="measurements"]').click();
+  await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
+});
+
+
+test('switching Google accounts never leaks the previous account history', async ({ page }) => {
+  let loginNumber = 0;
+
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.className = 'mock-google-isolation-login';
+              btn.textContent = 'Continuar com Google';
+              btn.onclick = () => window.__googleCallback({ credential: 'mock-isolation-token' });
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: mock });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/google', async route => {
+    loginNumber += 1;
+    const accountA = loginNumber === 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        user: accountA
+          ? { id:'qa-account-a', email:'account-a@example.com', name:'Conta A' }
+          : { id:'qa-account-b', email:'account-b@example.com', name:'Conta B' },
+        entitlement: { mode:'PREMIUM', source:'ADMIN_GRANT', isActive:true, expiresAt:null, revalidateAfter:null },
+        access_token: accountA ? 'access-a' : 'access-b',
+        refresh_token: accountA ? 'refresh-a' : 'refresh-b'
+      })
+    });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    const authHeader = route.request().headers()['authorization'] || '';
+    const accountA = authHeader.includes('access-a');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        weights: accountA
+          ? [{ id:'weight-a', weightKg:81.2, timestampMs:Date.UTC(2026,9,5,12,0,0), origin:'PROFILE' }]
+          : [{ id:'weight-b', weightKg:67.3, timestampMs:Date.UTC(2026,9,6,12,0,0), origin:'PROFILE' }],
+        measurements: []
+      })
+    });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/logout', async route => {
+    await route.fulfill({ status:200, contentType:'application/json', headers:{'access-control-allow-origin':'*'}, body:'{"logged_out":true}' });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-login]').first().click();
+  await page.locator('.mock-google-isolation-login').click();
+  await expect(page.locator('#welcomeName')).toHaveText('Conta A');
+  await expect(page.locator('#lastWeight')).toHaveText('81,2 kg');
+
+  await page.locator('#logoutButtonBottom').click();
+  await expect(page.locator('#marketingExperience')).toBeVisible();
+
+  await page.locator('[data-scroll-login]').first().click();
+  await expect(page.locator('.mock-google-isolation-login')).toBeVisible();
+  await page.locator('.mock-google-isolation-login').click();
+
+  await expect(page.locator('#welcomeName')).toHaveText('Conta B');
+  await expect(page.locator('#lastWeight')).toHaveText('67,3 kg');
+  await expect(page.locator('#weightHistory')).not.toContainText('81,2 kg');
+});
