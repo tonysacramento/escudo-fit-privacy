@@ -475,3 +475,84 @@ test('switching Google accounts never leaks the previous account history', async
   await expect(page.locator('#lastWeight')).toHaveText('67,3 kg');
   await expect(page.locator('#weightHistory')).not.toContainText('81,2 kg');
 });
+
+
+test('pending local history survives login hydration and is not overwritten', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('escudofit_web_user_v2_qa-merge-user', JSON.stringify({
+      water:0, waterGoal:2000, steps:0, stepsGoal:8000, protein:0, proteinGoal:100,
+      weights:[
+        { id:'local-pending', value:77.7, at:'2026-10-07T08:00:00.000Z' }
+      ],
+      measurements:{ waist:89.5, savedAt:'2026-10-07T08:00:00.000Z' },
+      measurementHistory:[
+        { date:'2026-10-07', waist:89.5, abdomen:null, hip:null, arm:null, thigh:null, chest:null }
+      ],
+      profile:{name:''}
+    }));
+  });
+
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    const mock = `
+      window.google = {
+        accounts: {
+          id: {
+            initialize(opts) { window.__googleCallback = opts.callback; },
+            renderButton(el) {
+              const btn = document.createElement('button');
+              btn.id = 'mock-google-merge-login';
+              btn.textContent = 'Continuar com Google';
+              btn.onclick = () => window.__googleCallback({ credential:'mock-merge-token' });
+              el.appendChild(btn);
+            },
+            disableAutoSelect() {}
+          }
+        }
+      };
+    `;
+    await route.fulfill({ status:200, contentType:'application/javascript', body:mock });
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/google', async route => {
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({
+        user:{ id:'qa-merge-user', email:'merge@example.com', name:'QA Merge' },
+        entitlement:{ mode:'PREMIUM', source:'ADMIN_GRANT', isActive:true, expiresAt:null, revalidateAfter:null },
+        access_token:'qa-merge-access',
+        refresh_token:'qa-merge-refresh'
+      })
+    });
+  });
+
+  let historyRequests=0;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    historyRequests += 1;
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({
+        weights:[
+          { id:'remote-existing', weightKg:78.8, timestampMs:Date.UTC(2026,9,6,12,0,0), origin:'PROFILE' }
+        ],
+        measurements:[
+          { date:'2026-10-07', waist:91.0 }
+        ]
+      })
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-login]').first().click();
+  await page.locator('#mock-google-merge-login').click();
+
+  await expect(page.locator('#weightHistory')).toContainText('77,7 kg');
+  await expect(page.locator('#weightHistory')).toContainText('78,8 kg');
+  await page.locator('[data-target="measurements"]').click();
+  await expect(page.locator('#measurementHistoryList')).toContainText('89,5 cm');
+
+  await expect.poll(() => historyRequests).toBe(1);
+});
