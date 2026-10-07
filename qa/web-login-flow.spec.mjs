@@ -88,7 +88,17 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#appExperience')).toBeVisible();
   await expect(page.locator('#welcomeName')).toHaveText('Elaine Queiroz Silva');
   await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
-  await expect(page.locator('#profilePlan')).toHaveText('VIP VITALÍCIO');
+  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
+  await expect(page.locator('.nav-item[data-target="activities"]')).toBeVisible();
+  await expect(page.locator('.nav-item[data-target="applications"]')).toBeVisible();
+
+  await page.locator('.nav-item[data-target="activities"]').click();
+  await expect(page.locator('.app-view[data-view="activities"]')).toBeVisible();
+  await expect(page.locator('#addActivity')).toBeVisible();
+
+  await page.locator('.nav-item[data-target="applications"]').click();
+  await expect(page.locator('.app-view[data-view="applications"]')).toBeVisible();
+  await expect(page.locator('[data-application-site="Abdômen"]')).toBeVisible();
 
   await page.locator('[data-target="profile"]').click();
   await expect(page.locator('#profileEmail')).toHaveText('elaineqne@gmail.com');
@@ -265,6 +275,8 @@ test('FREE account opens Web Full and hydrates account history', async ({ page }
   await expect(page.locator('#planBadge')).toHaveText('FREE');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • FREE');
   await expect(page.locator('[data-target="measurements"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('[data-target="activities"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('[data-target="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 });
 
