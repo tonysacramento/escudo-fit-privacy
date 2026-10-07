@@ -25,20 +25,24 @@ function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
 }
 
-function experienceForEntitlement(mode){
-  return mode==='FREE'?'WELLNESS':'FULL';
+function experienceForEntitlement(_mode){
+  // The Web surface is the Escudo Fit FULL experience. Android distribution
+  // (for example, a physically installed Wellness build) must not downgrade
+  // what is rendered in the browser for the same Google account.
+  return 'FULL';
 }
 
 function applyExperience(){
   const mode=auth?.entitlement?.mode||'FREE';
   const experience=experienceForEntitlement(mode);
-  document.body.dataset.experience=experience.toLowerCase();
+  document.body.dataset.experience='full';
   document.querySelectorAll('[data-full-only]').forEach(el=>{
-    el.classList.toggle('entitlement-hidden',experience==='WELLNESS');
+    el.classList.remove('entitlement-hidden');
   });
-  setText('experienceLabel',experience);
-  setText('planBadge',experience==='WELLNESS'?'WELLNESS':planLabel(mode));
-  setText('profilePlan',experience==='WELLNESS'?'WELLNESS • FREE':planLabel(mode));
+  setText('experienceLabel','FULL');
+  // Keep the real entitlement visible without using it to choose the Web edition.
+  setText('planBadge',planLabel(mode));
+  setText('profilePlan','WEB FULL • '+planLabel(mode));
   return experience;
 }
 
