@@ -113,7 +113,8 @@ function showApp(){
   state=loadState();
   renderApp();
   activateView('home');
-  void loadAccountHistory().then(changed=>{if(changed)renderApp()});
+  // One authoritative hydration path prevents a slower duplicate request from
+  // overwriting local records that have not synchronized yet.
   void hydrateAccountHistory();
   window.scrollTo({top:0,behavior:'instant'});
 }
@@ -300,11 +301,22 @@ async function hydrateAccountHistory(){
     state.weights=mergedWeights.slice(0,200);
 
     const remoteMeasurements=(Array.isArray(data?.measurements)?data.measurements:[])
-      .map(remoteMeasurementToLocal).filter(Boolean)
-      .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-    if(remoteMeasurements.length){
-      state.measurementHistory=remoteMeasurements;
-      const latest=remoteMeasurements[0];
+      .map(remoteMeasurementToLocal).filter(Boolean);
+    const localMeasurements=Array.isArray(state.measurementHistory)?state.measurementHistory:[];
+    const mergedMeasurements=[];
+    const seenMeasurementDates=new Set();
+    // Local wins for the same date so an offline edit is never discarded by
+    // login hydration before it has a chance to synchronize.
+    for(const entry of [...localMeasurements,...remoteMeasurements]){
+      const date=String(entry?.date||'');
+      if(!date||seenMeasurementDates.has(date))continue;
+      seenMeasurementDates.add(date);
+      mergedMeasurements.push(entry);
+    }
+    mergedMeasurements.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    state.measurementHistory=mergedMeasurements.slice(0,200);
+    if(state.measurementHistory.length){
+      const latest=state.measurementHistory[0];
       state.measurements={
         waist:latest.waist,abdomen:latest.abdomen,hip:latest.hip,chest:latest.chest,
         arm:latest.arm,thigh:latest.thigh,savedAt:latest.date,
