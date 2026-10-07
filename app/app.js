@@ -3,7 +3,7 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
 let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
 let installPrompt=null;
@@ -351,6 +351,20 @@ async function hydrateAccountHistory(){
       };
     }
 
+    const today=localDayKey();
+    const remoteWater=(Array.isArray(data?.water)?data.water:[])
+      .find(entry=>entry?.date===today);
+    const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
+    const remoteWaterUpdatedAtMs=Number(remoteWater?.updatedAtMs||0);
+    if(remoteWater&&remoteWaterUpdatedAtMs>=localWaterUpdatedAtMs){
+      state.water=clamp(Number(remoteWater.consumedMl)||0,0,10000);
+      state.waterUpdatedAtMs=remoteWaterUpdatedAtMs;
+    }else if(localWaterUpdatedAtMs>remoteWaterUpdatedAtMs){
+      void syncHistoryPatch({
+        water:[{date:today,consumedMl:state.water,updatedAtMs:localWaterUpdatedAtMs}],
+      });
+    }
+
     saveState();
     renderApp();
   }catch{}
@@ -527,8 +541,20 @@ document.querySelectorAll('[data-scroll-trial]').forEach(el=>el.addEventListener
 $('trialForm')?.addEventListener('submit',registerQuickTrial);
 $('retryGoogleButton').addEventListener('click',()=>{googleReady=false;initGoogle()});
 
-document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{state.water=clamp(state.water+Number(b.dataset.water),0,10000);saveState();renderApp();toast('Hidratação atualizada')}));
-$('waterReset').addEventListener('click',()=>{state.water=0;saveState();renderApp();toast('Hidratação reiniciada')});
+async function updateWater(nextWater){
+  const updatedAtMs=Date.now();
+  state.water=clamp(nextWater,0,10000);
+  state.waterUpdatedAtMs=updatedAtMs;
+  saveState();
+  renderApp();
+  const synced=await syncHistoryPatch({
+    water:[{date:localDayKey(),consumedMl:state.water,updatedAtMs}],
+  });
+  toast(synced?'Hidratação salva na sua conta':'Hidratação salva; sincronização pendente');
+}
+
+document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{void updateWater(state.water+Number(b.dataset.water))}));
+$('waterReset').addEventListener('click',()=>{void updateWater(0)});
 $('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Movimento salvo')});
 $('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
 $('proteinInput').addEventListener('change',e=>{state.protein=clamp(num(e.target.value),0,1000);saveState();renderApp()});
