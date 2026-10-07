@@ -220,7 +220,7 @@ function renderApp(){
   const p=planLabel(auth.entitlement?.mode);
   if(experience==='FULL'){
     setText('planBadge',p);
-    setText('profilePlan',p);
+    setText('profilePlan','WEB FULL • '+p);
   }
 
   const measurementHistory=Array.isArray(state.measurementHistory)?state.measurementHistory:[];
