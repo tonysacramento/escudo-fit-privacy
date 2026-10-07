@@ -3,9 +3,9 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
+const defaults={water:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
 let auth=loadAuth();
-let state={...defaults,weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
 let installPrompt=null;
 let googleReady=false;
 
@@ -18,6 +18,8 @@ function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
 function pct(v,g){return g>0?clamp(Math.round((v/g)*100),0,100):0}
 function num(v){const n=Number(String(v).replace(',','.'));return Number.isFinite(n)?n:0}
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
+function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
 function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
 function escapeText(value){return String(value??'')}
 
@@ -173,6 +175,28 @@ function renderApp(){
   setShieldFill('movementShieldBadge',sp);
   setText('movementStatusPill',sp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
   setText('movementHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
+
+  if($('activityStepsInput'))$('activityStepsInput').value=state.steps||'';
+  if($('activityStepsBar'))$('activityStepsBar').style.width=sp+'%';
+  setText('activityStepsHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
+
+  const today=localDayKey();
+  const todayActivities=(Array.isArray(state.activities)?state.activities:[]).filter(item=>localDayKey(item.at)===today);
+  const activityProtected=todayActivities.length>0;
+  setText('activityPct',activityProtected?'100%':'0%');
+  setShieldFill('activityShieldBadge',activityProtected?100:0);
+  setText('activityStatus',activityProtected?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
+  setText('activityCount',String(todayActivities.length));
+  setText('activityHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger este escudo.');
+  if($('activityHistory'))$('activityHistory').innerHTML=todayActivities
+    .sort((a,b)=>new Date(b.at)-new Date(a.at))
+    .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma atividade registrada hoje.</small>';
+
+  if($('applicationHistory'))$('applicationHistory').innerHTML=(Array.isArray(state.applications)?state.applications:[])
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,8)
+    .map(item=>'<div class="history-row"><span>'+escapeText(item.site)+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma aplicação registrada na Web ainda.</small>';
 
   setText('proteinPct',pp+'%');
   if($('proteinBar'))$('proteinBar').style.width=pp+'%';
@@ -480,7 +504,7 @@ function initGoogle(){
 
 async function resetGoogleSession(message){
   try{if(auth?.access_token)await apiFetch('/auth/logout',{method:'POST'})}catch{}
-  saveAuth(null);auth=null;state={...defaults,weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
@@ -506,6 +530,7 @@ $('retryGoogleButton').addEventListener('click',()=>{googleReady=false;initGoogl
 document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{state.water=clamp(state.water+Number(b.dataset.water),0,10000);saveState();renderApp();toast('Hidratação atualizada')}));
 $('waterReset').addEventListener('click',()=>{state.water=0;saveState();renderApp();toast('Hidratação reiniciada')});
 $('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Movimento salvo')});
+$('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
 $('proteinInput').addEventListener('change',e=>{state.protein=clamp(num(e.target.value),0,1000);saveState();renderApp()});
 $('proteinGoalInput').addEventListener('change',e=>{state.proteinGoal=clamp(num(e.target.value)||100,1,1000);saveState();renderApp()});
 $('addWeight').addEventListener('click',async()=>{
@@ -550,6 +575,30 @@ $('saveMeasurements').addEventListener('click',async()=>{
   $('measureSaved').textContent=synced?'Medidas salvas na sua conta.':'Medidas salvas; sincronização pendente.';
   toast(synced?'Medidas sincronizadas':'Medidas salvas');
 });
+$('addActivity')?.addEventListener('click',()=>{
+  const type=$('activityType')?.value||'WALKING';
+  const raw=String($('activityDuration')?.value||'').trim();
+  const duration=raw===''?null:Number(raw);
+  if(duration!==null&&(!Number.isInteger(duration)||duration<=0||duration>1440)){
+    if($('activitySaved'))$('activitySaved').textContent='Informe uma duração válida ou deixe em branco.';
+    return;
+  }
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+Date.now()),type,duration,at:new Date().toISOString()};
+  state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,200);
+  if($('activityDuration'))$('activityDuration').value='';
+  if($('activitySaved'))$('activitySaved').textContent='Atividade registrada.';
+  saveState();renderApp();toast('Atividade registrada');
+});
+
+document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',()=>{
+  const site=String(btn.dataset.applicationSite||'').trim();
+  if(!site)return;
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+Date.now()),site,at:new Date().toISOString()};
+  state.applications=[entry,...(Array.isArray(state.applications)?state.applications:[])].slice(0,200);
+  if($('applicationSaved'))$('applicationSaved').textContent='Aplicação registrada em '+site+'.';
+  saveState();renderApp();toast('Aplicação registrada');
+}));
+
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
 
 document.querySelectorAll('[data-view-link]').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.viewLink)));
@@ -565,7 +614,7 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
-$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,weights:[],measurements:{},measurementHistory:[],profile:{name:''}};renderApp();toast('Dados locais apagados')});
+$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
