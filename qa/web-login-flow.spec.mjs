@@ -206,7 +206,7 @@ test('stale cached profile is not trusted when backend validation fails', async 
 });
 
 
-test('FREE account opens Wellness and hydrates account history', async ({ page }) => {
+test('FREE account opens Web Full and hydrates account history', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.route('https://accounts.google.com/gsi/client', async route => {
@@ -261,10 +261,10 @@ test('FREE account opens Wellness and hydrates account history', async ({ page }
   await page.locator('#mock-google-login-wellness').click();
 
   await expect(page.locator('#appExperience')).toBeVisible();
-  await expect(page.locator('#experienceLabel')).toHaveText('WELLNESS');
-  await expect(page.locator('#planBadge')).toHaveText('WELLNESS');
-  await expect(page.locator('#profilePlan')).toHaveText('WELLNESS • FREE');
-  await expect(page.locator('[data-target="measurements"]')).toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('#experienceLabel')).toHaveText('FULL');
+  await expect(page.locator('#planBadge')).toHaveText('FREE');
+  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • FREE');
+  await expect(page.locator('[data-target="measurements"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 });
 
