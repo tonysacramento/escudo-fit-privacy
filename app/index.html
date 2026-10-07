@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v42-trial-1">
+  <meta name="escudo-fit-build" content="web-v42-full-2">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v42-trial-1">
+  <link rel="stylesheet" href="./styles.css?v=web-v42-full-2">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -217,6 +217,7 @@
               <label class="app-field">Passos hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
               <div class="app-progress green"><i id="stepsBar"></i></div>
               <p id="movementHint">Registre seus passos de hoje.</p>
+              <button class="card-link" data-view-link="activities" data-full-only>Abrir escudo de atividades</button>
             </article>
 
             <article class="screen-card shield-card">
@@ -247,8 +248,9 @@
                   <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
                 </div>
               </div>
-              <h3>Seu ciclo permanece disponível no Android</h3>
-              <p>A sincronização do ciclo de aplicação com a versão Web será liberada separadamente.</p>
+              <h3>Escudo de aplicações</h3>
+              <p>Acesse o registro Web de aplicações. A sincronização do ciclo com o Android será unificada na etapa de histórico compartilhado.</p>
+              <button class="card-link" data-view-link="applications">Abrir escudo de aplicações</button>
             </article>
 
             <article class="screen-card shield-card weight-card">
@@ -266,6 +268,8 @@
             <div class="section-title cyan"><span>⚡</span><b>ACESSOS RÁPIDOS</b></div>
             <button class="quick-access-button" data-view-link="water"><span>💧</span>REGISTRAR ÁGUA</button>
             <button class="quick-access-button gold" data-focus-target="proteinInput"><span>🍽️</span>REGISTRAR PROTEÍNA</button>
+            <button class="quick-access-button green-action" data-view-link="activities" data-full-only><span>🏃</span>ATIVIDADES</button>
+            <button class="quick-access-button gold" data-view-link="applications" data-full-only><span>💉</span>APLICAÇÕES</button>
             <button class="quick-access-button" data-view-link="measurements" data-full-only><span>📏</span>MEDIDAS CORPORAIS</button>
           </div>
         </section>
@@ -302,6 +306,93 @@
           <article class="screen-card">
             <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
             <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+          </article>
+        </section>
+
+        <section class="app-view" data-view="activities" data-full-only>
+          <div class="app-section-title">
+            <span class="eyebrow">ESCUDO DE ATIVIDADES</span>
+            <h2>🏃 Atividades</h2>
+            <p>Registre seu movimento do dia e acompanhe os passos em um único escudo.</p>
+          </div>
+
+          <article class="screen-card hero-shield-card compact-hero">
+            <div id="activityShieldBadge" class="shield-badge shield-green shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="activityPct">0%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title green"><b id="activityStatus">ESCUDO PENDENTE</b></div>
+              <div class="metric-primary"><strong id="activityCount">0</strong><span> atividades hoje</span></div>
+              <p id="activityHint">Registre uma atividade para proteger este escudo.</p>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><span>👟</span><b>PASSOS DO DIA</b></div>
+            <label class="app-field">Passos hoje<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+            <div class="app-progress green"><i id="activityStepsBar"></i></div>
+            <p id="activityStepsHint" class="muted">Meta atual: 8.000 passos.</p>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title green"><span>＋</span><b>REGISTRAR ATIVIDADE</b></div>
+            <div class="activity-form-grid">
+              <label class="app-field">Tipo
+                <select id="activityType">
+                  <option value="WALKING">Caminhada</option>
+                  <option value="STRENGTH">Musculação</option>
+                  <option value="RUNNING">Corrida</option>
+                  <option value="FUNCTIONAL">Funcional</option>
+                  <option value="CYCLING">Bicicleta</option>
+                  <option value="OTHER">Outro</option>
+                </select>
+              </label>
+              <label class="app-field">Duração (min)
+                <input id="activityDuration" type="number" min="1" max="1440" step="1" inputmode="numeric" placeholder="Ex.: 30">
+              </label>
+            </div>
+            <button id="addActivity" class="button button-primary full-width">Registrar atividade</button>
+            <p id="activitySaved" class="saved"></p>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title green"><span>📈</span><b>ATIVIDADES DE HOJE</b></div>
+            <div id="activityHistory" class="history"></div>
+          </article>
+        </section>
+
+        <section class="app-view" data-view="applications" data-full-only>
+          <div class="app-section-title">
+            <span class="eyebrow">ESCUDO DE APLICAÇÕES</span>
+            <h2>💉 Aplicações</h2>
+            <p>Registre o local utilizado e mantenha um histórico Web desta etapa.</p>
+          </div>
+
+          <article class="screen-card hero-shield-card compact-hero">
+            <div id="applicationShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:100%">
+              <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title gold"><b>ESCUDO DE APLICAÇÕES</b></div>
+              <h3>Ciclo disponível</h3>
+              <p>Os registros Web ficam associados ao estado local desta conta nesta etapa. A sincronização com o Android entra na unificação do histórico.</p>
+            </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title gold"><span>📍</span><b>REGISTRAR LOCAL</b></div>
+            <div class="application-site-grid">
+              <button class="app-action application-site" data-application-site="Abdômen">Abdômen</button>
+              <button class="app-action application-site" data-application-site="Coxa direita">Coxa direita</button>
+              <button class="app-action application-site" data-application-site="Coxa esquerda">Coxa esquerda</button>
+              <button class="app-action application-site" data-application-site="Braço">Braço</button>
+            </div>
+            <p id="applicationSaved" class="saved"></p>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title gold"><span>📖</span><b>HISTÓRICO WEB</b></div>
+            <div id="applicationHistory" class="history"></div>
           </article>
         </section>
 
@@ -352,16 +443,18 @@
       </main>
 
       <nav class="bottom-nav app-like-bottom-nav" aria-label="Navegação do app">
-        <button class="nav-item active" data-target="home"><span>🛡️</span>Escudo</button>
-        <button class="nav-item" data-target="water"><span>💧</span>Água</button>
-        <button class="nav-item" data-target="measurements" data-full-only><span>📏</span>Medidas</button>
-        <button class="nav-item" data-target="profile"><span>👤</span>Perfil</button>
+        <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
+        <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
+        <button class="nav-item" data-target="activities" data-full-only><span>🏃</span><b>Atividades</b></button>
+        <button class="nav-item" data-target="applications" data-full-only><span>💉</span><b>Aplicações</b></button>
+        <button class="nav-item" data-target="measurements" data-full-only><span>📏</span><b>Medidas</b></button>
+        <button class="nav-item" data-target="profile"><span>👤</span><b>Perfil</b></button>
       </nav>
     </div>
   </section>
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=web-v42-trial-1" defer></script>
+  <script src="./app.js?v=web-v42-full-2" defer></script>
 </body>
 </html>
