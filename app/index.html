@@ -104,13 +104,18 @@
             <label>E-mail
               <input id="trialEmail" name="email" type="email" maxlength="254" autocomplete="email" placeholder="seuemail@gmail.com" required>
             </label>
+            <label class="consent-row" for="trialLgpd">
+              <input id="trialLgpd" name="lgpd" type="checkbox" required>
+              <span>Li e aceito a <a href="../privacy.html" target="_blank" rel="noopener">Política de Privacidade</a> e os <a href="../terms.html" target="_blank" rel="noopener">Termos de Uso</a>, e autorizo o uso do meu nome e e-mail para criar meu acesso e receber comunicações essenciais sobre conta, segurança, atualizações e plano.</span>
+            </label>
             <div class="trial-honeypot" aria-hidden="true">
               <label>Empresa<input id="trialCompany" name="company" type="text" tabindex="-1" autocomplete="off"></label>
             </div>
             <button id="trialSubmit" class="button button-primary full-width" type="submit">Começar 14 dias grátis</button>
-            <p class="trial-note">Use o mesmo e-mail da Conta Google que você utilizará para entrar. Seus dados serão usados para liberar e operar o acesso trial.</p>
+            <p class="trial-note">Se você usar Gmail, seguiremos pelo login Google e Android. Outros e-mails serão cadastrados inicialmente para acesso pela Web. Se esse outro endereço também for uma Conta Google, o acesso poderá ser vinculado depois sem duplicar o cadastro.</p>
             <p id="trialStatus" class="trial-status hidden" aria-live="polite"></p>
             <button id="trialLoginButton" class="button button-outline full-width hidden" type="button" data-scroll-login>Entrar com Google e ativar trial</button>
+            <a id="trialAndroidButton" class="button button-primary full-width hidden" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Baixar / atualizar no Android</a>
           </form>
         </div>
       </section>
