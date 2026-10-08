@@ -8,6 +8,7 @@ const { JSDOM }=require('jsdom');
 const html=readFileSync('app/index.html','utf8');
 const js=readFileSync('app/app.js','utf8');
 const contract=readFileSync('app/history-sync-contract.js','utf8');
+const bridge=readFileSync('app/history-backup-bridge.js','utf8');
 const pause=()=>new Promise(resolve=>setTimeout(resolve,55));
 
 test('synthetic authenticated Web session renders all categories and posts two-way compatible records',async()=>{
@@ -45,11 +46,13 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     if(path.endsWith('/entitlement/me'))data={mode:'PREMIUM'};
     else if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
     else if(path.endsWith('/history'))data=payload;
+    else if(path.endsWith('/history/backup'))data={revision:0,entries:[]};
     else if(path.endsWith('/history/sync'))data={synced:true};
     else throw new Error('Unexpected API path '+path);
     return {ok:true,status:200,json:async()=>data};
   };
   window.eval(contract);
+  window.eval(bridge);
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
