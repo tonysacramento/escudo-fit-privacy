@@ -552,7 +552,13 @@ async function handleGoogleCredential(response){
   }catch(error){
     const code=String(error?.message||'LOGIN_FAILED');
     const cors=/Failed to fetch|NetworkError|Load failed/i.test(code);
-    setLoginStatus(cors?'O login web ainda está sendo ativado no servidor. Tente novamente em instantes.':'Não foi possível concluir o login ('+code+').',true);
+    const accessDelay=/ACCESS_BACKEND_TIMEOUT|ACCESS_BACKEND_UNAVAILABLE|ACCESS_BACKEND_HTTP_ERROR/i.test(code);
+    setLoginStatus(
+      cors||accessDelay
+        ? 'Estamos validando seu acesso. Tente novamente em alguns segundos.'
+        : 'Não foi possível concluir o login. Tente novamente.',
+      true
+    );
   }
 }
 
