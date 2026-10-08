@@ -283,18 +283,6 @@ function renderApp(){
     setText('profilePlan','WEB FULL • '+p);
   }
 
-  const measurementHistory=Array.isArray(state.measurementHistory)?state.measurementHistory:[];
-  if($('measurementHistory')){
-    $('measurementHistory').innerHTML=measurementHistory.length
-      ? measurementHistory.slice(0,6).map(entry=>{
-          const values=[
-            ['Cintura',entry.waist],['Abdômen',entry.abdomen],['Quadril',entry.hip],
-            ['Peitoral',entry.chest],['Braço',entry.arm],['Coxa',entry.thigh],
-          ].filter(([,value])=>Number.isFinite(value));
-          return '<div class="measurement-history-row"><strong>'+entry.date.split('-').reverse().join('/')+'</strong><span>'+values.map(([label,value])=>label+': '+Number(value).toLocaleString('pt-BR')+' cm').join(' • ')+'</span></div>';
-        }).join('')
-      : '<p class="muted">Nenhuma medida sincronizada ainda.</p>';
-  }
 }
 
 async function apiFetch(path,options={}){
