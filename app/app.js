@@ -31,6 +31,28 @@ function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
 }
 
+function coreHistoryPersistent(){
+  return ['PREMIUM','VIP_LIFETIME'].includes(String(auth?.entitlement?.mode||'FREE'));
+}
+
+function pruneLocalHistory(nowMs=Date.now()){
+  const shortCutoff=nowMs-7*86400000;
+  const coreCutoff=nowMs-30*86400000;
+  const keepCore=coreHistoryPersistent();
+
+  state.activities=(Array.isArray(state.activities)?state.activities:[])
+    .filter(item=>Number.isFinite(Date.parse(item?.at))&&Date.parse(item.at)>=shortCutoff);
+
+  if(!keepCore){
+    state.weights=(Array.isArray(state.weights)?state.weights:[])
+      .filter(item=>Number.isFinite(Date.parse(item?.at))&&Date.parse(item.at)>=coreCutoff);
+    state.applications=(Array.isArray(state.applications)?state.applications:[])
+      .filter(item=>Number.isFinite(Date.parse(item?.at))&&Date.parse(item.at)>=coreCutoff);
+    state.measurementHistory=(Array.isArray(state.measurementHistory)?state.measurementHistory:[])
+      .filter(item=>Number.isFinite(Date.parse(String(item?.date||'')+'T23:59:59'))&&Date.parse(String(item.date)+'T23:59:59')>=coreCutoff);
+  }
+}
+
 function experienceForEntitlement(_mode){
   // The Web surface is the Escudo Fit FULL experience. Android distribution
   // (for example, a physically installed Wellness build) must not downgrade
@@ -153,6 +175,8 @@ function showApp(){
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
   state=loadState();
+  pruneLocalHistory();
+  saveState();
   renderApp();
   activateView('home');
   // One authoritative hydration path prevents a slower duplicate request from
@@ -327,6 +351,13 @@ function remoteMeasurementToLocal(item){
   };
 }
 
+function remoteApplicationToLocal(item){
+  const appliedAtMs=Number(item?.appliedAtMs);
+  const site=String(item?.site||item?.applicationSite||'').trim();
+  if(!item?.id||!site||!Number.isFinite(appliedAtMs)||appliedAtMs<=0)return null;
+  return {id:String(item.id),site,at:new Date(appliedAtMs).toISOString()};
+}
+
 async function authenticatedFetch(path,options={}){
   let res=await apiFetch(path,options);
   if(res.status===401&&await refreshSession())res=await apiFetch(path,options);
@@ -387,6 +418,20 @@ async function hydrateAccountHistory(){
       };
     }
 
+    const remoteApplications=(Array.isArray(data?.applications)?data.applications:[])
+      .map(remoteApplicationToLocal).filter(Boolean);
+    const localApplications=Array.isArray(state.applications)?state.applications:[];
+    const mergedApplications=[];
+    const seenApplicationIds=new Set();
+    for(const entry of [...localApplications,...remoteApplications]){
+      const id=String(entry?.id||'');
+      if(!id||seenApplicationIds.has(id))continue;
+      seenApplicationIds.add(id);
+      mergedApplications.push(entry);
+    }
+    mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
+    state.applications=mergedApplications.slice(0,200);
+
     const today=localDayKey();
     const remoteWater=(Array.isArray(data?.water)?data.water:[])
       .find(entry=>entry?.date===today);
@@ -401,6 +446,7 @@ async function hydrateAccountHistory(){
       });
     }
 
+    pruneLocalHistory();
     saveState();
     renderApp();
   }catch{}
@@ -415,6 +461,7 @@ async function loadAccountHistory(){
     const data=await res.json();
     const weights=Array.isArray(data?.weights)?data.weights:[];
     const measurements=Array.isArray(data?.measurements)?data.measurements:[];
+    const applications=Array.isArray(data?.applications)?data.applications:[];
 
     state.weights=weights
       .filter(item=>Number.isFinite(Number(item?.weightKg))&&Number.isFinite(Number(item?.timestampMs)))
@@ -430,6 +477,11 @@ async function loadAccountHistory(){
       .filter(item=>/^\d{4}-\d{2}-\d{2}$/.test(String(item?.date||'')))
       .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 
+    state.applications=applications
+      .map(remoteApplicationToLocal)
+      .filter(Boolean)
+      .sort((a,b)=>new Date(b.at)-new Date(a.at));
+
     const latest=state.measurementHistory[0];
     if(latest){
       state.measurements={
@@ -442,6 +494,7 @@ async function loadAccountHistory(){
         savedAt:latest.date+'T12:00:00'
       };
     }
+    pruneLocalHistory();
     saveState();
     return true;
   }catch{return false}
@@ -652,13 +705,18 @@ $('addActivity')?.addEventListener('click',()=>{
   saveState();renderApp();toast('Atividade registrada');
 });
 
-document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',()=>{
+document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
   const site=String(btn.dataset.applicationSite||'').trim();
   if(!site)return;
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+Date.now()),site,at:new Date().toISOString()};
+  const appliedAtMs=Date.now();
+  const id=(crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs);
+  const entry={id,site,at:new Date(appliedAtMs).toISOString()};
   state.applications=[entry,...(Array.isArray(state.applications)?state.applications:[])].slice(0,200);
+  pruneLocalHistory();
   if($('applicationSaved'))$('applicationSaved').textContent='Aplicação registrada em '+site+'.';
-  saveState();renderApp();toast('Aplicação registrada');
+  saveState();renderApp();
+  const synced=await syncHistoryPatch({applications:[{id,site,appliedAtMs}]});
+  toast(synced?'Aplicação salva na sua conta':'Aplicação salva; sincronização pendente');
 }));
 
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
