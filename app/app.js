@@ -1,11 +1,12 @@
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 const historyContract=window.EscudoHistoryContract;
-if(!historyContract)throw new Error('HISTORY_CONTRACT_NOT_LOADED');
+const backupBridge=window.EscudoBackupBridge;
+if(!historyContract||!backupBridge)throw new Error('HISTORY_CONTRACT_NOT_LOADED');
 const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
@@ -282,6 +283,13 @@ function renderApp(){
       return '<div class="history-row measurement-history-row"><span>'+date+'</span><strong>'+values+'</strong></div>';
     }).join('')||'<small class="muted">Nenhuma medida sincronizada ainda.</small>';
   }
+  if($('waterHistoryList'))$('waterHistoryList').innerHTML=(Array.isArray(state.waterHistory)?state.waterHistory:[])
+    .slice(0,30)
+    .map(item=>'<div class="history-row"><span>'+
+      new Date(item.date+'T12:00:00').toLocaleDateString('pt-BR')+'</span><strong>'+
+      Number(item.consumedMl).toLocaleString('pt-BR')+' ml</strong></div>')
+    .join('')||'<small class="muted">Nenhum dia de hidratação recebido desta conta.</small>';
+
   if($('movementHistoryList'))$('movementHistoryList').innerHTML=(Array.isArray(state.activities)?state.activities:[])
     .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,12)
     .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
@@ -484,13 +492,30 @@ async function syncHistoryPatch(payload){
 
 async function hydrateAccountHistory(){
   if(!auth?.user)return false;
+  const accountId=auth.user.id;
+  setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
   try{
     await historyPatchChain;
-    await flushPendingHistory();
-    const res=await authenticatedFetch('/history');
-    if(!res.ok)return;
-    const data=await res.json();
+    const flushed=await flushPendingHistory();
+    // Legacy Android builds may have uploaded only /history/backup.
+    // Do not interpret an empty /history response as proof of empty account history.
+    const structured=await authenticatedFetch('/history');
+    const primary=structured.ok?await structured.json():null;
+    const backupRes=await authenticatedFetch('/history/backup');
+    const backupResponse=backupRes.ok?await backupRes.json():null;
+    if(auth?.user?.id!==accountId)return false;
+    const backup=backupBridge.unpackBackup(backupResponse);
+    if(!primary&&!backupResponse){
+      setText('historySyncStatus',
+        'Falha na consulta do servidor. Histórico HTTP '+structured.status+
+        '; backup HTTP '+backupRes.status+'. Seus registros locais foram preservados.');
+      return false;
+    }
+    const data=backupBridge.mergeHistorySources(primary,backup.data);
     const counts=historyContract.countHistory(data);
+    const sources='API '+structured.status+' • Backup '+backupRes.status+
+      (backupResponse?' (revisão '+backup.revision+', '+backup.validEntries+' conjuntos válidos)':'');
+
 
     const remoteWeights=(Array.isArray(data?.weights)?data.weights:[])
       .map(remoteWeightToLocal).filter(Boolean);
@@ -582,8 +607,11 @@ async function hydrateAccountHistory(){
       state.treatment=remoteTreatment;
     }
 
-    const remoteWater=(Array.isArray(data?.water)?data.water:[])
-      .find(entry=>entry?.date===today);
+    const waterDays=(Array.isArray(data?.water)?data.water:[])
+      .filter(item=>historyContract.validDate(item?.date)&&Number.isFinite(Number(item?.consumedMl)))
+      .sort((a,b)=>b.date.localeCompare(a.date));
+    state.waterHistory=waterDays;
+    const remoteWater=waterDays.find(entry=>entry?.date===today);
     const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
     const remoteWaterUpdatedAtMs=Number(remoteWater?.updatedAtMs||0);
     if(remoteWater&&remoteWaterUpdatedAtMs>=localWaterUpdatedAtMs){
@@ -597,11 +625,16 @@ async function hydrateAccountHistory(){
 
     saveState();
     renderApp();
+    const total=Object.values(counts).reduce((sum,value)=>sum+value,0);
     setText('historySyncStatus',
-      'Conta consultada: '+counts.weights+' pesos, '+counts.measurements+' medidas, '+
+      (total?'Histórico carregado':'Nenhum histórico remoto encontrado')+
+      ': '+counts.weights+' pesos, '+counts.measurements+' medidas, '+
       counts.applications+' aplicações, '+counts.movement+' movimentos, '+
       counts.nutrition+' refeições, '+counts.treatment+' tratamento(s), '+
-      counts.water+' dias de hidratação. Pendências locais: '+loadHistoryOutbox().length+'.');
+      counts.water+' dias de água. '+sources+'. Pendências locais: '+
+      loadHistoryOutbox().length+(flushed?'':'. Algumas alterações da Web seguem pendentes.')+
+      (total?'':'. Se os registros estiverem apenas no celular, será necessário enviá-los a esta mesma conta.'));
+
     return true;
   }catch{
     setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
@@ -812,6 +845,11 @@ async function updateWater(nextWater){
   const updatedAtMs=Date.now();
   state.water=clamp(nextWater,0,10000);
   state.waterUpdatedAtMs=updatedAtMs;
+  const today=localDayKey();
+  state.waterHistory=[
+    {date:today,consumedMl:state.water,updatedAtMs},
+    ...(Array.isArray(state.waterHistory)?state.waterHistory:[]).filter(item=>item.date!==today)
+  ].sort((a,b)=>b.date.localeCompare(a.date));
   saveState();
   renderApp();
   const synced=await syncHistoryPatch({
