@@ -596,6 +596,21 @@ async function loadAccountHistory(){
       .sort((a,b)=>new Date(b.at)-new Date(a.at))
       .slice(0,200);
 
+    state.activities=remoteMovementToLocal(data?.movement)
+      .sort((a,b)=>new Date(b.at)-new Date(a.at))
+      .slice(0,500);
+
+    state.nutritionHistory=remoteNutritionToLocal(data?.nutrition)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+      .slice(0,365);
+    const todayNutrition=state.nutritionHistory.find(day=>day.date===localDayKey());
+    if(todayNutrition){
+      state.protein=(todayNutrition.meals||[]).reduce((sum,meal)=>sum+Number(meal.proteinG||0),0);
+      state.nutritionUpdatedAtMs=Number(todayNutrition.updatedAtMs||0);
+    }
+
+    state.treatment=normalizeRemoteTreatment(data?.treatment);
+
     const latest=state.measurementHistory[0];
     if(latest){
       state.measurements={
