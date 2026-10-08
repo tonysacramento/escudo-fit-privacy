@@ -236,6 +236,11 @@ function renderApp(){
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
     .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
     .join('')||'<small class="muted">Nenhuma atividade registrada hoje.</small>';
+  if($('activityHistoryPrevious'))$('activityHistoryPrevious').innerHTML=(Array.isArray(state.activities)?state.activities:[])
+    .filter(item=>localDayKey(item.at)!==today)
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,20)
+    .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma atividade anterior sincronizada.</small>';
 
   if($('applicationHistory'))$('applicationHistory').innerHTML=(Array.isArray(state.applications)?state.applications:[])
     .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,8)
@@ -275,6 +280,41 @@ function renderApp(){
       return '<div class="history-row measurement-history-row"><span>'+date+'</span><strong>'+values+'</strong></div>';
     }).join('')||'<small class="muted">Nenhuma medida sincronizada ainda.</small>';
   }
+  if($('movementHistoryList'))$('movementHistoryList').innerHTML=(Array.isArray(state.activities)?state.activities:[])
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,12)
+    .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhum movimento sincronizado ainda.</small>';
+
+  if($('nutritionHistoryList')){
+    const nutritionRows=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+      .flatMap(day=>(Array.isArray(day.meals)?day.meals:[]).map(meal=>({...meal,date:day.date})))
+      .sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,12);
+    $('nutritionHistoryList').innerHTML=nutritionRows
+      .map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g'+(meal.description?' • '+escapeText(meal.description):'')+'</span><strong>'+fmtDate(meal.at)+'</strong></div>')
+      .join('')||'<small class="muted">Nenhuma refeição sincronizada ainda.</small>';
+  }
+
+  if($('treatmentHistoryList')){
+    const treatment=state.treatment;
+    if(!treatment){
+      $('treatmentHistoryList').innerHTML='<small class="muted">Nenhum histórico de tratamento sincronizado ainda.</small>';
+    }else{
+      const rows=[];
+      if(treatment.medication&&treatment.medication!=='NONE'){
+        const started=treatment.treatmentStartDateIso
+          ?new Date(treatment.treatmentStartDateIso+'T12:00:00').toLocaleDateString('pt-BR')
+          :'data não informada';
+        rows.push('<div class="history-row"><span>Atual: '+escapeText(medicationLabels[treatment.medication]||treatment.medication)+(treatment.medicationDoseLabel?' • '+escapeText(treatment.medicationDoseLabel):'')+'</span><strong>desde '+started+'</strong></div>');
+      }
+      for(const item of (Array.isArray(treatment.history)?treatment.history:[]).slice().sort((a,b)=>Number(b.changedAtMs||0)-Number(a.changedAtMs||0)).slice(0,12)){
+        const start=item.startDateIso?new Date(item.startDateIso+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+        const end=item.endDateIso?new Date(item.endDateIso+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+        rows.push('<div class="history-row"><span>'+escapeText(medicationLabels[item.medication]||item.medication)+(item.doseLabel?' • '+escapeText(item.doseLabel):'')+'</span><strong>'+start+' → '+end+'</strong></div>');
+      }
+      $('treatmentHistoryList').innerHTML=rows.join('')||'<small class="muted">Nenhum período anterior sincronizado.</small>';
+    }
+  }
+
   if($('profileName'))$('profileName').value=state.profile?.name||'';
 
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
