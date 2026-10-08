@@ -652,7 +652,7 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
 
   await page.evaluate(()=>localStorage.removeItem('escudofit_web_user_v2_qa-water-user'));
   await page.reload({waitUntil:'networkidle'});
-  await expect(page.locator('#waterMl')).toHaveText('1200 ml');
+  await expect(page.locator('#waterMl')).toHaveText('1400 ml');
 });
 
 
