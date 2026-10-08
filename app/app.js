@@ -726,7 +726,7 @@ function initGoogle(){
 
 async function resetGoogleSession(message){
   try{if(auth?.access_token)await apiFetch('/auth/logout',{method:'POST'})}catch{}
-  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
@@ -810,7 +810,7 @@ $('saveMeasurements').addEventListener('click',async()=>{
   $('measureSaved').textContent=synced?'Medidas salvas na sua conta.':'Medidas salvas; sincronização pendente.';
   toast(synced?'Medidas sincronizadas':'Medidas salvas');
 });
-$('addActivity')?.addEventListener('click',()=>{
+$('addActivity')?.addEventListener('click',async()=>{
   const type=$('activityType')?.value||'WALKING';
   const raw=String($('activityDuration')?.value||'').trim();
   const duration=raw===''?null:Number(raw);
@@ -818,11 +818,23 @@ $('addActivity')?.addEventListener('click',()=>{
     if($('activitySaved'))$('activitySaved').textContent='Informe uma duração válida ou deixe em branco.';
     return;
   }
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+Date.now()),type,duration,at:new Date().toISOString()};
-  state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,200);
+  const now=Date.now();
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString()};
+  state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,500);
   if($('activityDuration'))$('activityDuration').value='';
-  if($('activitySaved'))$('activitySaved').textContent='Atividade registrada.';
-  saveState();renderApp();toast('Atividade registrada');
+  saveState();renderApp();
+  const date=localDayKey(entry.at);
+  const records=state.activities
+    .filter(item=>localDayKey(item.at)===date)
+    .map(item=>({
+      id:item.id,
+      activityType:item.type,
+      timestampMs:new Date(item.at).getTime(),
+      ...(item.duration?{durationMinutes:Number(item.duration)}:{})
+    }));
+  const synced=await syncHistoryPatch({movement:[{date,records,updatedAtMs:now}]});
+  if($('activitySaved'))$('activitySaved').textContent=synced?'Atividade salva na sua conta.':'Atividade registrada; sincronização pendente.';
+  toast(synced?'Atividade sincronizada':'Atividade registrada');
 });
 
 document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -854,7 +866,7 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
-$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};renderApp();toast('Dados locais apagados')});
+$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
