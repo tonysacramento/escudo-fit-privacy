@@ -261,7 +261,8 @@ test('FREE account opens Web Full and hydrates account history', async ({ page }
       headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({
         weights: [{ id:'w-1', weightKg:82.4, timestampMs:Date.UTC(2026,9,5,12,0,0), origin:'PROFILE' }],
-        measurements: [{ date:'2026-10-05', waist:92.5, abdomen:96.0, hips:101.2 }]
+        measurements: [{ date:'2026-10-05', waist:92.5, abdomen:96.0, hips:101.2 }],
+        applications: [{ id:'a-1', site:'Abdômen', appliedAtMs:Date.UTC(2026,9,5,18,30,0) }]
       })
     });
   });
@@ -278,6 +279,8 @@ test('FREE account opens Web Full and hydrates account history', async ({ page }
   await expect(page.locator('[data-target="activities"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('[data-target="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
+  await page.locator('[data-target="applications"]').click();
+  await expect(page.locator('#applicationHistory')).toContainText('Abdômen');
 });
 
 
@@ -718,4 +721,43 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
   await expect(page.locator('#trialLoginButton')).toBeHidden();
   expect(captured.promoCode).toBe('Monise30');
   expect(captured.email).toBe('divulgacao@example.com');
+});
+
+
+test('web application registration syncs to account history', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
+      user:{id:'qa-app-sync',email:'qa.app.sync@example.com',name:'QA Aplicação'},
+      entitlement:{mode:'PREMIUM',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null},
+      access_token:'qa-app-access',
+      refresh_token:'qa-app-refresh'
+    }));
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', async route => {
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({user:{id:'qa-app-sync',email:'qa.app.sync@example.com',name:'QA Aplicação'}})});
+  });
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/entitlement/me', async route => {
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({mode:'PREMIUM',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null})});
+  });
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({weights:[],measurements:[],applications:[],water:[]})});
+  });
+
+  let captured=null;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history/sync', async route => {
+    captured=route.request().postDataJSON();
+    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({synced:true,applications:1})});
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
+  await expect(page.locator('#appExperience')).toBeVisible();
+  await page.locator('[data-target="applications"]').click();
+  await page.locator('[data-application-site="Abdômen"]').click();
+
+  await expect(page.locator('#applicationSaved')).toContainText('na sua conta');
+  expect(Array.isArray(captured?.applications)).toBe(true);
+  expect(captured.applications).toHaveLength(1);
+  expect(captured.applications[0].site).toBe('Abdômen');
+  expect(Number.isFinite(Number(captured.applications[0].appliedAtMs))).toBe(true);
 });
