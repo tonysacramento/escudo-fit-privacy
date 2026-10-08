@@ -97,7 +97,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
 
   // Old Android versions may have uploaded a backup but no structured history.
   structuredHistory={};
-  const backupDate=apiDate;
+  const backupDate=new Date(Date.parse(apiDate+'T12:00:00.000Z')-86400000).toISOString().slice(0,10);
   backupSnapshot={
     revision:4,
     entries:[
