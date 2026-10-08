@@ -15,6 +15,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     url:'https://escudofit.example/app/',runScripts:'outside-only',pretendToBeVisual:true,
   });
   const {window}=dom;
+  try {
   window.scrollTo=()=>{};
   window.HTMLElement.prototype.scrollIntoView=()=>{};
   window.localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({
@@ -80,5 +81,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.ok(treatments.length>=1,'Web should POST treatment');
   assert.equal(treatments.at(-1).treatment.medication,'WEGOVY');
   assert.equal(window.localStorage.getItem('escudofit_history_outbox_v1_qa-user'),'[]');
-  dom.window.close();
+  } finally {
+    dom.window.close();
+  }
 });
