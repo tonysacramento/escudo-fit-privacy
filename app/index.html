@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v42-full-2">
+  <meta name="escudo-fit-build" content="web-v42-history-qa-1">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
@@ -236,11 +236,26 @@
                 </div>
               </div>
               <div class="two-inputs app-input-grid">
-                <label class="app-field">Consumido (g)<input id="proteinInput" type="number" min="0" step="1"></label>
+                <label class="app-field">Consumido (g)<input id="proteinInput" type="number" min="0" step="1" readonly title="Total calculado a partir do histórico de refeições"></label>
                 <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" step="1"></label>
               </div>
               <div class="app-progress gold"><i id="proteinBar"></i></div>
               <p id="nutritionHint">Acompanhe sua meta diária de proteína.</p>
+              <div class="app-input-grid" data-full-only>
+                <p class="muted">Registre uma refeição para sincronizar o histórico com o Android.</p>
+                <label class="app-field">Tipo de refeição
+                  <select id="nutritionMealType">
+                    <option value="BREAKFAST">Café da manhã</option>
+                    <option value="LUNCH">Almoço</option>
+                    <option value="DINNER">Jantar</option>
+                    <option value="SNACK">Lanche</option>
+                  </select>
+                </label>
+                <label class="app-field">Proteína (g)<input id="nutritionMealProtein" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal" placeholder="Ex.: 25"></label>
+                <label class="app-field">Descrição opcional<input id="nutritionMealDescription" type="text" maxlength="240" placeholder="Ex.: almoço"></label>
+                <button id="nutritionAddMeal" class="button button-outline full-width">Registrar refeição</button>
+                <p id="nutritionSaved" class="saved"></p>
+              </div>
             </article>
 
             <article class="screen-card shield-card medication-card" data-full-only>
@@ -443,6 +458,8 @@
           <div class="screen-card" data-full-only>
             <div class="section-title cyan"><span>☁️</span><b>HISTÓRICO SINCRONIZADO</b></div>
             <p class="muted">Registros recuperados da sua Conta Google. O histórico local do aparelho continua preservado durante a sincronização.</p>
+            <button id="refreshHistoryButton" class="button button-outline full-width">Recarregar histórico da conta</button>
+            <p id="historySyncStatus" class="saved" role="status" aria-live="polite">Histórico ainda não validado nesta sessão.</p>
 
             <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
             <div id="movementHistoryList" class="history"></div>
@@ -451,6 +468,22 @@
             <div id="nutritionHistoryList" class="history"></div>
 
             <div class="section-title gold"><span>💉</span><b>TRATAMENTO</b></div>
+            <div class="app-input-grid">
+              <label class="app-field">Medicação do acompanhamento
+                <select id="treatmentMedication">
+                  <option value="NONE">Nenhuma</option>
+                  <option value="OZEMPIC">Ozempic</option>
+                  <option value="WEGOVY">Wegovy</option>
+                  <option value="MOUNJARO">Mounjaro</option>
+                  <option value="SAXENDA">Saxenda</option>
+                  <option value="OTHER">Outro</option>
+                </select>
+              </label>
+              <label class="app-field">Dose informada pelo usuário<input id="treatmentDose" type="text" maxlength="80" placeholder="Opcional"></label>
+              <label class="app-field">Data de início<input id="treatmentStart" type="date"></label>
+              <button id="saveTreatment" class="button button-outline full-width">Atualizar histórico de tratamento</button>
+              <p id="treatmentSaved" class="saved"></p>
+            </div>
             <div id="treatmentHistoryList" class="history"></div>
           </div>
 
@@ -472,6 +505,7 @@
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=web-v42-history-complete-1" defer></script>
+  <script src="./history-sync-contract.js?v=web-v42-history-qa-1" defer></script>
+  <script src="./app.js?v=web-v42-history-qa-1" defer></script>
 </body>
 </html>
