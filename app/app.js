@@ -1,4 +1,6 @@
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
+const historyContract=window.EscudoHistoryContract;
+if(!historyContract)throw new Error('HISTORY_CONTRACT_NOT_LOADED');
 const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
@@ -271,7 +273,7 @@ function renderApp(){
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   const m=state.measurements||{};
-  [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hip'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
+  [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
   if($('measurementHistoryList')){
     const fields=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']];
     $('measurementHistoryList').innerHTML=(state.measurementHistory||[]).slice(0,6).map(entry=>{
@@ -316,6 +318,9 @@ function renderApp(){
   }
 
   if($('profileName'))$('profileName').value=state.profile?.name||'';
+  if($('treatmentMedication'))$('treatmentMedication').value=state.treatment?.medication||'NONE';
+  if($('treatmentDose'))$('treatmentDose').value=state.treatment?.medicationDoseLabel||'';
+  if($('treatmentStart'))$('treatmentStart').value=state.treatment?.treatmentStartDateIso||'';
 
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
   setText('welcomeName',displayName);
@@ -350,18 +355,7 @@ function remoteWeightToLocal(weight){
   return {id:String(weight.id),value:weightKg,at:new Date(timestampMs).toISOString()};
 }
 
-function remoteMeasurementToLocal(item){
-  if(!item?.date)return null;
-  return {
-    date:String(item.date),
-    waist:Number.isFinite(Number(item.waist))?Number(item.waist):null,
-    abdomen:Number.isFinite(Number(item.abdomen))?Number(item.abdomen):null,
-    hip:Number.isFinite(Number(item.hips))?Number(item.hips):null,
-    chest:Number.isFinite(Number(item.chest))?Number(item.chest):null,
-    arm:Number.isFinite(Number(item.arm))?Number(item.arm):null,
-    thigh:Number.isFinite(Number(item.thigh))?Number(item.thigh):null,
-  };
-}
+function remoteMeasurementToLocal(item){return historyContract.asMeasurement(item)}
 
 function remoteApplicationToLocal(item){
   const appliedAtMs=Number(item?.appliedAtMs);
@@ -390,7 +384,8 @@ function remoteMovementToLocal(days){
         type,
         duration:record?.durationMinutes==null?null:Number(record.durationMinutes),
         at:new Date(timestampMs).toISOString(),
-        date
+        date,
+        dayUpdatedAtMs:Number(day?.updatedAtMs||0)
       }];
     });
   });
@@ -440,23 +435,62 @@ async function authenticatedFetch(path,options={}){
   return res;
 }
 
+// Account-scoped outbox: Web edits survive offline periods and are retried
+// in their original order before remote hydration. Never flush another user.
+const HISTORY_OUTBOX_PREFIX='escudofit_history_outbox_v1_';
+let historyPatchChain=Promise.resolve();
+function historyOutboxKey(){return HISTORY_OUTBOX_PREFIX+String(auth?.user?.id||'guest')}
+function loadHistoryOutbox(){
+  try{const result=JSON.parse(localStorage.getItem(historyOutboxKey())||'[]');return Array.isArray(result)?result:[]}
+  catch{return[]}
+}
+function storeHistoryOutbox(entries){localStorage.setItem(historyOutboxKey(),JSON.stringify(entries))}
+async function flushPendingHistory(){
+  if(!auth?.access_token||!auth?.user)return false;
+  const entries=loadHistoryOutbox();
+  for(const entry of entries){
+    try{
+      const res=await authenticatedFetch('/history/sync',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(entry.payload)
+      });
+      if(!res.ok)return false;
+      const remaining=loadHistoryOutbox().filter(item=>item.id!==entry.id);
+      storeHistoryOutbox(remaining);
+    }catch{return false}
+  }
+  return true;
+}
 async function syncHistoryPatch(payload){
-  try{
-    const res=await authenticatedFetch('/history/sync',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload),
+  if(!auth?.user)return false;
+  const pending=historyPatchChain.then(async()=>{
+    const entries=loadHistoryOutbox();
+    if(entries.length>=200){
+      setText('historySyncStatus','Fila de histórico cheia. Não apague os dados locais; conecte-se para sincronizar.');
+      return false;
+    }
+    entries.push({
+      id:(crypto.randomUUID?crypto.randomUUID():'history-'+Date.now()+'-'+entries.length),
+      payload,
+      createdAtMs:Date.now()
     });
-    return res.ok;
-  }catch{return false}
+    storeHistoryOutbox(entries);
+    return flushPendingHistory();
+  }).catch(()=>false);
+  historyPatchChain=pending.then(()=>undefined);
+  return pending;
 }
 
 async function hydrateAccountHistory(){
-  if(!auth?.user)return;
+  if(!auth?.user)return false;
   try{
+    await historyPatchChain;
+    await flushPendingHistory();
     const res=await authenticatedFetch('/history');
     if(!res.ok)return;
     const data=await res.json();
+    const counts=historyContract.countHistory(data);
 
     const remoteWeights=(Array.isArray(data?.weights)?data.weights:[])
       .map(remoteWeightToLocal).filter(Boolean);
@@ -490,7 +524,7 @@ async function hydrateAccountHistory(){
     if(state.measurementHistory.length){
       const latest=state.measurementHistory[0];
       state.measurements={
-        waist:latest.waist,abdomen:latest.abdomen,hip:latest.hip,chest:latest.chest,
+        waist:latest.waist,abdomen:latest.abdomen,hips:latest.hips,chest:latest.chest,
         arm:latest.arm,thigh:latest.thigh,savedAt:latest.date,
       };
     }
@@ -509,29 +543,31 @@ async function hydrateAccountHistory(){
     mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
     state.applications=mergedApplications.slice(0,200);
 
-    const remoteActivities=remoteMovementToLocal(data?.movement);
-    const mergedActivities=[];
-    const seenActivityIds=new Set();
-    for(const entry of [...(Array.isArray(state.activities)?state.activities:[]),...remoteActivities]){
-      const id=String(entry?.id||'');
-      if(!id||seenActivityIds.has(id))continue;
-      seenActivityIds.add(id);
-      mergedActivities.push(entry);
+    const remoteMovementDays=Array.isArray(data?.movement)?data.movement:[];
+    const remoteActivities=remoteMovementToLocal(remoteMovementDays);
+    const remoteByDay=new Map();
+    for(const entry of remoteActivities){
+      const day=entry.date||localDayKey(entry.at);
+      if(!remoteByDay.has(day))remoteByDay.set(day,[]);
+      remoteByDay.get(day).push(entry);
     }
-    mergedActivities.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
-    state.activities=mergedActivities.slice(0,500);
+    let mergedActivities=Array.isArray(state.activities)?[...state.activities]:[];
+    for(const day of remoteMovementDays){
+      const date=String(day?.date||'');
+      if(!historyContract.validDate(date))continue;
+      const remoteAt=Number(day.updatedAtMs||0);
+      const localDay=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))===date);
+      const localAt=Math.max(0,...localDay.map(entry=>Number(entry.dayUpdatedAtMs||new Date(entry.at).getTime())));
+      if(remoteAt>=localAt){
+        // A newer day snapshot also carries explicit removals.
+        mergedActivities=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))!==date)
+          .concat(remoteByDay.get(date)||[]);
+      }
+    }
+    state.activities=mergedActivities.sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,500);
 
     const remoteNutrition=remoteNutritionToLocal(data?.nutrition);
-    const mergedNutrition=[];
-    const seenNutritionDates=new Set();
-    for(const day of [...remoteNutrition,...(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])]){
-      const date=String(day?.date||'');
-      if(!date||seenNutritionDates.has(date))continue;
-      seenNutritionDates.add(date);
-      mergedNutrition.push(day);
-    }
-    mergedNutrition.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-    state.nutritionHistory=mergedNutrition.slice(0,365);
+    state.nutritionHistory=historyContract.mergeNutritionDays(state.nutritionHistory,remoteNutrition);
 
     const today=localDayKey();
     const todayNutrition=state.nutritionHistory.find(day=>day.date===today);
@@ -561,7 +597,16 @@ async function hydrateAccountHistory(){
 
     saveState();
     renderApp();
-  }catch{}
+    setText('historySyncStatus',
+      'Conta consultada: '+counts.weights+' pesos, '+counts.measurements+' medidas, '+
+      counts.applications+' aplicações, '+counts.movement+' movimentos, '+
+      counts.nutrition+' refeições, '+counts.treatment+' tratamento(s), '+
+      counts.water+' dias de hidratação. Pendências locais: '+loadHistoryOutbox().length+'.');
+    return true;
+  }catch{
+    setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
+    return false;
+  }
 }
 
 async function loadAccountHistory(){
@@ -586,8 +631,7 @@ async function loadAccountHistory(){
       .sort((a,b)=>new Date(b.at)-new Date(a.at));
     if(state.weights.length)state.waterGoal=waterGoalFromWeight(state.weights[0].value);
 
-    state.measurementHistory=measurements
-      .filter(item=>/^\d{4}-\d{2}-\d{2}$/.test(String(item?.date||'')))
+    state.measurementHistory=measurements.map(remoteMeasurementToLocal).filter(Boolean)
       .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
 
     state.applications=applications
@@ -616,7 +660,7 @@ async function loadAccountHistory(){
       state.measurements={
         waist:latest.waist??null,
         abdomen:latest.abdomen??null,
-        hip:latest.hips??null,
+        hips:latest.hips??null,
         arm:latest.arm??null,
         thigh:latest.thigh??null,
         chest:latest.chest??null,
@@ -780,8 +824,87 @@ document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',
 $('waterReset').addEventListener('click',()=>{void updateWater(0)});
 $('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Movimento salvo')});
 $('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
-$('proteinInput').addEventListener('change',e=>{state.protein=clamp(num(e.target.value),0,1000);saveState();renderApp()});
+// Protein consumed is a derived total of dated meals, never an unsynchronized counter.
 $('proteinGoalInput').addEventListener('change',e=>{state.proteinGoal=clamp(num(e.target.value)||100,1,1000);saveState();renderApp()});
+
+$('nutritionAddMeal')?.addEventListener('click',async()=>{
+  const mealType=String($('nutritionMealType')?.value||'LUNCH');
+  const grams=Number(String($('nutritionMealProtein')?.value||'').replace(',','.'));
+  if(!Number.isFinite(grams)||grams<=0||grams>1000){
+    setText('nutritionSaved','Informe uma quantidade válida de proteína.');
+    return;
+  }
+  const now=Date.now();
+  const date=localDayKey();
+  const current=state.nutritionHistory.find(day=>day.date===date)||{date,updatedAtMs:0,meals:[]};
+  const meal={
+    id:crypto.randomUUID?crypto.randomUUID():'meal-'+now,
+    mealType,proteinG:Math.round(grams*10)/10,
+    at:new Date(now).toISOString(),
+    description:String($('nutritionMealDescription')?.value||'').trim().slice(0,240)
+  };
+  const changed={
+    date,
+    updatedAtMs:Math.max(now,Number(current.updatedAtMs||0)+1),
+    meals:[...(Array.isArray(current.meals)?current.meals:[]),meal]
+  };
+  let patch;
+  try{patch=historyContract.nutritionPatch(changed)}
+  catch{setText('nutritionSaved','Não foi possível validar a refeição.');return}
+  state.nutritionHistory=historyContract.mergeNutritionDays(state.nutritionHistory,[changed]);
+  state.protein=changed.meals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
+  state.nutritionUpdatedAtMs=changed.updatedAtMs;
+  if($('nutritionMealProtein'))$('nutritionMealProtein').value='';
+  if($('nutritionMealDescription'))$('nutritionMealDescription').value='';
+  saveState();renderApp();
+  const synced=await syncHistoryPatch({nutrition:[patch]});
+  setText('nutritionSaved',synced?'Refeição sincronizada com a Conta Google.':'Refeição salva localmente; sincronização pendente.');
+  toast(synced?'Refeição sincronizada':'Refeição salva');
+});
+
+$('saveTreatment')?.addEventListener('click',async()=>{
+  const medication=String($('treatmentMedication')?.value||'NONE');
+  const medicationDoseLabel=String($('treatmentDose')?.value||'').trim().slice(0,80);
+  const treatmentStartDateIso=String($('treatmentStart')?.value||'');
+  if(!historyContract.validDate(treatmentStartDateIso)){
+    setText('treatmentSaved','Informe uma data de início válida.');return;
+  }
+  const previous=state.treatment||null;
+  const same=previous?.medication===medication&&
+    String(previous?.medicationDoseLabel||'')===medicationDoseLabel&&
+    previous?.treatmentStartDateIso===treatmentStartDateIso;
+  if(same){setText('treatmentSaved','O tratamento informado já está atualizado.');return}
+  const now=Date.now();
+  const earlierHistory=Array.isArray(previous?.history)?previous.history:[];
+  const archived=(previous&&previous.medication&&previous.medication!=='NONE')
+    ? [{
+      id:crypto.randomUUID?crypto.randomUUID():'treatment-'+now,
+      medication:previous.medication,
+      ...(previous.medicationDoseLabel?{doseLabel:previous.medicationDoseLabel}:{}),
+      ...(historyContract.validDate(previous.treatmentStartDateIso)?{startDateIso:previous.treatmentStartDateIso}:{}),
+      endDateIso:treatmentStartDateIso,
+      changedAtMs:now
+    }]
+    : [];
+  const next={
+    medication,medicationDoseLabel,treatmentStartDateIso,
+    updatedAtMs:Math.max(now,Number(previous?.updatedAtMs||0)+1),
+    history:[...earlierHistory,...archived].slice(-200)
+  };
+  let patch;
+  try{patch=historyContract.treatmentPatch(next)}
+  catch{setText('treatmentSaved','Não foi possível validar o tratamento.');return}
+  state.treatment=next;saveState();renderApp();
+  const synced=await syncHistoryPatch({treatment:patch});
+  setText('treatmentSaved',synced?'Tratamento sincronizado com a Conta Google.':'Tratamento salvo localmente; sincronização pendente.');
+  toast(synced?'Tratamento sincronizado':'Tratamento salvo');
+});
+
+$('refreshHistoryButton')?.addEventListener('click',async()=>{
+  setText('historySyncStatus','Consultando o histórico da sua conta…');
+  const synced=await hydrateAccountHistory();
+  toast(synced?'Histórico da conta atualizado':'Histórico local preservado; consulta pendente');
+});
 $('addWeight').addEventListener('click',async()=>{
   const v=num($('weightInput').value);
   if(v<20||v>400)return toast('Informe um peso válido');
@@ -797,12 +920,12 @@ $('addWeight').addEventListener('click',async()=>{
   toast(synced?'Peso salvo na sua conta':'Peso salvo; sincronização pendente');
 });
 $('saveMeasurements').addEventListener('click',async()=>{
-  const date=new Date().toISOString().slice(0,10);
+  const date=localDayKey();
   const local={
     date,
     waist:num($('mWaist').value)||null,
     abdomen:num($('mAbdomen').value)||null,
-    hip:num($('mHip').value)||null,
+    hips:num($('mHip').value)||null,
     arm:num($('mArm').value)||null,
     thigh:num($('mThigh').value)||null,
     chest:num($('mChest').value)||null,
@@ -816,7 +939,7 @@ $('saveMeasurements').addEventListener('click',async()=>{
     date,
     ...(local.waist?{waist:local.waist}:{}),
     ...(local.abdomen?{abdomen:local.abdomen}:{}),
-    ...(local.hip?{hips:local.hip}:{}),
+    ...(local.hips?{hips:local.hips}:{}),
     ...(local.chest?{chest:local.chest}:{}),
     ...(local.arm?{arm:local.arm}:{}),
     ...(local.thigh?{thigh:local.thigh}:{}),
@@ -834,11 +957,13 @@ $('addActivity')?.addEventListener('click',async()=>{
     return;
   }
   const now=Date.now();
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString()};
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString(),dayUpdatedAtMs:now};
   state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,500);
   if($('activityDuration'))$('activityDuration').value='';
   saveState();renderApp();
   const date=localDayKey(entry.at);
+  state.activities=state.activities.map(item=>localDayKey(item.at)===date?{...item,dayUpdatedAtMs:now}:item);
+  saveState();
   const records=state.activities
     .filter(item=>localDayKey(item.at)===date)
     .map(item=>({
@@ -881,7 +1006,7 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
-$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
+$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());localStorage.removeItem(historyOutboxKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
