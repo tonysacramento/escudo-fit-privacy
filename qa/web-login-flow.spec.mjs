@@ -626,7 +626,7 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
 
   await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', async route => {
     await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({
-      weights:[],measurements:[],water:[remoteWater]
+      weights:[{id:'water-weight',weightKg:100.7,timestampMs:Date.UTC(2026,9,7,10,0,0),origin:'PROFILE'}],measurements:[],water:[remoteWater]
     })});
   });
 
@@ -641,13 +641,18 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
   await page.locator('#mock-water-login').click();
 
   await expect(page.locator('#waterMl')).toHaveText('1000 ml');
+  await expect(page.locator('#waterGoalLabel')).toHaveText('3500 ml');
   await page.locator('[data-water="200"]').first().click();
   await expect(page.locator('#waterMl')).toHaveText('1200 ml');
   await expect.poll(()=>remoteWater.consumedMl).toBe(1200);
 
+  remoteWater={date:'2026-10-07',consumedMl:1400,updatedAtMs:Date.parse('2026-10-07T13:05:00.000Z')};
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('#waterMl')).toHaveText('1400 ml');
+
   await page.evaluate(()=>localStorage.removeItem('escudofit_web_user_v2_qa-water-user'));
   await page.reload({waitUntil:'networkidle'});
-  await expect(page.locator('#waterMl')).toHaveText('1200 ml');
+  await expect(page.locator('#waterMl')).toHaveText('1400 ml');
 });
 
 

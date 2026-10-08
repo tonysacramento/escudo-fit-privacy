@@ -21,6 +21,7 @@ function saveState(){state.updatedAt=new Date().toISOString();localStorage.setIt
 function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
 function pct(v,g){return g>0?clamp(Math.round((v/g)*100),0,100):0}
 function num(v){const n=Number(String(v).replace(',','.'));return Number.isFinite(n)?n:0}
+function waterGoalFromWeight(weightKg){const n=Number(weightKg);return Number.isFinite(n)&&n>0?Math.round((n*35)/50)*50:2000}
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
 function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
@@ -363,6 +364,7 @@ async function hydrateAccountHistory(){
     }
     mergedWeights.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
     state.weights=mergedWeights.slice(0,200);
+    if(state.weights.length)state.waterGoal=waterGoalFromWeight(state.weights[0].value);
 
     const remoteMeasurements=(Array.isArray(data?.measurements)?data.measurements:[])
       .map(remoteMeasurementToLocal).filter(Boolean);
@@ -440,6 +442,7 @@ async function loadAccountHistory(){
         origin:item.origin||'PROFILE'
       }))
       .sort((a,b)=>new Date(b.at)-new Date(a.at));
+    if(state.weights.length)state.waterGoal=waterGoalFromWeight(state.weights[0].value);
 
     state.measurementHistory=measurements
       .filter(item=>/^\d{4}-\d{2}-\d{2}$/.test(String(item?.date||'')))
@@ -629,6 +632,7 @@ $('addWeight').addEventListener('click',async()=>{
   const id=crypto.randomUUID?crypto.randomUUID():'web-'+timestampMs;
   const local={id,value:v,at:new Date(timestampMs).toISOString()};
   state.weights=[local,...state.weights].slice(0,200);
+  state.waterGoal=waterGoalFromWeight(v);
   $('weightInput').value='';
   saveState();
   renderApp();
@@ -716,6 +720,13 @@ $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installButtonFloating').classList.remove('hidden')});
 $('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installButtonFloating').classList.add('hidden')});
 window.addEventListener('appinstalled',()=>toast('Escudo Fit instalado'));
+
+window.addEventListener('focus',()=>{
+  if(auth?.user)void hydrateAccountHistory();
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&auth?.user)void hydrateAccountHistory();
+});
 
 if('serviceWorker'in navigator){
   let reloadingForWorker=false;
