@@ -1006,7 +1006,7 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
-$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
+$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());localStorage.removeItem(historyOutboxKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
