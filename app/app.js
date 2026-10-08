@@ -3,9 +3,9 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
-let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
 let googleReady=false;
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
@@ -16,7 +16,7 @@ const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
 function dataKey(){return DATA_PREFIX+(auth?.user?.id||'guest')}
-function loadState(){try{return {...defaults,...JSON.parse(localStorage.getItem(dataKey())||'{}')}}catch{return {...defaults,weights:[],measurements:{},measurementHistory:[],profile:{name:''}}}}
+function loadState(){try{return {...defaults,...JSON.parse(localStorage.getItem(dataKey())||'{}')}}catch{return {...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}}}}
 function saveState(){state.updatedAt=new Date().toISOString();localStorage.setItem(dataKey(),JSON.stringify(state))}
 function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
 function pct(v,g){return g>0?clamp(Math.round((v/g)*100),0,100):0}
@@ -25,8 +25,15 @@ function waterGoalFromWeight(weightKg){const n=Number(weightKg);return Number.is
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
 function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
+const mealLabels={BREAKFAST:'Café da manhã',LUNCH:'Almoço',DINNER:'Jantar',SNACK:'Lanche'};
+const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro',NONE:'Nenhum'};
+const applicationSiteLabels={
+  ABDOMEN:'Abdômen',ABDOMEN_LEFT:'Abdômen esquerdo',ABDOMEN_RIGHT:'Abdômen direito',
+  THIGH_LEFT:'Coxa esquerda',THIGH_RIGHT:'Coxa direita',ARM_LEFT:'Braço esquerdo',
+  ARM_RIGHT:'Braço direito',OTHER:'Outro',UNSPECIFIED:'Local não informado'
+};
 function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
-function escapeText(value){return String(value??'')}
+function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 
 function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
