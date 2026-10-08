@@ -363,6 +363,8 @@
           <article class="screen-card">
             <div class="section-title green"><span>📈</span><b>ATIVIDADES DE HOJE</b></div>
             <div id="activityHistory" class="history"></div>
+            <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO SINCRONIZADO</b></div>
+            <div id="activityHistoryPrevious" class="history"></div>
           </article>
         </section>
 
@@ -380,7 +382,7 @@
             <div class="hero-shield-copy">
               <div class="section-title gold"><b>ESCUDO DE APLICAÇÕES</b></div>
               <h3>Ciclo disponível</h3>
-              <p>Os registros Web ficam associados ao estado local desta conta nesta etapa. A sincronização com o Android entra na unificação do histórico.</p>
+              <p>Os registros de aplicações são vinculados à sua Conta Google e podem ser consultados entre Android e Web.</p>
             </div>
           </article>
 
@@ -434,8 +436,22 @@
 
           <div class="screen-card">
             <h3>Seus dados</h3>
-            <p class="muted">Peso e medidas são vinculados à sua Conta Google quando sincronizados pela v42, permitindo consultar o mesmo histórico no Android e na Web.</p>
+            <p class="muted">Peso, medidas, aplicações, movimento, nutrição e histórico de tratamento podem ser vinculados à sua Conta Google para consulta entre Android e Web.</p>
             <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
+          </div>
+
+          <div class="screen-card" data-full-only>
+            <div class="section-title cyan"><span>☁️</span><b>HISTÓRICO SINCRONIZADO</b></div>
+            <p class="muted">Registros recuperados da sua Conta Google. O histórico local do aparelho continua preservado durante a sincronização.</p>
+
+            <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
+            <div id="movementHistoryList" class="history"></div>
+
+            <div class="section-title gold"><span>🍽️</span><b>NUTRIÇÃO</b></div>
+            <div id="nutritionHistoryList" class="history"></div>
+
+            <div class="section-title gold"><span>💉</span><b>TRATAMENTO</b></div>
+            <div id="treatmentHistoryList" class="history"></div>
           </div>
 
           <button id="switchAccountButton" class="button button-outline full-width">Trocar Conta Google</button>
@@ -456,6 +472,6 @@
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=web-v42-full-2" defer></script>
+  <script src="./app.js?v=web-v42-history-complete-1" defer></script>
 </body>
 </html>

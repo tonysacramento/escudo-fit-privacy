@@ -216,7 +216,7 @@ test('stale cached profile is not trusted when backend validation fails', async 
 });
 
 
-test('FREE account opens Web Full and hydrates account history', async ({ page }) => {
+test('FREE account opens Web Full and hydrates complete account history', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.route('https://accounts.google.com/gsi/client', async route => {
@@ -262,7 +262,48 @@ test('FREE account opens Web Full and hydrates account history', async ({ page }
       body: JSON.stringify({
         weights: [{ id:'w-1', weightKg:82.4, timestampMs:Date.UTC(2026,9,5,12,0,0), origin:'PROFILE' }],
         measurements: [{ date:'2026-10-05', waist:92.5, abdomen:96.0, hips:101.2 }],
-        applications: [{ id:'a-1', site:'Abdômen', appliedAtMs:Date.UTC(2026,9,5,18,30,0) }]
+        applications: [{
+          id:'a-1',
+          applicationSite:'ABDOMEN_LEFT',
+          scheduledDateIso:'2026-10-05',
+          appliedAtMs:Date.UTC(2026,9,5,18,30,0)
+        }],
+        movement: [{
+          date:'2026-10-05',
+          updatedAtMs:Date.UTC(2026,9,5,19,0,0),
+          records:[{
+            id:'m-1',
+            activityType:'WALKING',
+            durationMinutes:35,
+            timestampMs:Date.UTC(2026,9,5,17,0,0)
+          }]
+        }],
+        nutrition: [{
+          date:'2026-10-05',
+          updatedAtMs:Date.UTC(2026,9,5,20,0,0),
+          meals:[{
+            id:'n-1',
+            mealType:'LUNCH',
+            proteinG:35,
+            description:'Frango e salada',
+            timestampMs:Date.UTC(2026,9,5,16,0,0)
+          }]
+        }],
+        treatment: {
+          medication:'MOUNJARO',
+          medicationDoseLabel:'registro atual',
+          treatmentStartDateIso:'2026-09-01',
+          updatedAtMs:Date.UTC(2026,9,5,21,0,0),
+          history:[{
+            id:'t-1',
+            medication:'OZEMPIC',
+            doseLabel:'registro anterior',
+            startDateIso:'2026-08-01',
+            endDateIso:'2026-08-31',
+            changedAtMs:Date.UTC(2026,8,1,12,0,0)
+          }]
+        },
+        water:[]
       })
     });
   });
@@ -279,10 +320,22 @@ test('FREE account opens Web Full and hydrates account history', async ({ page }
   await expect(page.locator('[data-target="activities"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('[data-target="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
-  await page.locator('[data-target="applications"]').click();
-  await expect(page.locator('#applicationHistory')).toContainText('Abdômen');
-});
 
+  await page.locator('[data-target="applications"]').click();
+  await expect(page.locator('#applicationHistory')).toContainText('Abdômen esquerdo');
+
+  await page.locator('[data-target="activities"]').click();
+  await expect(page.locator('#activityHistoryPrevious')).toContainText('Caminhada');
+  await expect(page.locator('#activityHistoryPrevious')).toContainText('35 min');
+
+  await page.locator('[data-target="profile"]').click();
+  await expect(page.locator('#movementHistoryList')).toContainText('Caminhada');
+  await expect(page.locator('#nutritionHistoryList')).toContainText('Almoço');
+  await expect(page.locator('#nutritionHistoryList')).toContainText('35 g');
+  await expect(page.locator('#nutritionHistoryList')).toContainText('Frango e salada');
+  await expect(page.locator('#treatmentHistoryList')).toContainText('Mounjaro');
+  await expect(page.locator('#treatmentHistoryList')).toContainText('Ozempic');
+});
 
 test('quick trial signup reserves access before Google login', async ({ page }) => {
   await page.route('https://accounts.google.com/gsi/client', async route => {

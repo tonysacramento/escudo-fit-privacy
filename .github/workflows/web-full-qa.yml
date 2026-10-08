@@ -2,7 +2,7 @@ name: Escudo Fit Full Web QA
 
 on:
   push:
-    branches: [main]
+    branches: [main, work/v42-history-complete-web-20261008]
     paths:
       - 'app/**'
       - 'qa/**'

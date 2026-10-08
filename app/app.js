@@ -3,9 +3,9 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
-let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
 let googleReady=false;
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
@@ -16,7 +16,7 @@ const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
 function dataKey(){return DATA_PREFIX+(auth?.user?.id||'guest')}
-function loadState(){try{return {...defaults,...JSON.parse(localStorage.getItem(dataKey())||'{}')}}catch{return {...defaults,weights:[],measurements:{},measurementHistory:[],profile:{name:''}}}}
+function loadState(){try{return {...defaults,...JSON.parse(localStorage.getItem(dataKey())||'{}')}}catch{return {...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}}}}
 function saveState(){state.updatedAt=new Date().toISOString();localStorage.setItem(dataKey(),JSON.stringify(state))}
 function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
 function pct(v,g){return g>0?clamp(Math.round((v/g)*100),0,100):0}
@@ -25,8 +25,15 @@ function waterGoalFromWeight(weightKg){const n=Number(weightKg);return Number.is
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
 function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
+const mealLabels={BREAKFAST:'Café da manhã',LUNCH:'Almoço',DINNER:'Jantar',SNACK:'Lanche'};
+const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro',NONE:'Nenhum'};
+const applicationSiteLabels={
+  ABDOMEN:'Abdômen',ABDOMEN_LEFT:'Abdômen esquerdo',ABDOMEN_RIGHT:'Abdômen direito',
+  THIGH_LEFT:'Coxa esquerda',THIGH_RIGHT:'Coxa direita',ARM_LEFT:'Braço esquerdo',
+  ARM_RIGHT:'Braço direito',OTHER:'Outro',UNSPECIFIED:'Local não informado'
+};
 function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
-function escapeText(value){return String(value??'')}
+function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 
 function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
@@ -229,6 +236,11 @@ function renderApp(){
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
     .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
     .join('')||'<small class="muted">Nenhuma atividade registrada hoje.</small>';
+  if($('activityHistoryPrevious'))$('activityHistoryPrevious').innerHTML=(Array.isArray(state.activities)?state.activities:[])
+    .filter(item=>localDayKey(item.at)!==today)
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,20)
+    .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma atividade anterior sincronizada.</small>';
 
   if($('applicationHistory'))$('applicationHistory').innerHTML=(Array.isArray(state.applications)?state.applications:[])
     .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,8)
@@ -268,6 +280,41 @@ function renderApp(){
       return '<div class="history-row measurement-history-row"><span>'+date+'</span><strong>'+values+'</strong></div>';
     }).join('')||'<small class="muted">Nenhuma medida sincronizada ainda.</small>';
   }
+  if($('movementHistoryList'))$('movementHistoryList').innerHTML=(Array.isArray(state.activities)?state.activities:[])
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,12)
+    .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhum movimento sincronizado ainda.</small>';
+
+  if($('nutritionHistoryList')){
+    const nutritionRows=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+      .flatMap(day=>(Array.isArray(day.meals)?day.meals:[]).map(meal=>({...meal,date:day.date})))
+      .sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,12);
+    $('nutritionHistoryList').innerHTML=nutritionRows
+      .map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g'+(meal.description?' • '+escapeText(meal.description):'')+'</span><strong>'+fmtDate(meal.at)+'</strong></div>')
+      .join('')||'<small class="muted">Nenhuma refeição sincronizada ainda.</small>';
+  }
+
+  if($('treatmentHistoryList')){
+    const treatment=state.treatment;
+    if(!treatment){
+      $('treatmentHistoryList').innerHTML='<small class="muted">Nenhum histórico de tratamento sincronizado ainda.</small>';
+    }else{
+      const rows=[];
+      if(treatment.medication&&treatment.medication!=='NONE'){
+        const started=treatment.treatmentStartDateIso
+          ?new Date(treatment.treatmentStartDateIso+'T12:00:00').toLocaleDateString('pt-BR')
+          :'data não informada';
+        rows.push('<div class="history-row"><span>Atual: '+escapeText(medicationLabels[treatment.medication]||treatment.medication)+(treatment.medicationDoseLabel?' • '+escapeText(treatment.medicationDoseLabel):'')+'</span><strong>desde '+started+'</strong></div>');
+      }
+      for(const item of (Array.isArray(treatment.history)?treatment.history:[]).slice().sort((a,b)=>Number(b.changedAtMs||0)-Number(a.changedAtMs||0)).slice(0,12)){
+        const start=item.startDateIso?new Date(item.startDateIso+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+        const end=item.endDateIso?new Date(item.endDateIso+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+        rows.push('<div class="history-row"><span>'+escapeText(medicationLabels[item.medication]||item.medication)+(item.doseLabel?' • '+escapeText(item.doseLabel):'')+'</span><strong>'+start+' → '+end+'</strong></div>');
+      }
+      $('treatmentHistoryList').innerHTML=rows.join('')||'<small class="muted">Nenhum período anterior sincronizado.</small>';
+    }
+  }
+
   if($('profileName'))$('profileName').value=state.profile?.name||'';
 
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
@@ -318,13 +365,72 @@ function remoteMeasurementToLocal(item){
 
 function remoteApplicationToLocal(item){
   const appliedAtMs=Number(item?.appliedAtMs);
-  const site=String(item?.site||item?.applicationSite||'').trim();
-  if(!item?.id||!site||!Number.isFinite(appliedAtMs))return null;
+  const rawSite=String(item?.applicationSite||item?.site||'UNSPECIFIED').trim()||'UNSPECIFIED';
+  if(!item?.id||!Number.isFinite(appliedAtMs))return null;
   return {
     id:String(item.id),
-    site,
+    site:applicationSiteLabels[rawSite]||rawSite,
+    siteCode:rawSite,
     at:new Date(appliedAtMs).toISOString(),
     ...(item?.scheduledDateIso?{scheduledDateIso:String(item.scheduledDateIso)}:{})
+  };
+}
+
+function remoteMovementToLocal(days){
+  if(!Array.isArray(days))return[];
+  return days.flatMap(day=>{
+    const date=String(day?.date||'');
+    const records=Array.isArray(day?.records)?day.records:[];
+    return records.flatMap(record=>{
+      const timestampMs=Number(record?.timestampMs);
+      const type=String(record?.activityType||'');
+      if(!record?.id||!type||!Number.isFinite(timestampMs))return[];
+      return [{
+        id:String(record.id),
+        type,
+        duration:record?.durationMinutes==null?null:Number(record.durationMinutes),
+        at:new Date(timestampMs).toISOString(),
+        date
+      }];
+    });
+  });
+}
+
+function remoteNutritionToLocal(days){
+  if(!Array.isArray(days))return[];
+  return days.flatMap(day=>{
+    const date=String(day?.date||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return[];
+    const meals=Array.isArray(day?.meals)?day.meals:[];
+    return [{
+      date,
+      updatedAtMs:Number(day?.updatedAtMs||0),
+      meals:meals.flatMap(meal=>{
+        const timestampMs=Number(meal?.timestampMs);
+        const proteinG=Number(meal?.proteinG);
+        if(!meal?.id||!Number.isFinite(timestampMs)||!Number.isFinite(proteinG))return[];
+        return [{
+          id:String(meal.id),
+          mealType:String(meal.mealType||'SNACK'),
+          proteinG,
+          at:new Date(timestampMs).toISOString(),
+          description:typeof meal?.description==='string'?meal.description:''
+        }];
+      })
+    }];
+  });
+}
+
+function normalizeRemoteTreatment(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const updatedAtMs=Number(raw.updatedAtMs||0);
+  if(!Number.isFinite(updatedAtMs)||updatedAtMs<=0)return null;
+  return {
+    medication:String(raw.medication||'NONE'),
+    medicationDoseLabel:String(raw.medicationDoseLabel||''),
+    treatmentStartDateIso:String(raw.treatmentStartDateIso||''),
+    updatedAtMs,
+    history:Array.isArray(raw.history)?raw.history:[]
   };
 }
 
@@ -403,7 +509,43 @@ async function hydrateAccountHistory(){
     mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
     state.applications=mergedApplications.slice(0,200);
 
+    const remoteActivities=remoteMovementToLocal(data?.movement);
+    const mergedActivities=[];
+    const seenActivityIds=new Set();
+    for(const entry of [...(Array.isArray(state.activities)?state.activities:[]),...remoteActivities]){
+      const id=String(entry?.id||'');
+      if(!id||seenActivityIds.has(id))continue;
+      seenActivityIds.add(id);
+      mergedActivities.push(entry);
+    }
+    mergedActivities.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
+    state.activities=mergedActivities.slice(0,500);
+
+    const remoteNutrition=remoteNutritionToLocal(data?.nutrition);
+    const mergedNutrition=[];
+    const seenNutritionDates=new Set();
+    for(const day of [...remoteNutrition,...(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])]){
+      const date=String(day?.date||'');
+      if(!date||seenNutritionDates.has(date))continue;
+      seenNutritionDates.add(date);
+      mergedNutrition.push(day);
+    }
+    mergedNutrition.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    state.nutritionHistory=mergedNutrition.slice(0,365);
+
     const today=localDayKey();
+    const todayNutrition=state.nutritionHistory.find(day=>day.date===today);
+    const todayNutritionUpdatedAtMs=Number(todayNutrition?.updatedAtMs||0);
+    if(todayNutrition&&todayNutritionUpdatedAtMs>=Number(state.nutritionUpdatedAtMs||0)){
+      state.protein=(todayNutrition.meals||[]).reduce((sum,meal)=>sum+Number(meal.proteinG||0),0);
+      state.nutritionUpdatedAtMs=todayNutritionUpdatedAtMs;
+    }
+
+    const remoteTreatment=normalizeRemoteTreatment(data?.treatment);
+    if(remoteTreatment&&remoteTreatment.updatedAtMs>=Number(state.treatment?.updatedAtMs||0)){
+      state.treatment=remoteTreatment;
+    }
+
     const remoteWater=(Array.isArray(data?.water)?data.water:[])
       .find(entry=>entry?.date===today);
     const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
@@ -453,6 +595,21 @@ async function loadAccountHistory(){
       .filter(Boolean)
       .sort((a,b)=>new Date(b.at)-new Date(a.at))
       .slice(0,200);
+
+    state.activities=remoteMovementToLocal(data?.movement)
+      .sort((a,b)=>new Date(b.at)-new Date(a.at))
+      .slice(0,500);
+
+    state.nutritionHistory=remoteNutritionToLocal(data?.nutrition)
+      .sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+      .slice(0,365);
+    const todayNutrition=state.nutritionHistory.find(day=>day.date===localDayKey());
+    if(todayNutrition){
+      state.protein=(todayNutrition.meals||[]).reduce((sum,meal)=>sum+Number(meal.proteinG||0),0);
+      state.nutritionUpdatedAtMs=Number(todayNutrition.updatedAtMs||0);
+    }
+
+    state.treatment=normalizeRemoteTreatment(data?.treatment);
 
     const latest=state.measurementHistory[0];
     if(latest){
@@ -584,7 +741,7 @@ function initGoogle(){
 
 async function resetGoogleSession(message){
   try{if(auth?.access_token)await apiFetch('/auth/logout',{method:'POST'})}catch{}
-  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
+  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
@@ -668,7 +825,7 @@ $('saveMeasurements').addEventListener('click',async()=>{
   $('measureSaved').textContent=synced?'Medidas salvas na sua conta.':'Medidas salvas; sincronização pendente.';
   toast(synced?'Medidas sincronizadas':'Medidas salvas');
 });
-$('addActivity')?.addEventListener('click',()=>{
+$('addActivity')?.addEventListener('click',async()=>{
   const type=$('activityType')?.value||'WALKING';
   const raw=String($('activityDuration')?.value||'').trim();
   const duration=raw===''?null:Number(raw);
@@ -676,11 +833,23 @@ $('addActivity')?.addEventListener('click',()=>{
     if($('activitySaved'))$('activitySaved').textContent='Informe uma duração válida ou deixe em branco.';
     return;
   }
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+Date.now()),type,duration,at:new Date().toISOString()};
-  state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,200);
+  const now=Date.now();
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString()};
+  state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,500);
   if($('activityDuration'))$('activityDuration').value='';
-  if($('activitySaved'))$('activitySaved').textContent='Atividade registrada.';
-  saveState();renderApp();toast('Atividade registrada');
+  saveState();renderApp();
+  const date=localDayKey(entry.at);
+  const records=state.activities
+    .filter(item=>localDayKey(item.at)===date)
+    .map(item=>({
+      id:item.id,
+      activityType:item.type,
+      timestampMs:new Date(item.at).getTime(),
+      ...(item.duration?{durationMinutes:Number(item.duration)}:{})
+    }));
+  const synced=await syncHistoryPatch({movement:[{date,records,updatedAtMs:now}]});
+  if($('activitySaved'))$('activitySaved').textContent=synced?'Atividade salva na sua conta.':'Atividade registrada; sincronização pendente.';
+  toast(synced?'Atividade sincronizada':'Atividade registrada');
 });
 
 document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
@@ -712,7 +881,7 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
-$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};renderApp();toast('Dados locais apagados')});
+$('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
