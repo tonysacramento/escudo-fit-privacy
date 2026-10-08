@@ -434,20 +434,58 @@ async function authenticatedFetch(path,options={}){
   return res;
 }
 
+// Account-scoped outbox: Web edits survive offline periods and are retried
+// in their original order before remote hydration. Never flush another user.
+const HISTORY_OUTBOX_PREFIX='escudofit_history_outbox_v1_';
+let historyPatchChain=Promise.resolve();
+function historyOutboxKey(){return HISTORY_OUTBOX_PREFIX+String(auth?.user?.id||'guest')}
+function loadHistoryOutbox(){
+  try{const result=JSON.parse(localStorage.getItem(historyOutboxKey())||'[]');return Array.isArray(result)?result:[]}
+  catch{return[]}
+}
+function storeHistoryOutbox(entries){localStorage.setItem(historyOutboxKey(),JSON.stringify(entries))}
+async function flushPendingHistory(){
+  if(!auth?.access_token||!auth?.user)return false;
+  const entries=loadHistoryOutbox();
+  for(const entry of entries){
+    try{
+      const res=await authenticatedFetch('/history/sync',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(entry.payload)
+      });
+      if(!res.ok)return false;
+      const remaining=loadHistoryOutbox().filter(item=>item.id!==entry.id);
+      storeHistoryOutbox(remaining);
+    }catch{return false}
+  }
+  return true;
+}
 async function syncHistoryPatch(payload){
-  try{
-    const res=await authenticatedFetch('/history/sync',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload),
+  if(!auth?.user)return false;
+  const pending=historyPatchChain.then(async()=>{
+    const entries=loadHistoryOutbox();
+    if(entries.length>=200){
+      setText('historySyncStatus','Fila de histórico cheia. Não apague os dados locais; conecte-se para sincronizar.');
+      return false;
+    }
+    entries.push({
+      id:(crypto.randomUUID?crypto.randomUUID():'history-'+Date.now()+'-'+entries.length),
+      payload,
+      createdAtMs:Date.now()
     });
-    return res.ok;
-  }catch{return false}
+    storeHistoryOutbox(entries);
+    return flushPendingHistory();
+  }).catch(()=>false);
+  historyPatchChain=pending.then(()=>undefined);
+  return pending;
 }
 
 async function hydrateAccountHistory(){
-  if(!auth?.user)return;
+  if(!auth?.user)return false;
   try{
+    await historyPatchChain;
+    await flushPendingHistory();
     const res=await authenticatedFetch('/history');
     if(!res.ok)return;
     const data=await res.json();
@@ -551,7 +589,7 @@ async function hydrateAccountHistory(){
       'Conta consultada: '+counts.weights+' pesos, '+counts.measurements+' medidas, '+
       counts.applications+' aplicações, '+counts.movement+' movimentos, '+
       counts.nutrition+' refeições, '+counts.treatment+' tratamento(s), '+
-      counts.water+' dias de hidratação.');
+      counts.water+' dias de hidratação. Pendências locais: '+loadHistoryOutbox().length+'.');
     return true;
   }catch{
     setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
