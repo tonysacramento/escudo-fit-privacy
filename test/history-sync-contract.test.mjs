@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+const require=createRequire(import.meta.url);
+const c=require('../app/history-sync-contract.js');
+
+test('all seven history categories are counted for QA diagnostics',()=>{
+  assert.deepEqual(c.countHistory({
+    weights:[{id:'w'}],measurements:[{date:'2026-10-08'}],
+    applications:[{id:'a'}],
+    movement:[{date:'2026-10-08',records:[{id:'m1'},{id:'m2'}]}],
+    nutrition:[{date:'2026-10-08',meals:[{id:'n1'}]}],
+    treatment:{medication:'NONE',updatedAtMs:100},
+    water:[{date:'2026-10-08',consumedMl:500}]
+  }),{
+    weights:1,measurements:1,applications:1,movement:2,
+    nutrition:1,treatment:1,water:1,
+  });
+});
+
+test('measurement hips use the exact API field and valid dates',()=>{
+  assert.equal(c.asMeasurement({date:'2026-10-08',hips:103}).hips,103);
+  assert.equal(c.asMeasurement({date:'2026-10-08',hip:98}).hips,98);
+  assert.equal(c.asMeasurement({date:'2026-02-30',hips:102}),null);
+});
+
+test('newer nutrition day wins, preserving a local edit on timestamp ties',()=>{
+  const remote=[{date:'2026-10-08',updatedAtMs:200,meals:[{id:'remote'}]}];
+  const local=[{date:'2026-10-08',updatedAtMs:300,meals:[{id:'local'}]}];
+  assert.equal(c.mergeNutritionDays(local,remote)[0].meals[0].id,'local');
+  assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:100}],remote)[0].meals[0].id,'remote');
+  assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:200}],remote)[0].meals[0].id,'local');
+});
+
+test('nutrition patch matches backend required meal fields and validates protein',()=>{
+  const at='2026-10-08T12:00:00.000Z';
+  const day=c.nutritionPatch({date:'2026-10-08',updatedAtMs:1791460800000,meals:[
+    {id:'web-meal-1',mealType:'LUNCH',proteinG:27.5,at,description:'Almoço'},
+  ]});
+  assert.deepEqual(day.meals[0],{
+    id:'web-meal-1',mealType:'LUNCH',proteinG:27.5,timestampMs:Date.parse(at),description:'Almoço',
+  });
+  assert.throws(()=>c.nutritionPatch({date:'2026-10-08',updatedAtMs:3,meals:[
+    {id:'x',mealType:'LUNCH',proteinG:-2,at},
+  ]}),/INVALID_MEAL/);
+});
+
+test('treatment patch supports medication timeline with no dose recommendation',()=>{
+  const source={medication:'MOUNJARO',updatedAtMs:100,treatmentStartDateIso:'2026-10-08',history:[
+    {id:'past',medication:'OZEMPIC',startDateIso:'2026-09-01',endDateIso:'2026-10-08',changedAtMs:98},
+  ]};
+  assert.equal(c.treatmentPatch(source).history[0].medication,'OZEMPIC');
+  assert.throws(()=>c.treatmentPatch({...source,treatmentStartDateIso:'2026-14-81'}),/INVALID_TREATMENT_DATE/);
+});
+
+test('Web markup, service worker and client share same revision and full history entry points',()=>{
+  const html=fs.readFileSync('app/index.html','utf8');
+  const js=fs.readFileSync('app/app.js','utf8');
+  const sw=fs.readFileSync('app/sw.js','utf8');
+  const version='web-v42-history-qa-1';
+  for(const file of [html,sw])assert.ok(file.includes(version));
+  for(const id of ['nutritionAddMeal','saveTreatment','refreshHistoryButton','historySyncStatus','measurementHistoryList','movementHistoryList','nutritionHistoryList','treatmentHistoryList']){
+    assert.ok(html.includes('id="'+id+'"'),id);
+  }
+  for(const marker of ['historyContract.nutritionPatch','historyContract.treatmentPatch','historyContract.countHistory',
+    'syncHistoryPatch({nutrition:[patch]})','syncHistoryPatch({treatment:patch})',
+    'syncHistoryPatch({movement:[','syncHistoryPatch({applications:[',
+    'syncHistoryPatch({weights:[','syncHistoryPatch({water:[',
+    'syncHistoryPatch({weights:[],measurements:[remote]})']){
+    assert.ok(js.includes(marker),marker);
+  }
+  assert.ok(!js.includes("proteinInput').addEventListener('change'"),'protein must be event sourced');
+});
