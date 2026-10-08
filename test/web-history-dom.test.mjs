@@ -36,9 +36,11 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     water:[{date:apiDate,consumedMl:500,updatedAtMs:now}],
   };
   const calls=[];
+  let offline=false;
   window.fetch=async(url,options={})=>{
     const path=String(url);
     calls.push({path,options});
+    if(offline&&path.endsWith('/history/sync'))throw new Error('SIMULATED_NETWORK_OFFLINE');
     let data={};
     if(path.endsWith('/entitlement/me'))data={mode:'PREMIUM'};
     else if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
@@ -87,6 +89,17 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.ok(treatments.length>=1,'Web should POST treatment');
   assert.equal(treatments.at(-1).treatment.medication,'WEGOVY');
   assert.equal(window.localStorage.getItem('escudofit_history_outbox_v1_qa-user'),'[]');
+
+  offline=true;
+  get('waterReset').click();
+  await pause();
+  assert.equal(JSON.parse(window.localStorage.getItem('escudofit_history_outbox_v1_qa-user')||'[]').length,1,
+    'offline update is queued per account');
+  offline=false;
+  get('refreshHistoryButton').click();
+  await pause();
+  assert.equal(window.localStorage.getItem('escudofit_history_outbox_v1_qa-user'),'[]',
+    'pending Web write is retried before reading account history');
   } finally {
     dom.window.close();
   }
