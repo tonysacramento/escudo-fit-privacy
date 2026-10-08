@@ -327,6 +327,18 @@ function remoteMeasurementToLocal(item){
   };
 }
 
+function remoteApplicationToLocal(item){
+  const appliedAtMs=Number(item?.appliedAtMs);
+  const site=String(item?.site||item?.applicationSite||'').trim();
+  if(!item?.id||!site||!Number.isFinite(appliedAtMs))return null;
+  return {
+    id:String(item.id),
+    site,
+    at:new Date(appliedAtMs).toISOString(),
+    ...(item?.scheduledDateIso?{scheduledDateIso:String(item.scheduledDateIso)}:{})
+  };
+}
+
 async function authenticatedFetch(path,options={}){
   let res=await apiFetch(path,options);
   if(res.status===401&&await refreshSession())res=await apiFetch(path,options);
@@ -387,6 +399,20 @@ async function hydrateAccountHistory(){
       };
     }
 
+    const remoteApplications=(Array.isArray(data?.applications)?data.applications:[])
+      .map(remoteApplicationToLocal).filter(Boolean);
+    const mergedApplications=[];
+    const seenApplicationIds=new Set();
+    // Local first: preserve an offline/local correction for the same record id.
+    for(const entry of [...(Array.isArray(state.applications)?state.applications:[]),...remoteApplications]){
+      const id=String(entry?.id||'');
+      if(!id||seenApplicationIds.has(id))continue;
+      seenApplicationIds.add(id);
+      mergedApplications.push(entry);
+    }
+    mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
+    state.applications=mergedApplications.slice(0,200);
+
     const today=localDayKey();
     const remoteWater=(Array.isArray(data?.water)?data.water:[])
       .find(entry=>entry?.date===today);
@@ -415,6 +441,7 @@ async function loadAccountHistory(){
     const data=await res.json();
     const weights=Array.isArray(data?.weights)?data.weights:[];
     const measurements=Array.isArray(data?.measurements)?data.measurements:[];
+    const applications=Array.isArray(data?.applications)?data.applications:[];
 
     state.weights=weights
       .filter(item=>Number.isFinite(Number(item?.weightKg))&&Number.isFinite(Number(item?.timestampMs)))
@@ -429,6 +456,12 @@ async function loadAccountHistory(){
     state.measurementHistory=measurements
       .filter(item=>/^\d{4}-\d{2}-\d{2}$/.test(String(item?.date||'')))
       .sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+
+    state.applications=applications
+      .map(remoteApplicationToLocal)
+      .filter(Boolean)
+      .sort((a,b)=>new Date(b.at)-new Date(a.at))
+      .slice(0,200);
 
     const latest=state.measurementHistory[0];
     if(latest){
@@ -652,13 +685,18 @@ $('addActivity')?.addEventListener('click',()=>{
   saveState();renderApp();toast('Atividade registrada');
 });
 
-document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',()=>{
+document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
   const site=String(btn.dataset.applicationSite||'').trim();
   if(!site)return;
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+Date.now()),site,at:new Date().toISOString()};
+  const appliedAtMs=Date.now();
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs),site,at:new Date(appliedAtMs).toISOString()};
   state.applications=[entry,...(Array.isArray(state.applications)?state.applications:[])].slice(0,200);
-  if($('applicationSaved'))$('applicationSaved').textContent='Aplicação registrada em '+site+'.';
-  saveState();renderApp();toast('Aplicação registrada');
+  saveState();renderApp();
+  const synced=await syncHistoryPatch({applications:[{id:entry.id,site,appliedAtMs}]});
+  if($('applicationSaved'))$('applicationSaved').textContent=synced
+    ? 'Aplicação registrada na sua conta em '+site+'.'
+    : 'Aplicação registrada neste navegador; sincronização pendente.';
+  toast(synced?'Aplicação sincronizada':'Aplicação registrada');
 }));
 
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
