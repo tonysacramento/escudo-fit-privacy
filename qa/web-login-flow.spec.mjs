@@ -681,3 +681,39 @@ test('non-Gmail signup is routed to Web-only access', async ({ page }) => {
   await expect(page.locator('#trialLoginButton')).toBeHidden();
   await expect(page.locator('#trialAndroidButton')).toBeHidden();
 });
+
+
+test('Monise30 campaign link shows 30 days and pending approval confirmation', async ({ page }) => {
+  let captured=null;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
+    captured=route.request().postDataJSON();
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({
+        registered:true,
+        accessChannel:'WEB_ONLY',
+        promoCode:'Monise30',
+        trialDays:30,
+        pendingApproval:true,
+        next:'MANUAL_APPROVAL'
+      })
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/?promo=Monise30', { waitUntil:'networkidle' });
+  await expect(page.locator('#trialTitle')).toHaveText('30 dias grátis de Escudo Fit');
+  await expect(page.locator('#trialIntro')).toContainText('liberado em até 24 horas');
+  await expect(page.locator('#trialEmail')).toHaveValue('stellamonise@hotmail.com');
+  await expect(page.locator('#trialEmail')).toHaveAttribute('readonly', '');
+
+  await page.locator('#trialName').fill('Stella Monise');
+  await page.locator('#trialLgpd').check();
+  await page.locator('#trialForm').evaluate(form=>form.requestSubmit());
+
+  await expect(page.locator('#trialStatus')).toContainText('30 dias grátis');
+  await expect(page.locator('#trialStatus')).toContainText('até 24 horas');
+  await expect(page.locator('#trialLoginButton')).toBeHidden();
+  expect(captured.promoCode).toBe('Monise30');
+});
