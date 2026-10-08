@@ -705,9 +705,10 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
   await page.goto('http://127.0.0.1:4173/app/?promo=Monise30', { waitUntil:'networkidle' });
   await expect(page.locator('#trialTitle')).toHaveText('30 dias grátis de Escudo Fit');
   await expect(page.locator('#trialIntro')).toContainText('liberado em até 24 horas');
+  await expect(page.locator('#trialEmail')).toHaveValue('stellamonise@hotmail.com');
+  await expect(page.locator('#trialEmail')).toHaveAttribute('readonly', '');
 
   await page.locator('#trialName').fill('Stella Monise');
-  await page.locator('#trialEmail').fill('stellamonise@hotmail.com');
   await page.locator('#trialLgpd').check();
   await page.locator('#trialForm').evaluate(form=>form.requestSubmit());
 
