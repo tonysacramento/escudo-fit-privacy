@@ -776,6 +776,85 @@ $('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.val
 $('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
 // Protein consumed is a derived total of dated meals, never an unsynchronized counter.
 $('proteinGoalInput').addEventListener('change',e=>{state.proteinGoal=clamp(num(e.target.value)||100,1,1000);saveState();renderApp()});
+
+$('nutritionAddMeal')?.addEventListener('click',async()=>{
+  const mealType=String($('nutritionMealType')?.value||'LUNCH');
+  const grams=Number(String($('nutritionMealProtein')?.value||'').replace(',','.'));
+  if(!Number.isFinite(grams)||grams<=0||grams>1000){
+    setText('nutritionSaved','Informe uma quantidade válida de proteína.');
+    return;
+  }
+  const now=Date.now();
+  const date=localDayKey();
+  const current=state.nutritionHistory.find(day=>day.date===date)||{date,updatedAtMs:0,meals:[]};
+  const meal={
+    id:crypto.randomUUID?crypto.randomUUID():'meal-'+now,
+    mealType,proteinG:Math.round(grams*10)/10,
+    at:new Date(now).toISOString(),
+    description:String($('nutritionMealDescription')?.value||'').trim().slice(0,240)
+  };
+  const changed={
+    date,
+    updatedAtMs:Math.max(now,Number(current.updatedAtMs||0)+1),
+    meals:[...(Array.isArray(current.meals)?current.meals:[]),meal]
+  };
+  let patch;
+  try{patch=historyContract.nutritionPatch(changed)}
+  catch{setText('nutritionSaved','Não foi possível validar a refeição.');return}
+  state.nutritionHistory=historyContract.mergeNutritionDays(state.nutritionHistory,[changed]);
+  state.protein=changed.meals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
+  state.nutritionUpdatedAtMs=changed.updatedAtMs;
+  if($('nutritionMealProtein'))$('nutritionMealProtein').value='';
+  if($('nutritionMealDescription'))$('nutritionMealDescription').value='';
+  saveState();renderApp();
+  const synced=await syncHistoryPatch({nutrition:[patch]});
+  setText('nutritionSaved',synced?'Refeição sincronizada com a Conta Google.':'Refeição salva localmente; sincronização pendente.');
+  toast(synced?'Refeição sincronizada':'Refeição salva');
+});
+
+$('saveTreatment')?.addEventListener('click',async()=>{
+  const medication=String($('treatmentMedication')?.value||'NONE');
+  const medicationDoseLabel=String($('treatmentDose')?.value||'').trim().slice(0,80);
+  const treatmentStartDateIso=String($('treatmentStart')?.value||'');
+  if(!historyContract.validDate(treatmentStartDateIso)){
+    setText('treatmentSaved','Informe uma data de início válida.');return;
+  }
+  const previous=state.treatment||null;
+  const same=previous?.medication===medication&&
+    String(previous?.medicationDoseLabel||'')===medicationDoseLabel&&
+    previous?.treatmentStartDateIso===treatmentStartDateIso;
+  if(same){setText('treatmentSaved','O tratamento informado já está atualizado.');return}
+  const now=Date.now();
+  const earlierHistory=Array.isArray(previous?.history)?previous.history:[];
+  const archived=(previous&&previous.medication&&previous.medication!=='NONE')
+    ? [{
+      id:crypto.randomUUID?crypto.randomUUID():'treatment-'+now,
+      medication:previous.medication,
+      ...(previous.medicationDoseLabel?{doseLabel:previous.medicationDoseLabel}:{}),
+      ...(historyContract.validDate(previous.treatmentStartDateIso)?{startDateIso:previous.treatmentStartDateIso}:{}),
+      endDateIso:treatmentStartDateIso,
+      changedAtMs:now
+    }]
+    : [];
+  const next={
+    medication,medicationDoseLabel,treatmentStartDateIso,
+    updatedAtMs:Math.max(now,Number(previous?.updatedAtMs||0)+1),
+    history:[...earlierHistory,...archived].slice(-200)
+  };
+  let patch;
+  try{patch=historyContract.treatmentPatch(next)}
+  catch{setText('treatmentSaved','Não foi possível validar o tratamento.');return}
+  state.treatment=next;saveState();renderApp();
+  const synced=await syncHistoryPatch({treatment:patch});
+  setText('treatmentSaved',synced?'Tratamento sincronizado com a Conta Google.':'Tratamento salvo localmente; sincronização pendente.');
+  toast(synced?'Tratamento sincronizado':'Tratamento salvo');
+});
+
+$('refreshHistoryButton')?.addEventListener('click',async()=>{
+  setText('historySyncStatus','Consultando o histórico da sua conta…');
+  const synced=await hydrateAccountHistory();
+  toast(synced?'Histórico da conta atualizado':'Histórico local preservado; consulta pendente');
+});
 $('addWeight').addEventListener('click',async()=>{
   const v=num($('weightInput').value);
   if(v<20||v>400)return toast('Informe um peso válido');
@@ -791,7 +870,7 @@ $('addWeight').addEventListener('click',async()=>{
   toast(synced?'Peso salvo na sua conta':'Peso salvo; sincronização pendente');
 });
 $('saveMeasurements').addEventListener('click',async()=>{
-  const date=new Date().toISOString().slice(0,10);
+  const date=localDayKey();
   const local={
     date,
     waist:num($('mWaist').value)||null,
