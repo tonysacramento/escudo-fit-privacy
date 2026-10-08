@@ -384,7 +384,8 @@ function remoteMovementToLocal(days){
         type,
         duration:record?.durationMinutes==null?null:Number(record.durationMinutes),
         at:new Date(timestampMs).toISOString(),
-        date
+        date,
+        dayUpdatedAtMs:Number(day?.updatedAtMs||0)
       }];
     });
   });
@@ -542,17 +543,28 @@ async function hydrateAccountHistory(){
     mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
     state.applications=mergedApplications.slice(0,200);
 
-    const remoteActivities=remoteMovementToLocal(data?.movement);
-    const mergedActivities=[];
-    const seenActivityIds=new Set();
-    for(const entry of [...(Array.isArray(state.activities)?state.activities:[]),...remoteActivities]){
-      const id=String(entry?.id||'');
-      if(!id||seenActivityIds.has(id))continue;
-      seenActivityIds.add(id);
-      mergedActivities.push(entry);
+    const remoteMovementDays=Array.isArray(data?.movement)?data.movement:[];
+    const remoteActivities=remoteMovementToLocal(remoteMovementDays);
+    const remoteByDay=new Map();
+    for(const entry of remoteActivities){
+      const day=entry.date||localDayKey(entry.at);
+      if(!remoteByDay.has(day))remoteByDay.set(day,[]);
+      remoteByDay.get(day).push(entry);
     }
-    mergedActivities.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
-    state.activities=mergedActivities.slice(0,500);
+    let mergedActivities=Array.isArray(state.activities)?[...state.activities]:[];
+    for(const day of remoteMovementDays){
+      const date=String(day?.date||'');
+      if(!historyContract.validDate(date))continue;
+      const remoteAt=Number(day.updatedAtMs||0);
+      const localDay=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))===date);
+      const localAt=Math.max(0,...localDay.map(entry=>Number(entry.dayUpdatedAtMs||new Date(entry.at).getTime())));
+      if(remoteAt>=localAt){
+        // A newer day snapshot also carries explicit removals.
+        mergedActivities=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))!==date)
+          .concat(remoteByDay.get(date)||[]);
+      }
+    }
+    state.activities=mergedActivities.sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,500);
 
     const remoteNutrition=remoteNutritionToLocal(data?.nutrition);
     state.nutritionHistory=historyContract.mergeNutritionDays(state.nutritionHistory,remoteNutrition);
@@ -945,11 +957,13 @@ $('addActivity')?.addEventListener('click',async()=>{
     return;
   }
   const now=Date.now();
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString()};
+  const entry={id:(crypto.randomUUID?crypto.randomUUID():'activity-'+now),type,duration,at:new Date(now).toISOString(),dayUpdatedAtMs:now};
   state.activities=[entry,...(Array.isArray(state.activities)?state.activities:[])].slice(0,500);
   if($('activityDuration'))$('activityDuration').value='';
   saveState();renderApp();
   const date=localDayKey(entry.at);
+  state.activities=state.activities.map(item=>localDayKey(item.at)===date?{...item,dayUpdatedAtMs:now}:item);
+  saveState();
   const records=state.activities
     .filter(item=>localDayKey(item.at)===date)
     .map(item=>({
