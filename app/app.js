@@ -325,13 +325,72 @@ function remoteMeasurementToLocal(item){
 
 function remoteApplicationToLocal(item){
   const appliedAtMs=Number(item?.appliedAtMs);
-  const site=String(item?.site||item?.applicationSite||'').trim();
-  if(!item?.id||!site||!Number.isFinite(appliedAtMs))return null;
+  const rawSite=String(item?.applicationSite||item?.site||'UNSPECIFIED').trim()||'UNSPECIFIED';
+  if(!item?.id||!Number.isFinite(appliedAtMs))return null;
   return {
     id:String(item.id),
-    site,
+    site:applicationSiteLabels[rawSite]||rawSite,
+    siteCode:rawSite,
     at:new Date(appliedAtMs).toISOString(),
     ...(item?.scheduledDateIso?{scheduledDateIso:String(item.scheduledDateIso)}:{})
+  };
+}
+
+function remoteMovementToLocal(days){
+  if(!Array.isArray(days))return[];
+  return days.flatMap(day=>{
+    const date=String(day?.date||'');
+    const records=Array.isArray(day?.records)?day.records:[];
+    return records.flatMap(record=>{
+      const timestampMs=Number(record?.timestampMs);
+      const type=String(record?.activityType||'');
+      if(!record?.id||!type||!Number.isFinite(timestampMs))return[];
+      return [{
+        id:String(record.id),
+        type,
+        duration:record?.durationMinutes==null?null:Number(record.durationMinutes),
+        at:new Date(timestampMs).toISOString(),
+        date
+      }];
+    });
+  });
+}
+
+function remoteNutritionToLocal(days){
+  if(!Array.isArray(days))return[];
+  return days.flatMap(day=>{
+    const date=String(day?.date||'');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return[];
+    const meals=Array.isArray(day?.meals)?day.meals:[];
+    return [{
+      date,
+      updatedAtMs:Number(day?.updatedAtMs||0),
+      meals:meals.flatMap(meal=>{
+        const timestampMs=Number(meal?.timestampMs);
+        const proteinG=Number(meal?.proteinG);
+        if(!meal?.id||!Number.isFinite(timestampMs)||!Number.isFinite(proteinG))return[];
+        return [{
+          id:String(meal.id),
+          mealType:String(meal.mealType||'SNACK'),
+          proteinG,
+          at:new Date(timestampMs).toISOString(),
+          description:typeof meal?.description==='string'?meal.description:''
+        }];
+      })
+    }];
+  });
+}
+
+function normalizeRemoteTreatment(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const updatedAtMs=Number(raw.updatedAtMs||0);
+  if(!Number.isFinite(updatedAtMs)||updatedAtMs<=0)return null;
+  return {
+    medication:String(raw.medication||'NONE'),
+    medicationDoseLabel:String(raw.medicationDoseLabel||''),
+    treatmentStartDateIso:String(raw.treatmentStartDateIso||''),
+    updatedAtMs,
+    history:Array.isArray(raw.history)?raw.history:[]
   };
 }
 
