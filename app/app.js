@@ -513,6 +513,14 @@ async function hydrateAccountHistory(){
     }
     const data=backupBridge.mergeHistorySources(primary,backup.data);
     const counts=historyContract.countHistory(data);
+    const primaryCounts=historyContract.countHistory(primary);
+    const backupCounts=historyContract.countHistory(backup.data);
+    const nutritionSourceDetails=counts.nutrition===0
+      ? ' Nutrição ausente na conta: API '+primaryCounts.nutrition+
+        ', backup '+backupCounts.nutrition+
+        '. Refeições existentes somente no celular precisam ser enviadas pelo Android.'
+      : ' Nutrição recebida: API '+primaryCounts.nutrition+
+        ', backup '+backupCounts.nutrition+'.';
     const sources='API '+structured.status+' • Backup '+backupRes.status+
       (backupResponse?' (revisão '+backup.revision+', '+backup.validEntries+' conjuntos válidos)':'');
 
@@ -632,7 +640,7 @@ async function hydrateAccountHistory(){
       counts.applications+' aplicações, '+counts.movement+' movimentos, '+
       counts.nutrition+' refeições, '+counts.treatment+' tratamento(s), '+
       counts.water+' dias de água. '+sources+'. Pendências locais: '+
-      loadHistoryOutbox().length+(flushed?'':'. Algumas alterações da Web seguem pendentes.')+
+      loadHistoryOutbox().length+'.'+nutritionSourceDetails+(flushed?'':'. Algumas alterações da Web seguem pendentes.')+
       (total?'':'. Se os registros estiverem apenas no celular, será necessário enviá-los a esta mesma conta.'));
 
     return true;
