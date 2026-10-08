@@ -68,12 +68,6 @@ function setTrialStatus(message,isError=false){
 
 function applyPromoLanding(){
   if(!ACTIVE_PROMO)return;
-  const promoEmail=$('trialEmail');
-  if(promoEmail){
-    promoEmail.value='stellamonise@hotmail.com';
-    promoEmail.readOnly=true;
-    promoEmail.setAttribute('aria-readonly','true');
-  }
   setText('trialEyebrow','BENEFÍCIO EXCLUSIVO');
   setText('trialTitle','30 dias grátis de Escudo Fit');
   setText('trialIntro','Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.');
@@ -96,10 +90,6 @@ async function registerQuickTrial(event){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     $('trialEmail')?.focus();
     return setTrialStatus('Informe um e-mail válido.',true);
-  }
-  if(ACTIVE_PROMO && email!=='stellamonise@hotmail.com'){
-    $('trialEmail')?.focus();
-    return setTrialStatus('Este benefício é exclusivo para o e-mail autorizado da campanha.',true);
   }
   if(!consentAccepted){
     $('trialLgpd')?.focus();
