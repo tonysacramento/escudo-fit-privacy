@@ -717,3 +717,76 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
   await expect(page.locator('#trialLoginButton')).toBeHidden();
   expect(captured.promoCode).toBe('Monise30');
 });
+
+
+test('page reload keeps cached profile during transient API failure', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
+      user:{id:'qa-persist',email:'persist@example.com',name:'Perfil Persistido'},
+      entitlement:{mode:'PREMIUM',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null},
+      access_token:'cached-access',
+      refresh_token:'cached-refresh'
+    }));
+    localStorage.setItem('escudofit_web_user_v2_qa-persist', JSON.stringify({
+      weights:[{id:'w1',value:100.7,at:'2026-10-04T21:16:00.000Z'}],
+      profile:{name:'Perfil Persistido'}
+    }));
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', route =>
+    route.fulfill({status:503,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"code":"TEMPORARY"}'})
+  );
+
+  await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
+  await expect(page.locator('#appExperience')).toBeVisible();
+  await expect(page.locator('#marketingExperience')).toBeHidden();
+  await expect(page.locator('#welcomeName')).toHaveText('Perfil Persistido');
+  await expect(page.locator('#planBadge')).toHaveText('PREMIUM');
+
+  const auth = await page.evaluate(() => JSON.parse(localStorage.getItem('escudofit_web_auth_v1') || 'null'));
+  expect(auth?.refresh_token).toBe('cached-refresh');
+});
+
+test('expired access token refreshes once and keeps profile after reload', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
+      user:{id:'qa-refresh',email:'refresh@example.com',name:'Perfil Renovado'},
+      entitlement:{mode:'VIP_LIFETIME',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null},
+      access_token:'expired-access',
+      refresh_token:'refresh-v1'
+    }));
+  });
+
+  let meCalls=0;
+  let refreshCalls=0;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', async route => {
+    meCalls += 1;
+    const authHeader=route.request().headers()['authorization'] || '';
+    if(authHeader.includes('expired-access')){
+      return route.fulfill({status:401,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"code":"AUTH_ACCESS_EXPIRED"}'});
+    }
+    return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({user:{id:'qa-refresh',email:'refresh@example.com',name:'Perfil Renovado'}})});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/refresh', async route => {
+    refreshCalls += 1;
+    await route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({access_token:'fresh-access',refresh_token:'refresh-v2'})});
+  });
+
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/entitlement/me', route =>
+    route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify({mode:'VIP_LIFETIME',source:'ADMIN_GRANT',isActive:true,expiresAt:null,revalidateAfter:null})})
+  );
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/history', route =>
+    route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:'{"weights":[],"measurements":[],"water":[]}'})
+  );
+
+  await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
+  await expect(page.locator('#appExperience')).toBeVisible();
+  await expect(page.locator('#welcomeName')).toHaveText('Perfil Renovado');
+  expect(refreshCalls).toBe(1);
+  expect(meCalls).toBeGreaterThanOrEqual(2);
+
+  const auth = await page.evaluate(() => JSON.parse(localStorage.getItem('escudofit_web_auth_v1') || 'null'));
+  expect(auth?.access_token).toBe('fresh-access');
+  expect(auth?.refresh_token).toBe('refresh-v2');
+});
