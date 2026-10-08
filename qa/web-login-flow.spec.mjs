@@ -761,3 +761,12 @@ test('web application registration syncs to account history', async ({ page }) =
   expect(captured.applications[0].site).toBe('Abdômen');
   expect(Number.isFinite(Number(captured.applications[0].appliedAtMs))).toBe(true);
 });
+
+
+test('measurements view renders a single recent history block', async ({ page }) => {
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  const section = page.locator('.app-view[data-view="measurements"]');
+  await expect(section.getByText('HISTÓRICO RECENTE')).toHaveCount(1);
+  await expect(page.locator('#measurementHistoryList')).toHaveCount(1);
+  await expect(page.locator('#measurementHistory')).toHaveCount(0);
+});
