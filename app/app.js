@@ -8,6 +8,10 @@ let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],profile:{name:''}};
 let installPrompt=null;
 let googleReady=false;
+const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
+const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
+  ? {code:'Monise30',trialDays:30,requiresManualApproval:true}
+  : null;
 
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
@@ -62,11 +66,29 @@ function setTrialStatus(message,isError=false){
   el.classList.toggle('hidden',!message);
 }
 
+function applyPromoLanding(){
+  if(!ACTIVE_PROMO)return;
+  const promoEmail=$('trialEmail');
+  if(promoEmail){
+    promoEmail.value='stellamonise@hotmail.com';
+    promoEmail.readOnly=true;
+    promoEmail.setAttribute('aria-readonly','true');
+  }
+  setText('trialEyebrow','BENEFÍCIO EXCLUSIVO');
+  setText('trialTitle','30 dias grátis de Escudo Fit');
+  setText('trialIntro','Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.');
+  const button=$('trialSubmit');
+  if(button)button.textContent='Solicitar 30 dias grátis';
+}
+applyPromoLanding();
+
 async function registerQuickTrial(event){
   event?.preventDefault?.();
   const name=$('trialName')?.value.trim()||'';
   const email=$('trialEmail')?.value.trim().toLowerCase()||'';
   const company=$('trialCompany')?.value||'';
+  const consentAccepted=$('trialLgpd')?.checked===true;
+  const consentVersion='LGPD-2026-10-07-v1';
   if(name.length<2){
     $('trialName')?.focus();
     return setTrialStatus('Informe seu nome.',true);
@@ -74,6 +96,14 @@ async function registerQuickTrial(event){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
     $('trialEmail')?.focus();
     return setTrialStatus('Informe um e-mail válido.',true);
+  }
+  if(ACTIVE_PROMO && email!=='stellamonise@hotmail.com'){
+    $('trialEmail')?.focus();
+    return setTrialStatus('Este benefício é exclusivo para o e-mail autorizado da campanha.',true);
+  }
+  if(!consentAccepted){
+    $('trialLgpd')?.focus();
+    return setTrialStatus('Para criar seu acesso, leia e aceite a Política de Privacidade e os Termos de Uso.',true);
   }
 
   const button=$('trialSubmit');
@@ -83,13 +113,29 @@ async function registerQuickTrial(event){
     const res=await fetch(API+'/trial/register',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,email,company})
+      body:JSON.stringify({
+        name,email,company,consentAccepted,consentVersion,
+        ...(ACTIVE_PROMO?{promoCode:ACTIVE_PROMO.code}:{})
+      })
     });
     const data=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     sessionStorage.setItem('escudofit_trial_email',email);
-    setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis.');
-    $('trialLoginButton')?.classList.remove('hidden');
+    const accessChannel=data.accessChannel||(/@(gmail|googlemail)\.com$/i.test(email)?'GOOGLE_PLAY':'WEB_ONLY');
+    const promoPending=data.pendingApproval===true||ACTIVE_PROMO?.requiresManualApproval===true;
+    if(promoPending){
+      setTrialStatus('Solicitação recebida. Seu benefício de 30 dias grátis está em análise e será liberado em até 24 horas. Você receberá a confirmação após a aprovação.');
+      $('trialLoginButton')?.classList.add('hidden');
+      $('trialAndroidButton')?.classList.add('hidden');
+    }else if(accessChannel==='GOOGLE_PLAY'){
+      setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis e acessar o Android.');
+      $('trialLoginButton')?.classList.remove('hidden');
+      $('trialAndroidButton')?.classList.remove('hidden');
+    }else{
+      setTrialStatus('Cadastro concluído. Este e-mail foi registrado para acesso pela Web. A validação do e-mail será feita no fluxo Web; não é necessário usar a Play Store.');
+      $('trialLoginButton')?.classList.add('hidden');
+      $('trialAndroidButton')?.classList.add('hidden');
+    }
     if(button)button.classList.add('hidden');
   }catch(error){
     const code=String(error?.message||'TRIAL_REGISTER_FAILED');
@@ -99,7 +145,7 @@ async function registerQuickTrial(event){
         : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
       true
     );
-    if(button){button.disabled=false;button.textContent='Começar 14 dias grátis'}
+    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Solicitar 30 dias grátis':'Começar 14 dias grátis'}
   }
 }
 

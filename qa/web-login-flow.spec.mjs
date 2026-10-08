@@ -318,12 +318,20 @@ test('quick trial signup reserves access before Google login', async ({ page }) 
 
   await page.locator('[data-scroll-trial]').first().click();
   await page.locator('#trialName').fill('Maria Silva');
-  await page.locator('#trialEmail').fill('maria@example.com');
+  await page.locator('#trialEmail').fill('maria@gmail.com');
+  await page.locator('#trialLgpd').check();
   await page.locator('#trialForm').evaluate(form => form.requestSubmit());
 
   await expect(page.locator('#trialStatus')).toContainText('Cadastro concluído');
   await expect(page.locator('#trialLoginButton')).toBeVisible();
-  expect(captured).toEqual({ name:'Maria Silva', email:'maria@example.com', company:'' });
+  await expect(page.locator('#trialAndroidButton')).toBeVisible();
+  expect(captured).toEqual({
+    name:'Maria Silva',
+    email:'maria@gmail.com',
+    company:'',
+    consentAccepted:true,
+    consentVersion:'LGPD-2026-10-07-v1'
+  });
 });
 
 
@@ -637,4 +645,75 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
   await page.evaluate(()=>localStorage.removeItem('escudofit_web_user_v2_qa-water-user'));
   await page.reload({waitUntil:'networkidle'});
   await expect(page.locator('#waterMl')).toHaveText('1200 ml');
+});
+
+
+test('quick signup requires privacy consent', async ({ page }) => {
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-trial]').first().click();
+  await page.locator('#trialName').fill('Maria Silva');
+  await page.locator('#trialEmail').fill('maria@gmail.com');
+  await page.locator('#trialForm').evaluate(form => form.requestSubmit());
+  await expect(page.locator('#trialStatus')).toContainText('leia e aceite');
+});
+
+test('non-Gmail signup is routed to Web-only access', async ({ page }) => {
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
+    const body=route.request().postDataJSON();
+    expect(body.email).toBe('maria@outlook.com');
+    expect(body.consentAccepted).toBe(true);
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({registered:true,accessChannel:'WEB_ONLY',next:'WEB_EMAIL_ACCESS'})
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
+  await page.locator('[data-scroll-trial]').first().click();
+  await page.locator('#trialName').fill('Maria Silva');
+  await page.locator('#trialEmail').fill('maria@outlook.com');
+  await page.locator('#trialLgpd').check();
+  await page.locator('#trialForm').evaluate(form => form.requestSubmit());
+
+  await expect(page.locator('#trialStatus')).toContainText('acesso pela Web');
+  await expect(page.locator('#trialLoginButton')).toBeHidden();
+  await expect(page.locator('#trialAndroidButton')).toBeHidden();
+});
+
+
+test('Monise30 campaign link shows 30 days and pending approval confirmation', async ({ page }) => {
+  let captured=null;
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
+    captured=route.request().postDataJSON();
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({
+        registered:true,
+        accessChannel:'WEB_ONLY',
+        promoCode:'Monise30',
+        trialDays:30,
+        pendingApproval:true,
+        next:'MANUAL_APPROVAL'
+      })
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/?promo=Monise30', { waitUntil:'networkidle' });
+  await expect(page.locator('#trialTitle')).toHaveText('30 dias grátis de Escudo Fit');
+  await expect(page.locator('#trialIntro')).toContainText('liberado em até 24 horas');
+  await expect(page.locator('#trialEmail')).toHaveValue('stellamonise@hotmail.com');
+  await expect(page.locator('#trialEmail')).toHaveAttribute('readonly', '');
+
+  await page.locator('#trialName').fill('Stella Monise');
+  await page.locator('#trialLgpd').check();
+  await page.locator('#trialForm').evaluate(form=>form.requestSubmit());
+
+  await expect(page.locator('#trialStatus')).toContainText('30 dias grátis');
+  await expect(page.locator('#trialStatus')).toContainText('até 24 horas');
+  await expect(page.locator('#trialLoginButton')).toBeHidden();
+  expect(captured.promoCode).toBe('Monise30');
 });

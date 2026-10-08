@@ -711,3 +711,24 @@ body[data-experience="wellness"] .app-like-bottom-nav{
   .nav-item span{font-size:1rem}
   .activity-form-grid,.application-site-grid{grid-template-columns:1fr}
 }
+
+
+.consent-row{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  font-size:13px;
+  line-height:1.45;
+  color:var(--muted);
+}
+.consent-row input{
+  width:18px;
+  height:18px;
+  margin-top:2px;
+  flex:0 0 auto;
+  accent-color:var(--cyan);
+}
+.consent-row a{
+  color:var(--cyan);
+  font-weight:700;
+}
