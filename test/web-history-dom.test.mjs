@@ -40,8 +40,8 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     const path=String(url);
     calls.push({path,options});
     let data={};
-    if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
-    else if(path.endsWith('/entitlement/me'))data={mode:'PREMIUM'};
+    if(path.endsWith('/entitlement/me'))data={mode:'PREMIUM'};
+    else if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
     else if(path.endsWith('/history'))data=payload;
     else if(path.endsWith('/history/sync'))data={synced:true};
     else throw new Error('Unexpected API path '+path);
