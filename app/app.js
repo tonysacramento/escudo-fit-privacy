@@ -158,16 +158,16 @@ function showMarketing(){
   setTimeout(initGoogle,50);
 }
 
-function showApp(){
+function showApp({hydrate=true}={}){
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
   state=loadState();
   renderApp();
   activateView('home');
-  // One authoritative hydration path prevents a slower duplicate request from
-  // overwriting local records that have not synchronized yet.
-  void hydrateAccountHistory();
+  // Keep the cached account/profile visible while the session is revalidated.
+  // Remote history is hydrated only after a valid authenticated session exists.
+  if(hydrate) void hydrateAccountHistory();
   window.scrollTo({top:0,behavior:'instant'});
 }
 
@@ -476,35 +476,90 @@ async function syncAccountHistory(payload){
   }catch{return false}
 }
 
-async function refreshSession(){
-  if(!auth?.refresh_token)return false;
+let refreshPromise=null;
+let lastRefreshFailure='none';
+
+async function performRefreshSession(){
+  if(!auth?.refresh_token){
+    lastRefreshFailure='invalid';
+    return false;
+  }
+
+  // Another tab may already have rotated the refresh token. Re-read the latest
+  // auth snapshot while holding the browser lock before using the token.
+  const latest=loadAuth();
+  if(latest?.refresh_token&&latest.refresh_token!==auth.refresh_token){
+    auth=latest;
+    lastRefreshFailure='none';
+    return true;
+  }
+
   try{
-    const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});
-    if(!res.ok)return false;
+    const res=await fetch(API+'/auth/refresh',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:auth.refresh_token})
+    });
+    if(!res.ok){
+      lastRefreshFailure=[400,401,403].includes(res.status)?'invalid':'transient';
+      return false;
+    }
     const data=await res.json();
+    if(!data?.access_token||!data?.refresh_token){
+      lastRefreshFailure='transient';
+      return false;
+    }
     auth={...auth,access_token:data.access_token,refresh_token:data.refresh_token};
     saveAuth(auth);
+    lastRefreshFailure='none';
     return true;
-  }catch{return false}
+  }catch{
+    lastRefreshFailure='transient';
+    return false;
+  }
+}
+
+async function refreshSession(){
+  if(refreshPromise)return refreshPromise;
+  const run=()=>performRefreshSession();
+  const pending=navigator.locks?.request
+    ? navigator.locks.request('escudofit-session-refresh',{mode:'exclusive'},run)
+    : run();
+  refreshPromise=Promise.resolve(pending).finally(()=>{refreshPromise=null});
+  return refreshPromise;
 }
 
 async function validateStoredSession(){
-  if(!auth?.user||!auth?.refresh_token)return false;
+  if(!auth?.user||!auth?.refresh_token)return 'INVALID';
   try{
     let res=await apiFetch('/me');
-    if(res.status===401&&await refreshSession())res=await apiFetch('/me');
-    if(!res.ok)return false;
+    if(res.status===401){
+      const refreshed=await refreshSession();
+      if(!refreshed)return lastRefreshFailure==='invalid'?'INVALID':'RETRY';
+      res=await apiFetch('/me');
+    }
+    if(res.status===401||res.status===403)return 'INVALID';
+    if(!res.ok)return 'RETRY';
+
     const me=await res.json();
-    if(!me?.user?.id||!me?.user?.email)return false;
-    const entRes=await apiFetch('/entitlement/me');
-    if(!entRes.ok)return false;
+    if(!me?.user?.id||!me?.user?.email)return 'RETRY';
+
+    let entRes=await apiFetch('/entitlement/me');
+    if(entRes.status===401){
+      const refreshed=await refreshSession();
+      if(!refreshed)return lastRefreshFailure==='invalid'?'INVALID':'RETRY';
+      entRes=await apiFetch('/entitlement/me');
+    }
+    if(entRes.status===401||entRes.status===403)return 'INVALID';
+    if(!entRes.ok)return 'RETRY';
+
     const entitlement=await entRes.json();
-    if(!entitlement?.mode)return false;
+    if(!entitlement?.mode)return 'RETRY';
     auth={...auth,user:me.user,entitlement};
     saveAuth(auth);
-    return true;
+    return 'VALID';
   }catch{
-    return false;
+    return 'RETRY';
   }
 }
 
@@ -710,6 +765,29 @@ if('serviceWorker'in navigator){
 }
 
 (async function boot(){
-  if(auth&&await validateStoredSession())showApp();
-  else{if(auth)saveAuth(null);auth=null;showMarketing()}
+  if(auth?.user&&auth?.refresh_token){
+    // Render the last authenticated profile immediately. A temporary API/network
+    // failure must not visually sign the user out or discard the local history.
+    showApp({hydrate:false});
+    const sessionState=await validateStoredSession();
+    if(sessionState==='VALID'){
+      renderApp();
+      void hydrateAccountHistory();
+      return;
+    }
+    if(sessionState==='RETRY'){
+      toast('Sessão preservada. Tentaremos sincronizar novamente quando a conexão normalizar.');
+      return;
+    }
+
+    saveAuth(null);
+    auth=null;
+    showMarketing();
+    setLoginStatus('Sua sessão expirou. Entre novamente com sua Conta Google.');
+    return;
+  }
+
+  if(auth)saveAuth(null);
+  auth=null;
+  showMarketing();
 })();
