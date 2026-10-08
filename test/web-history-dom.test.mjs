@@ -51,7 +51,13 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
-  assert.ok(get('appExperience')&&!get('appExperience').classList.contains('hidden'));
+  assert.ok(get('appExperience')&&!get('appExperience').classList.contains('hidden'),JSON.stringify({
+    calls:calls.map(call=>call.path),
+    auth:window.localStorage.getItem('escudofit_web_auth_v1'),
+    marketing:get('marketingExperience')?.className,
+    app:get('appExperience')?.className,
+    login:get('loginStatus')?.textContent,
+  }));
   assert.match(get('historySyncStatus').textContent,/1 pesos|1 peso/);
   assert.match(get('historySyncStatus').textContent,/1 aplicações/);
   assert.match(get('historySyncStatus').textContent,/1 refeições/);
