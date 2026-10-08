@@ -68,6 +68,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('historySyncStatus').textContent,/1 pesos|1 peso/);
   assert.match(get('historySyncStatus').textContent,/1 aplicações/);
   assert.match(get('historySyncStatus').textContent,/1 refeições/);
+  assert.match(get('historySyncStatus').textContent,/Nutrição recebida: API 1, backup 0/);
   assert.match(get('historySyncStatus').textContent,/1 tratamento/);
   assert.match(get('measurementHistoryList').textContent,/95/);
   assert.match(get('movementHistoryList').textContent,/Caminhada/);
@@ -105,7 +106,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
       {key:'body_measurements_v1',value:JSON.stringify([{date:backupDate,waist:78,hips:97}])},
       {key:'dose_records_history',value:JSON.stringify([{id:'only-backup-dose',appliedAtMs:now,applicationSite:'ARM_RIGHT'}])},
       {key:'movement:'+backupDate,value:JSON.stringify({updatedAtMs:now,records:[{id:'bk-move',activityType:'WALKING',timestampMs:now}]})},
-      {key:'nutrition:'+backupDate,value:JSON.stringify({updatedAtMs:now,meals:[{id:'bk-meal',mealType:'LUNCH',proteinG:33,timestampMs:now}]})},
+      {key:'nutrition:'+backupDate,value:JSON.stringify({updatedAtMs:now,meals:[{id:'bk-meal-1',mealType:'LUNCH',proteinG:33,timestampMs:now},{id:'bk-meal-2',mealType:'DINNER',proteinG:19,timestampMs:now}]})},
       {key:'water:'+backupDate,value:JSON.stringify({updatedAtMs:now,consumedMl:910})},
     ]
   };
@@ -115,6 +116,15 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('weightHistory').textContent,/72,3/);
   assert.match(get('waterHistoryList').textContent,/910/);
   assert.match(get('applicationHistory').textContent,/Braço direito/);
+  assert.match(get('nutritionHistoryList').textContent,/33/);
+  assert.match(get('nutritionHistoryList').textContent,/19/);
+  assert.match(get('historySyncStatus').textContent,/Nutrição recebida: API 0, backup 2/);
+
+  backupSnapshot={revision:0,entries:[]};
+  get('refreshHistoryButton').click();
+  await pause();
+  assert.match(get('historySyncStatus').textContent,/Nutrição recebida: API 0, backup 0|Nutrição ausente na conta: API 0, backup 0/);
+  // Local browser data remains preserved; zero remote sources cannot erase it.
   assert.match(get('nutritionHistoryList').textContent,/33/);
 
   offline=true;

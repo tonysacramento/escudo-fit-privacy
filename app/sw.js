@@ -1,11 +1,11 @@
-const CACHE='escudo-fit-web-v11-history-backup-fix';
+const CACHE='escudo-fit-web-v12-nutrition-audit';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v42-history-backup-fix-2',
-  './history-sync-contract.js?v=web-v42-history-backup-fix-2',
-  './history-backup-bridge.js?v=web-v42-history-backup-fix-2',
-  './app.js?v=web-v42-history-backup-fix-2',
+  './styles.css?v=web-v42-nutrition-audit-3',
+  './history-sync-contract.js?v=web-v42-nutrition-audit-3',
+  './history-backup-bridge.js?v=web-v42-nutrition-audit-3',
+  './app.js?v=web-v42-nutrition-audit-3',
   './manifest.webmanifest',
   './icon.svg'
 ];
