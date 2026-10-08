@@ -469,7 +469,43 @@ async function hydrateAccountHistory(){
     mergedApplications.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
     state.applications=mergedApplications.slice(0,200);
 
+    const remoteActivities=remoteMovementToLocal(data?.movement);
+    const mergedActivities=[];
+    const seenActivityIds=new Set();
+    for(const entry of [...(Array.isArray(state.activities)?state.activities:[]),...remoteActivities]){
+      const id=String(entry?.id||'');
+      if(!id||seenActivityIds.has(id))continue;
+      seenActivityIds.add(id);
+      mergedActivities.push(entry);
+    }
+    mergedActivities.sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime());
+    state.activities=mergedActivities.slice(0,500);
+
+    const remoteNutrition=remoteNutritionToLocal(data?.nutrition);
+    const mergedNutrition=[];
+    const seenNutritionDates=new Set();
+    for(const day of [...remoteNutrition,...(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])]){
+      const date=String(day?.date||'');
+      if(!date||seenNutritionDates.has(date))continue;
+      seenNutritionDates.add(date);
+      mergedNutrition.push(day);
+    }
+    mergedNutrition.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+    state.nutritionHistory=mergedNutrition.slice(0,365);
+
     const today=localDayKey();
+    const todayNutrition=state.nutritionHistory.find(day=>day.date===today);
+    const todayNutritionUpdatedAtMs=Number(todayNutrition?.updatedAtMs||0);
+    if(todayNutrition&&todayNutritionUpdatedAtMs>=Number(state.nutritionUpdatedAtMs||0)){
+      state.protein=(todayNutrition.meals||[]).reduce((sum,meal)=>sum+Number(meal.proteinG||0),0);
+      state.nutritionUpdatedAtMs=todayNutritionUpdatedAtMs;
+    }
+
+    const remoteTreatment=normalizeRemoteTreatment(data?.treatment);
+    if(remoteTreatment&&remoteTreatment.updatedAtMs>=Number(state.treatment?.updatedAtMs||0)){
+      state.treatment=remoteTreatment;
+    }
+
     const remoteWater=(Array.isArray(data?.water)?data.water:[])
       .find(entry=>entry?.date===today);
     const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
