@@ -684,6 +684,23 @@ test('non-Gmail signup is routed to Web-only access', async ({ page }) => {
 
 
 test('Monise30 campaign link shows 30 days and pending approval confirmation', async ({ page }) => {
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/campaigns/Monise30', async route => {
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({campaign:{
+        code:'Monise30',
+        promoterName:'Stella',
+        benefitDays:30,
+        approvalSlaHours:24,
+        requiresManualApproval:true,
+        title:'30 dias grátis de Escudo Fit',
+        intro:'Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.'
+      }})
+    });
+  });
+
   let captured=null;
   await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
     captured=route.request().postDataJSON();
@@ -718,4 +735,31 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
   await expect(page.locator('#trialLoginButton')).toBeHidden();
   expect(captured.promoCode).toBe('Monise30');
   expect(captured.email).toBe('divulgacao@example.com');
+});
+
+
+test('promoter campaign page is reusable for another code without hardcoded email or days', async ({ page }) => {
+  await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/campaigns/NutriAna15', async route => {
+    await route.fulfill({
+      status:200,
+      contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({campaign:{
+        code:'NutriAna15',
+        promoterName:'Ana',
+        benefitDays:15,
+        approvalSlaHours:12,
+        requiresManualApproval:true,
+        title:'15 dias grátis de Escudo Fit',
+        intro:'Cadastre-se para solicitar seu benefício. Liberação em até 12 horas.'
+      }})
+    });
+  });
+
+  await page.goto('http://127.0.0.1:4173/app/?promo=NutriAna15', { waitUntil:'networkidle' });
+  await expect(page.locator('#trialTitle')).toHaveText('15 dias grátis de Escudo Fit');
+  await expect(page.locator('#trialIntro')).toContainText('12 horas');
+  await expect(page.locator('#trialEmail')).toHaveValue('');
+  await expect(page.locator('#trialEmail')).not.toHaveAttribute('readonly', '');
+  await expect(page.locator('#trialSubmit')).toHaveText('Solicitar 15 dias grátis');
 });
