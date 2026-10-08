@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - work/web-v42-full-history-qa-20261008
+      - fix/web-history-backup-bridge-20261008
   pull_request:
     branches:
       - main
@@ -26,13 +27,28 @@ jobs:
       - name: Web JavaScript syntax
         run: |
           node --check app/history-sync-contract.js
+          node --check app/history-backup-bridge.js
           node --check app/app.js
           node --check app/sw.js
       - name: Seven-category history contract tests
-        run: node --test test/history-sync-contract.test.mjs
+        run: node --test test/history-sync-contract.test.mjs test/history-backup-bridge.test.mjs
       - name: Install DOM smoke test dependency
         run: npm install --no-save --package-lock=false jsdom@26.1.0
       - name: Authenticated Web history UI and write smoke (synthetic data only)
         run: node --test test/web-history-dom.test.mjs
+      - name: Public API availability (no credentials, no personal data)
+        run: |
+          node - <<'NODE'
+          const origin='https://tonysacramento.github.io';
+          const base='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
+          async function check(path,expected) {
+            const res=await fetch(base+path,{headers:{Origin:origin},signal:AbortSignal.timeout(20000)});
+            const cors=res.headers.get('access-control-allow-origin');
+            console.log(path+' status='+res.status+' cors='+String(cors===origin));
+            if(res.status!==expected||cors!==origin)process.exitCode=1;
+          }
+          await check('/health',200);
+          await check('/history',401);
+          NODE
       - name: No production Android deployment in Web QA
         run: echo 'Web-only QA, no Android APK or AAB built.'

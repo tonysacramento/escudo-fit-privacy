@@ -8,6 +8,7 @@ const { JSDOM }=require('jsdom');
 const html=readFileSync('app/index.html','utf8');
 const js=readFileSync('app/app.js','utf8');
 const contract=readFileSync('app/history-sync-contract.js','utf8');
+const bridge=readFileSync('app/history-backup-bridge.js','utf8');
 const pause=()=>new Promise(resolve=>setTimeout(resolve,55));
 
 test('synthetic authenticated Web session renders all categories and posts two-way compatible records',async()=>{
@@ -37,6 +38,8 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   };
   const calls=[];
   let offline=false;
+  let structuredHistory=payload;
+  let backupSnapshot={revision:0,entries:[]};
   window.fetch=async(url,options={})=>{
     const path=String(url);
     calls.push({path,options});
@@ -44,12 +47,14 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     let data={};
     if(path.endsWith('/entitlement/me'))data={mode:'PREMIUM'};
     else if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
-    else if(path.endsWith('/history'))data=payload;
+    else if(path.endsWith('/history'))data=structuredHistory;
+    else if(path.endsWith('/history/backup'))data=backupSnapshot;
     else if(path.endsWith('/history/sync'))data={synced:true};
     else throw new Error('Unexpected API path '+path);
     return {ok:true,status:200,json:async()=>data};
   };
   window.eval(contract);
+  window.eval(bridge);
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
@@ -89,6 +94,28 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.ok(treatments.length>=1,'Web should POST treatment');
   assert.equal(treatments.at(-1).treatment.medication,'WEGOVY');
   assert.equal(window.localStorage.getItem('escudofit_history_outbox_v1_qa-user'),'[]');
+
+  // Old Android versions may have uploaded a backup but no structured history.
+  structuredHistory={};
+  const backupDate=new Date(Date.parse(apiDate+'T12:00:00.000Z')-86400000).toISOString().slice(0,10);
+  backupSnapshot={
+    revision:4,
+    entries:[
+      {key:'weight_history',value:JSON.stringify([{id:'only-in-backup',weightKg:72.3,timestampMs:now,origin:'PROFILE'}])},
+      {key:'body_measurements_v1',value:JSON.stringify([{date:backupDate,waist:78,hips:97}])},
+      {key:'dose_records_history',value:JSON.stringify([{id:'only-backup-dose',appliedAtMs:now,applicationSite:'ARM_RIGHT'}])},
+      {key:'movement:'+backupDate,value:JSON.stringify({updatedAtMs:now,records:[{id:'bk-move',activityType:'WALKING',timestampMs:now}]})},
+      {key:'nutrition:'+backupDate,value:JSON.stringify({updatedAtMs:now,meals:[{id:'bk-meal',mealType:'LUNCH',proteinG:33,timestampMs:now}]})},
+      {key:'water:'+backupDate,value:JSON.stringify({updatedAtMs:now,consumedMl:910})},
+    ]
+  };
+  get('refreshHistoryButton').click();
+  await pause();
+  assert.match(get('historySyncStatus').textContent,/Backup 200 \(revisão 4/);
+  assert.match(get('weightHistory').textContent,/72,3/);
+  assert.match(get('waterHistoryList').textContent,/910/);
+  assert.match(get('applicationHistory').textContent,/Braço direito/);
+  assert.match(get('nutritionHistoryList').textContent,/33/);
 
   offline=true;
   get('waterReset').click();

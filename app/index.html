@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v42-history-qa-1">
+  <meta name="escudo-fit-build" content="web-v42-history-backup-fix-2">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v42-history-qa-1">
+  <link rel="stylesheet" href="./styles.css?v=web-v42-history-backup-fix-2">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -212,7 +212,10 @@
             <article class="screen-card shield-card">
               <div class="shield-card-top">
                 <div class="shield-card-title">
-                  <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
+                  <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO — HISTÓRICO</b></div>
+            <div id="waterHistoryList" class="history"></div>
+
+            <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
                   <span id="movementStatusPill" class="status-pill green">PENDENTE</span>
                 </div>
                 <div id="movementShieldBadge" class="shield-badge shield-green" style="--fill:0%">
@@ -505,7 +508,8 @@
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v42-history-qa-1" defer></script>
-  <script src="./app.js?v=web-v42-history-qa-1" defer></script>
+  <script src="./history-sync-contract.js?v=web-v42-history-backup-fix-2" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v42-history-backup-fix-2" defer></script>
+  <script src="./app.js?v=web-v42-history-backup-fix-2" defer></script>
 </body>
 </html>

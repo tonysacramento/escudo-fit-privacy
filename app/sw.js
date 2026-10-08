@@ -1,10 +1,11 @@
-const CACHE='escudo-fit-web-v10-history-qa';
+const CACHE='escudo-fit-web-v11-history-backup-fix';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v42-history-qa-1',
-  './history-sync-contract.js?v=web-v42-history-qa-1',
-  './app.js?v=web-v42-history-qa-1',
+  './styles.css?v=web-v42-history-backup-fix-2',
+  './history-sync-contract.js?v=web-v42-history-backup-fix-2',
+  './history-backup-bridge.js?v=web-v42-history-backup-fix-2',
+  './app.js?v=web-v42-history-backup-fix-2',
   './manifest.webmanifest',
   './icon.svg'
 ];
