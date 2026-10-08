@@ -66,7 +66,7 @@ test('Web markup, service worker and client share same revision and full history
   for(const marker of ['historyContract.nutritionPatch','historyContract.treatmentPatch','historyContract.countHistory',
     'syncHistoryPatch({nutrition:[patch]})','syncHistoryPatch({treatment:patch})',
     'syncHistoryPatch({movement:[','syncHistoryPatch({applications:[',
-    'syncHistoryPatch({weights:[','syncHistoryPatch({water:[',
+    'syncHistoryPatch({weights:[','water:[{date:localDayKey()',
     'syncHistoryPatch({weights:[],measurements:[remote]})']){
     assert.ok(js.includes(marker),marker);
   }
