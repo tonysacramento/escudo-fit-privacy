@@ -9,9 +9,8 @@ let state={...defaults,activities:[],applications:[],weights:[],measurements:{},
 let installPrompt=null;
 let googleReady=false;
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
-const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
-  ? {code:'Monise30',trialDays:30,requiresManualApproval:true}
-  : null;
+let ACTIVE_PROMO=null;
+let promoReady=!PROMO_CODE;
 
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
@@ -66,15 +65,52 @@ function setTrialStatus(message,isError=false){
   el.classList.toggle('hidden',!message);
 }
 
+function promoDays(){
+  return Number(ACTIVE_PROMO?.trialDays||14);
+}
+
+function promoApprovalHours(){
+  return Number(ACTIVE_PROMO?.approvalSlaHours||24);
+}
+
 function applyPromoLanding(){
   if(!ACTIVE_PROMO)return;
+  const days=promoDays();
+  const hours=promoApprovalHours();
   setText('trialEyebrow','BENEFÍCIO EXCLUSIVO');
-  setText('trialTitle','30 dias grátis de Escudo Fit');
-  setText('trialIntro','Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.');
+  setText('trialTitle',ACTIVE_PROMO.title||days+' dias grátis de Escudo Fit');
+  setText('trialIntro',ACTIVE_PROMO.intro||('Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até '+hours+' horas.'));
   const button=$('trialSubmit');
-  if(button)button.textContent='Solicitar 30 dias grátis';
+  if(button){button.disabled=false;button.textContent='Solicitar '+days+' dias grátis'}
 }
-applyPromoLanding();
+
+async function loadPromoCampaign(){
+  if(!PROMO_CODE)return;
+  const button=$('trialSubmit');
+  if(button){button.disabled=true;button.textContent='Carregando benefício…'}
+  try{
+    const res=await fetch(API+'/campaigns/'+encodeURIComponent(PROMO_CODE));
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||!data?.campaign)throw new Error(data.code||'PROMO_NOT_FOUND');
+    ACTIVE_PROMO={
+      code:String(data.campaign.code||PROMO_CODE),
+      trialDays:Number(data.campaign.benefitDays||14),
+      approvalSlaHours:Number(data.campaign.approvalSlaHours||24),
+      requiresManualApproval:data.campaign.requiresManualApproval===true,
+      title:String(data.campaign.title||''),
+      intro:String(data.campaign.intro||''),
+      promoterName:String(data.campaign.promoterName||''),
+    };
+    applyPromoLanding();
+  }catch{
+    ACTIVE_PROMO=null;
+    setTrialStatus('Este benefício não está disponível no momento. Verifique o link da campanha.',true);
+    if(button){button.disabled=true;button.textContent='Benefício indisponível'}
+  }finally{
+    promoReady=true;
+  }
+}
+void loadPromoCampaign();
 
 async function registerQuickTrial(event){
   event?.preventDefault?.();
@@ -83,6 +119,12 @@ async function registerQuickTrial(event){
   const company=$('trialCompany')?.value||'';
   const consentAccepted=$('trialLgpd')?.checked===true;
   const consentVersion='LGPD-2026-10-07-v1';
+  if(PROMO_CODE&&!promoReady){
+    return setTrialStatus('Aguarde enquanto carregamos o benefício da campanha.',true);
+  }
+  if(PROMO_CODE&&!ACTIVE_PROMO){
+    return setTrialStatus('Este benefício não está disponível no momento. Verifique o link da campanha.',true);
+  }
   if(name.length<2){
     $('trialName')?.focus();
     return setTrialStatus('Informe seu nome.',true);
@@ -114,7 +156,7 @@ async function registerQuickTrial(event){
     const accessChannel=data.accessChannel||(/@(gmail|googlemail)\.com$/i.test(email)?'GOOGLE_PLAY':'WEB_ONLY');
     const promoPending=data.pendingApproval===true||ACTIVE_PROMO?.requiresManualApproval===true;
     if(promoPending){
-      setTrialStatus('Solicitação recebida. Seu benefício de 30 dias grátis está em análise e será liberado em até 24 horas. Você receberá a confirmação após a aprovação.');
+      setTrialStatus('Solicitação recebida. Seu benefício de '+promoDays()+' dias grátis está em análise e será liberado em até '+promoApprovalHours()+' horas. Você receberá a confirmação após a aprovação.');
       $('trialLoginButton')?.classList.add('hidden');
       $('trialAndroidButton')?.classList.add('hidden');
     }else if(accessChannel==='GOOGLE_PLAY'){
@@ -135,7 +177,7 @@ async function registerQuickTrial(event){
         : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
       true
     );
-    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Solicitar 30 dias grátis':'Começar 14 dias grátis'}
+    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?('Solicitar '+promoDays()+' dias grátis'):'Começar 14 dias grátis'}
   }
 }
 
