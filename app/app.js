@@ -1157,26 +1157,64 @@ $('addActivity')?.addEventListener('click',async()=>{
   toast(synced?'Atividade sincronizada':'Atividade registrada');
 });
 
-document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
-  const site=String(btn.dataset.applicationSite||'').trim();
-  if(!site)return;
+// Selecting a map zone is NOT evidence of an application. Android requires
+// an explicit confirmation; apply the same protection in the Web experience.
+let selectedApplicationSite=null;
+const mapImg=$('approvedBodyMap');
+if(mapImg&&window.escudoFitApprovedBodyMapUri)mapImg.src=window.escudoFitApprovedBodyMapUri;
+document.querySelectorAll('[data-application-site]').forEach(btn=>{
+  btn.setAttribute('aria-pressed','false');
+  btn.addEventListener('click',()=>{
+    selectedApplicationSite=String(btn.dataset.applicationSite||'');
+    document.querySelectorAll('[data-application-site]').forEach(zone=>{
+      zone.setAttribute('aria-pressed',String(zone.dataset.applicationSite||'')===selectedApplicationSite?'true':'false');
+    });
+    setText('applicationSelection',applicationSiteLabels[selectedApplicationSite]||'Selecione um local.');
+    $('confirmApplication').disabled=!selectedApplicationSite;
+    setText('applicationSaved','');
+  });
+});
+$('confirmApplication')?.addEventListener('click',async()=>{
+  if(!selectedApplicationSite)return;
+  const date=localDayKey();
+  if((Array.isArray(state.applications)?state.applications:[]).some(item=>
+    (item.scheduledDateIso||localDayKey(item.at))===date)){
+    setText('applicationSaved','Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
+    return;
+  }
   const appliedAtMs=Date.now();
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs),site,at:new Date(appliedAtMs).toISOString()};
+  const applicationSite=selectedApplicationSite;
+  const id=crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs;
+  const entry={id,site:applicationSiteLabels[applicationSite]||applicationSite,
+    siteCode:applicationSite,at:new Date(appliedAtMs).toISOString(),scheduledDateIso:date};
+  const button=$('confirmApplication');
+  button.disabled=true;
   state.applications=[entry,...(Array.isArray(state.applications)?state.applications:[])].slice(0,200);
   saveState();renderApp();
-  const synced=await syncHistoryPatch({applications:[{id:entry.id,site,appliedAtMs}]});
-  if($('applicationSaved'))$('applicationSaved').textContent=synced
-    ? 'Aplicação registrada na sua conta em '+site+'.'
-    : 'Aplicação registrada neste navegador; sincronização pendente.';
-  toast(synced?'Aplicação sincronizada':'Aplicação registrada');
-}));
+  const synced=await syncHistoryPatch({applications:[{
+    id,applicationSite,appliedAtMs,scheduledDateIso:date,
+  }]});
+  setText('applicationSaved',synced
+    ?'Aplicação de hoje confirmada na Conta Google.'
+    :'Aplicação salva neste navegador. O envio à conta será tentado novamente.');
+  selectedApplicationSite=null;
+  document.querySelectorAll('[data-application-site]').forEach(zone=>zone.setAttribute('aria-pressed','false'));
+  setText('applicationSelection','Nenhum local selecionado.');
+  button.disabled=true;
+  toast(synced?'Aplicação sincronizada':'Aplicação salva localmente');
+});
 
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
 
-document.querySelectorAll('[data-view-link]').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.viewLink)));
+document.querySelectorAll('[data-view-link]').forEach(btn=>{
+  btn.addEventListener('click',()=>activateView(btn.dataset.viewLink));
+  if(btn.getAttribute('role')==='button')btn.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();activateView(btn.dataset.viewLink);}
+  });
+});
 
 document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListener('click',()=>{
-  activateView('home');
+  activateView(btn.dataset.focusView||'nutrition');
   setTimeout(()=>{
     const target=$(btn.dataset.focusTarget);
     if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus();}
