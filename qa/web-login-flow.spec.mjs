@@ -1,5 +1,25 @@
 import { test, expect } from '@playwright/test';
 
+/**
+ * All Playwright login/history tests are isolated from the live API.
+ * The Web loads /history AND /history/backup before rendering its state;
+ * leaving the second endpoint unmocked sent test accounts over the network,
+ * causing hydration to hang and five unrelated assertions to time out.
+ *
+ * A scenario that needs a non-empty backup can register a more-specific route
+ * after this fixture. Do not use the actual production backend in this suite.
+ */
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/v38/history/backup', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({ revision: 0, entries: [], updatedAt: null }),
+    });
+  });
+});
+
 test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await page.route('https://accounts.google.com/gsi/client', async route => {
     const mock = `
