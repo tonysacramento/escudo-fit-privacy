@@ -9,6 +9,8 @@ const html=readFileSync('app/index.html','utf8');
 const js=readFileSync('app/app.js','utf8');
 const contract=readFileSync('app/history-sync-contract.js','utf8');
 const bridge=readFileSync('app/history-backup-bridge.js','utf8');
+const weightChart=readFileSync('app/weight-chart.js','utf8');
+const idlePolicy=readFileSync('app/session-idle-policy.js','utf8');
 const pause=()=>new Promise(resolve=>setTimeout(resolve,55));
 
 test('synthetic authenticated Web session renders all categories and posts two-way compatible records',async()=>{
@@ -63,6 +65,8 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   };
   window.eval(contract);
   window.eval(bridge);
+  window.eval(weightChart);
+  window.eval(idlePolicy);
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
@@ -91,6 +95,8 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.equal(window.document.querySelectorAll('.shield-list > .shield-card').length,4);
   assert.equal(window.document.querySelectorAll('.app-view[data-view="nutrition"]').length,1);
   assert.equal(window.document.querySelectorAll('.app-view[data-view="weight"]').length,1);
+  assert.match(get('weightTrendChart').innerHTML,/aria-label="Evolução dos últimos 1 registros/);
+  assert.match(get('weightTrendChart').textContent,/87,2 kg/);
 
 
   // Real regression: a single Web meal is already displayed, then Android

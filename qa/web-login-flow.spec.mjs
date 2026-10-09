@@ -894,3 +894,42 @@ test('measurements view renders a single recent history block', async ({ page })
   await expect(page.locator('#measurementHistoryList')).toHaveCount(1);
   await expect(page.locator('#measurementHistory')).toHaveCount(0);
 });
+
+test('idle Web tab expires securely and offers login again without erasing unsent history',async({page})=>{
+  await page.route('https://accounts.google.com/gsi/client',async route=>{
+    await route.fulfill({status:200,contentType:'application/javascript',body:`
+      window.google={accounts:{id:{
+        initialize(opts){window.__loginCallback=opts.callback},
+        renderButton(el){const b=document.createElement('button');b.textContent='Entrar com Google';el.appendChild(b)},
+        disableAutoSelect(){}
+      }}}`});
+  });
+  await page.route('**/api/v38/auth/logout',async route=>{
+    await route.fulfill({status:200,contentType:'application/json',body:'{}'});
+  });
+  await page.addInitScript(()=>{
+    localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({
+      user:{id:'qa-idle-user',email:'qa-idle@example.invalid'},
+      access_token:'qa-idle-token',refresh_token:'qa-idle-refresh',
+      entitlement:{mode:'PREMIUM'},
+    }));
+    localStorage.setItem('escudofit_web_last_activity_v1_qa-idle-user',String(Date.now()-61*60*1000));
+    localStorage.setItem('escudofit_history_outbox_v1_qa-idle-user',JSON.stringify([
+      {id:'pending-movement',payload:{movement:[]}},
+    ]));
+  });
+  await page.goto('/app/');
+  await expect(page.locator('#appExperience')).toHaveClass(/hidden/);
+  await expect(page.locator('#idleSessionNotice')).toBeVisible();
+  await expect(page.locator('#idleSessionNotice')).toContainText('Deseja entrar novamente');
+  await expect(page.locator('#idleLoginAgain')).toBeVisible();
+  const persisted=await page.evaluate(()=>({
+    auth:localStorage.getItem('escudofit_web_auth_v1'),
+    outbox:localStorage.getItem('escudofit_history_outbox_v1_qa-idle-user'),
+  }));
+  expect(persisted.auth).toBeNull();
+  expect(JSON.parse(persisted.outbox||'[]')).toHaveLength(1);
+  await page.locator('#idleLoginAgain').click();
+  await expect(page.locator('#idleSessionNotice')).toHaveClass(/hidden/);
+  await expect(page.locator('#loginSection')).toBeVisible();
+});

@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-android-parity-8">
+  <meta name="escudo-fit-build" content="web-v44-weight-silent-sync-9">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-android-parity-8">
+  <link rel="stylesheet" href="./styles.css?v=web-v44-weight-silent-sync-9">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -117,6 +117,17 @@
             <button id="trialLoginButton" class="button button-outline full-width hidden" type="button" data-scroll-login>Entrar com Google e ativar trial</button>
             <a id="trialAndroidButton" class="button button-primary full-width hidden" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Baixar / atualizar no Android</a>
           </form>
+        </div>
+      </section>
+
+      <section id="idleSessionNotice" class="section idle-session-notice hidden" role="status" aria-live="polite" aria-label="Sessão encerrada por inatividade">
+        <div class="login-panel idle-session-panel">
+          <div class="login-copy">
+            <span class="eyebrow">ACESSO PROTEGIDO</span>
+            <h2>Sua sessão foi encerrada por inatividade.</h2>
+            <p>Você ficou mais de 60 minutos sem usar o Escudo Fit. Deseja entrar novamente? Seu histórico e os registros pendentes continuam preservados.</p>
+          </div>
+          <button id="idleLoginAgain" class="button button-primary" type="button">ENTRAR NOVAMENTE</button>
         </div>
       </section>
 
@@ -463,7 +474,10 @@
             <button id="addWeight" class="quick-access-button gold">SALVAR NOVO PESO</button>
           </article>
           <article class="screen-card">
-            <div class="section-title cyan"><span>📈</span><b>HISTÓRICO DE PESO</b></div>
+            <div class="section-title cyan"><span>📈</span><b>EVOLUÇÃO DO PESO</b></div>
+            <p class="muted">Acompanhe sua evolução com os registros do Android e da Web, sem perder o histórico.</p>
+            <div id="weightTrendChart" class="weight-chart" aria-live="polite"><p class="muted">Carregando evolução…</p></div>
+            <div class="section-title cyan"><b>REGISTROS RECENTES</b></div>
             <div id="weightHistory" class="history"></div>
           </article>
           <button class="quick-access-button" data-view-link="profile">VOLTAR AO PERFIL</button>
@@ -502,19 +516,19 @@
 
           <article class="screen-card">
             <div class="section-title cyan"><b>EVOLUÇÃO DO PESO</b></div>
-            <p class="muted">Seu histórico e as variações de peso estão disponíveis na seção Peso.</p>
+            <p class="muted">Visualize a evolução do seu peso no gráfico, com os registros da Web e do Android.</p>
             <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
           </article>
 
           <article class="screen-card">
             <div class="section-title cyan"><b>LEMBRETES DE HIDRATAÇÃO</b></div>
-            <p class="muted">Os alarmes locais são configurados pelo aplicativo Android. O navegador não programa as notificações nativas do aparelho.</p>
+            <p class="muted">Os lembretes são programados no Android, conforme suas preferências. Na Web, você pode consultar os registros; não é necessário configurar alarmes novamente.</p>
           </article>
 
           <div class="screen-card" data-full-only>
             <div class="section-title green"><span>☁️</span><b>PROTEÇÃO DO HISTÓRICO</b></div>
-            <p class="muted">O histórico é consultado automaticamente ao entrar ou voltar à Web com sua Conta Google. Os dados locais permanecem preservados, e a consulta manual continua disponível.</p>
-            <button id="refreshHistoryButton" class="button button-outline full-width">Recarregar histórico da conta</button>
+            <p class="muted">Seu histórico é atualizado discretamente ao acessar a Web, trocar de escudo ou voltar à página. Registros não enviados continuam salvos neste navegador para nova tentativa.</p>
+            <button id="refreshHistoryButton" class="button button-outline full-width">Verificar atualizações agora</button>
             <p id="historySyncStatus" class="saved" role="status" aria-live="polite">Histórico ainda não validado nesta sessão.</p>
 
             <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
@@ -570,9 +584,11 @@
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-android-parity-8" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-android-parity-8" defer></script>
-  <script src="./body-map.js?v=web-v43-android-parity-8" defer></script>
-  <script src="./app.js?v=web-v43-android-parity-8" defer></script>
+  <script src="./history-sync-contract.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./body-map.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./weight-chart.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./session-idle-policy.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./app.js?v=web-v44-weight-silent-sync-9" defer></script>
 </body>
 </html>

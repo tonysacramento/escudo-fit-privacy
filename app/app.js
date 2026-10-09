@@ -1,10 +1,14 @@
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 const historyContract=window.EscudoHistoryContract;
 const backupBridge=window.EscudoBackupBridge;
+const sessionIdlePolicy=window.EscudoSessionIdlePolicy;
+if(!sessionIdlePolicy)throw new Error('IDLE_POLICY_NOT_LOADED');
 if(!historyContract||!backupBridge)throw new Error('HISTORY_CONTRACT_NOT_LOADED');
 const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
+const SESSION_ACTIVITY_PREFIX='escudofit_web_last_activity_v1_';
+let lastActivityWriteAt=0;
 const $=id=>document.getElementById(id);
 const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'',stepsHistory:[],stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
@@ -191,6 +195,47 @@ async function registerQuickTrial(event){
 }
 
 
+function activityKey(userId=auth?.user?.id){return SESSION_ACTIVITY_PREFIX+String(userId||'guest')}
+function sessionIdleExpired(){
+  if(!auth?.user)return false;
+  return sessionIdlePolicy.expired(localStorage.getItem(activityKey()));
+}
+function markSessionActivity(force=false){
+  if(!auth?.user)return;
+  const now=Date.now();
+  if(!force&&now-lastActivityWriteAt<20000)return;
+  lastActivityWriteAt=now;
+  localStorage.setItem(activityKey(),String(now));
+}
+function hideIdleSessionNotice(){
+  $('idleSessionNotice')?.classList.add('hidden');
+}
+function expireIdleSession(){
+  if(!auth?.user)return false;
+  const previous=auth;
+  // Hide identifiable content and revoke local credentials SYNCHRONOUSLY.
+  // Never delete queued, unsent account edits or the confirmed backup.
+  saveAuth(null);
+  state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
+  googleReady=false;
+  try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
+  showMarketing();
+  $('idleSessionNotice')?.classList.remove('hidden');
+  setLoginStatus('Sua sessão expirou por inatividade. Entre novamente com sua Conta Google.');
+  // Best-effort server logout uses only the token captured before the lock.
+  // It must never attempt a silent token refresh or log out a newer session.
+  if(previous.access_token){
+    void fetch(API+'/auth/logout',{method:'POST',headers:{
+      'Authorization':'Bearer '+previous.access_token
+    }}).catch(()=>{});
+  }
+  return true;
+}
+function checkIdleSession(){
+  if(!sessionIdleExpired())return false;
+  return expireIdleSession();
+}
+
 function showMarketing(){
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
@@ -200,6 +245,8 @@ function showMarketing(){
 }
 
 function showApp(){
+  hideIdleSessionNotice();
+  markSessionActivity(true);
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
@@ -207,9 +254,7 @@ function showApp(){
   reconcileWebLocalDay();
   renderApp();
   activateView('home');
-  // One authoritative hydration path prevents a slower duplicate request from
-  // overwriting local records that have not synchronized yet.
-  void hydrateAccountHistory();
+  // activateView already schedules account reconciliation without a second request.
   window.scrollTo({top:0,behavior:'instant'});
 }
 
@@ -229,6 +274,8 @@ function activateView(target){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.target===target));
   document.querySelectorAll('.app-view').forEach(v=>v.classList.toggle('active',v.dataset.view===target));
   window.scrollTo({top:0,behavior:'smooth'});
+  // A shield change requests a fresh account check; throttling prevents API storms.
+  void requestHistoryHydration();
 }
 
 function renderApp(){
@@ -360,6 +407,8 @@ function renderApp(){
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
+  if($('weightTrendChart'))$('weightTrendChart').innerHTML=window.EscudoWeightChart
+    ? window.EscudoWeightChart.build(state.weights) : '<p class="muted">Gráfico temporariamente indisponível. Seus registros estão preservados abaixo.</p>';
   if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   const m=state.measurements||{};
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
@@ -610,10 +659,10 @@ async function syncHistoryPatch(payload){
   return pending;
 }
 
-async function hydrateAccountHistory(){
+async function hydrateAccountHistory({quiet=false}={}){
   if(!auth?.user)return false;
   const accountId=auth.user.id;
-  setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
+  if(!quiet)setText('historySyncStatus','Verificando os registros da sua Conta Google…');
   try{
     await historyPatchChain;
     const flushed=await flushPendingHistory();
@@ -713,11 +762,16 @@ async function hydrateAccountHistory(){
       const remoteAt=Number(day.updatedAtMs||0);
       const localDay=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))===date);
       const localAt=Math.max(0,...localDay.map(entry=>Number(entry.dayUpdatedAtMs||new Date(entry.at).getTime())));
-      if(remoteAt>=localAt){
-        // A newer day snapshot also carries explicit removals.
-        mergedActivities=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))!==date)
-          .concat(remoteByDay.get(date)||[]);
+      // Snapshots are additive. A newer remote day must NOT erase a Web-only
+      // activity still queued for upload on this device.
+      const byId=new Map(localDay.filter(entry=>entry?.id).map(entry=>[entry.id,entry]));
+      for(const entry of remoteByDay.get(date)||[]){
+        if(!entry?.id)continue;
+        if(!byId.has(entry.id)||remoteAt>=localAt)byId.set(entry.id,entry);
       }
+      mergedActivities=mergedActivities
+        .filter(entry=>(entry.date||localDayKey(entry.at))!==date)
+        .concat([...byId.values()]);
     }
     // Explicit Android deletions win over a stale local Web cache.
     const deletedMovementIds=new Set(remoteMovementDays.flatMap(day=>
@@ -780,9 +834,25 @@ async function hydrateAccountHistory(){
 
     return true;
   }catch{
-    setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
+    if(!quiet)setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
     return false;
   }
+}
+
+// One in-flight request per tab. Switching shields never starts concurrent
+// fetches that could overwrite pending local edits with an older response.
+const HISTORY_REFRESH_MIN_MS=15000;
+let inFlightHistoryRefresh=null;
+let lastHistoryRefreshAt=0;
+function requestHistoryHydration({force=false}={}){
+  if(!auth?.user||document.visibilityState==='hidden'||checkIdleSession())return Promise.resolve(false);
+  if(inFlightHistoryRefresh)return inFlightHistoryRefresh;
+  if(!force&&Date.now()-lastHistoryRefreshAt<HISTORY_REFRESH_MIN_MS)return Promise.resolve(true);
+  lastHistoryRefreshAt=Date.now();
+  const attempt=hydrateAccountHistory({quiet:!force});
+  inFlightHistoryRefresh=attempt;
+  void attempt.finally(()=>{if(inFlightHistoryRefresh===attempt)inFlightHistoryRefresh=null;});
+  return attempt;
 }
 
 async function loadAccountHistory(){
@@ -868,11 +938,14 @@ async function syncAccountHistory(payload){
 }
 
 async function refreshSession(){
-  if(!auth?.refresh_token)return false;
+  if(!auth?.refresh_token||sessionIdleExpired())return false;
+  const owner=auth.user?.id;
+  const originalToken=auth.refresh_token;
   try{
-    const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});
-    if(!res.ok)return false;
+    const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:originalToken})});
+    if(!res.ok||!auth||auth.user?.id!==owner||auth.refresh_token!==originalToken||sessionIdleExpired())return false;
     const data=await res.json();
+    if(!auth||auth.user?.id!==owner||auth.refresh_token!==originalToken||sessionIdleExpired())return false;
     auth={...auth,access_token:data.access_token,refresh_token:data.refresh_token};
     saveAuth(auth);
     return true;
@@ -908,6 +981,8 @@ async function handleGoogleCredential(response){
     const data=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     saveAuth(data);
+    hideIdleSessionNotice();
+    markSessionActivity(true);
     state=loadState();
     setLoginStatus('');
     showApp();
@@ -1083,7 +1158,7 @@ $('saveTreatment')?.addEventListener('click',async()=>{
 
 $('refreshHistoryButton')?.addEventListener('click',async()=>{
   setText('historySyncStatus','Consultando o histórico da sua conta…');
-  const synced=await hydrateAccountHistory();
+  const synced=await requestHistoryHydration({force:true});
   toast(synced?'Histórico da conta atualizado':'Histórico local preservado; consulta pendente');
 });
 $('addWeight').addEventListener('click',async()=>{
@@ -1224,6 +1299,47 @@ document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListen
 
 document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.target)));
 
+$('idleLoginAgain')?.addEventListener('click',()=>{
+  hideIdleSessionNotice();
+  setLoginStatus('Entre novamente com sua Conta Google para continuar.');
+  document.getElementById('loginSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+  initGoogle();
+});
+// Explicit user interaction updates the idle clock, but passive API polling
+// never does. Capture-phase guard prevents a stale tab from posting new data.
+for(const type of ['pointerdown','keydown','touchstart']){
+  document.addEventListener(type,event=>{
+    if(!auth?.user)return;
+    if(checkIdleSession()){
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    markSessionActivity();
+  },true);
+}
+window.addEventListener('focus',()=>{
+  if(auth?.user&&checkIdleSession())return;
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&auth?.user)checkIdleSession();
+});
+window.addEventListener('storage',event=>{
+  if(auth?.user&&event.key===AUTH_KEY&&!event.newValue){
+    // Another tab logged out: discard only in-memory data, never local records.
+    const was=auth;
+    auth=null;
+    state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
+    googleReady=false;
+    showMarketing();
+    setLoginStatus('O acesso foi encerrado em outra aba. Entre novamente para continuar.');
+  }
+  if(auth?.user&&event.key===activityKey()&&checkIdleSession())return;
+});
+setInterval(()=>{
+  if(auth?.user)checkIdleSession();
+},60000);
+
 $('exportData').addEventListener('click',()=>{const safe={...state,exportedAt:new Date().toISOString(),account:auth?.user?.email||null};const blob=new Blob([JSON.stringify(safe,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='escudo-fit-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast('Backup exportado')});
 $('clearData').addEventListener('click',()=>{if(!confirm('Apagar todos os registros locais desta versão web?'))return;localStorage.removeItem(dataKey());localStorage.removeItem(historyOutboxKey());state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};renderApp();toast('Dados locais apagados')});
 $('logoutButton').addEventListener('click',logout);
@@ -1235,11 +1351,16 @@ $('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)
 window.addEventListener('appinstalled',()=>toast('Escudo Fit instalado'));
 
 window.addEventListener('focus',()=>{
-  if(auth?.user)void hydrateAccountHistory();
+  if(auth?.user&&!checkIdleSession())void requestHistoryHydration();
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&auth?.user)void hydrateAccountHistory();
+  if(document.visibilityState==='visible'&&auth?.user&&!checkIdleSession())void requestHistoryHydration();
 });
+// Sync only while the browser is running and the account is authenticated.
+// A closed browser cannot be updated until its next visit.
+setInterval(()=>{
+  if(auth?.user&&document.visibilityState==='visible')void requestHistoryHydration();
+},90000);
 
 if('serviceWorker'in navigator){
   let reloadingForWorker=false;
@@ -1256,6 +1377,9 @@ if('serviceWorker'in navigator){
 }
 
 (async function boot(){
-  if(auth&&await validateStoredSession())showApp();
-  else{if(auth)saveAuth(null);auth=null;showMarketing()}
+  // Expire before the first API request; never render protected history first.
+  if(checkIdleSession())return;
+  if(auth&&await validateStoredSession()){
+    if(!checkIdleSession())showApp();
+  }else{if(auth)saveAuth(null);auth=null;showMarketing()}
 })();
