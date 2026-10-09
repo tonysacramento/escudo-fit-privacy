@@ -190,6 +190,20 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
 
   await expect(page.locator('.bottom-nav')).toBeVisible();
   await expect(page.locator('#welcomeName')).toHaveText('QA Mobile');
+  await expect(page.locator('.nav-track .nav-item')).toHaveCount(4);
+  await expect(page.locator('.shield-list > .shield-card')).toHaveCount(4);
+  await expect(page.locator('.shield-card[data-view-link="water"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="nutrition"]')).toBeVisible();
+  await expect(page.locator('.app-view[data-view="home"] [data-water]')).toHaveCount(0);
+  await expect(page.locator('#nutritionCount')).toHaveText('0 de 5');
+  await page.locator('.shield-card[data-view-link="nutrition"]').click();
+  await expect(page.locator('#nutritionMealType')).toBeVisible();
+  await expect(page.locator('#nutritionAddMeal')).toBeVisible();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.shield-card[data-view-link="water"]').click();
+  await expect(page.locator('#waterReset')).toHaveText('- 200 ml');
+
 });
 
 
