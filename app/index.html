@@ -264,6 +264,10 @@
           </article>
 
           <article class="screen-card">
+            <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
+            <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+          </article>
+          <article class="screen-card">
             <div class="section-title cyan"><span>＋</span><b>REGISTRAR ÁGUA</b></div>
             <div class="water-actions">
               <button class="quick-access-button" data-water="200">+ 200 ml</button>
@@ -273,10 +277,6 @@
             </div>
           </article>
 
-          <article class="screen-card">
-            <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
-            <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
-          </article>
           <article class="screen-card">
             <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO ANTERIOR</b></div>
             <div id="waterHistoryList" class="history"></div>
@@ -470,33 +470,50 @@
         </section>
 
         <section class="app-view" data-view="profile">
-          <div class="app-section-title"><span class="eyebrow">CONTA</span><h2>Meu perfil</h2></div>
-          <div class="screen-card profile-summary">
-            <img id="profilePicture" src="./android-icon.svg" alt="">
-            <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
-            <span id="profilePlan" class="plan-badge">FULL</span>
-          </div>
+          <div class="app-section-title"><h2>Perfil</h2><p>Seus dados para personalizar o cuidado diário.</p></div>
+          <article class="screen-card">
+            <div class="section-title cyan"><b>CONTA E ACESSO</b></div>
+            <div class="profile-summary">
+              <img id="profilePicture" src="./android-icon.svg" alt="Identidade Escudo Fit">
+              <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
+            </div>
+            <p class="muted">A Conta Google vincula seu acesso e seus registros na Web e no Android.</p>
+          </article>
 
-          <div class="screen-card">
-            <label class="app-field">Como deseja ser chamado?<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
-            <button id="saveProfile" class="button button-outline full-width">Salvar nome local</button>
-          </div>
+          <article class="screen-card">
+            <div class="section-title gold"><b>SEU PLANO</b></div>
+            <p class="muted">Plano conectado a esta Conta Google:</p>
+            <strong id="profilePlan" class="plan-label">FULL</strong>
+          </article>
 
-          <div class="screen-card profile-weight-card">
+          <article class="screen-card">
+            <div class="section-title cyan"><b>DADOS PESSOAIS</b></div>
+            <label class="app-field">Nome<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
+            <button id="saveProfile" class="quick-access-button">SALVAR PERFIL</button>
+          </article>
+
+          <article class="screen-card profile-weight-card">
             <div class="section-title gold"><b>PESO E APLICAÇÃO</b></div>
+            <p class="muted">Peso atual: <strong id="profileCurrentWeight">não registrado</strong></p>
             <button class="quick-access-button gold" data-view-link="weight">REGISTRAR NOVO PESO / VER HISTÓRICO</button>
             <button class="quick-access-button" data-view-link="applications">ABRIR APLICAÇÃO</button>
             <button class="quick-access-button" data-view-link="measurements">MEDIDAS CORPORAIS</button>
-          </div>
-          <div class="screen-card">
-            <h3>Seus dados</h3>
-            <p class="muted">Peso, medidas, aplicações, movimento, nutrição e histórico de tratamento podem ser vinculados à sua Conta Google para consulta entre Android e Web.</p>
-            <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
-          </div>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>EVOLUÇÃO DO PESO</b></div>
+            <p class="muted">Seu histórico e as variações de peso estão disponíveis na seção Peso.</p>
+            <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>LEMBRETES DE HIDRATAÇÃO</b></div>
+            <p class="muted">Os alarmes locais são configurados pelo aplicativo Android. O navegador não programa as notificações nativas do aparelho.</p>
+          </article>
 
           <div class="screen-card" data-full-only>
-            <div class="section-title cyan"><span>☁️</span><b>HISTÓRICO SINCRONIZADO</b></div>
-            <p class="muted">Registros recuperados da sua Conta Google. O histórico local do aparelho continua preservado durante a sincronização.</p>
+            <div class="section-title green"><span>☁️</span><b>PROTEÇÃO DO HISTÓRICO</b></div>
+            <p class="muted">O histórico é consultado automaticamente ao entrar ou voltar à Web com sua Conta Google. Os dados locais permanecem preservados, e a consulta manual continua disponível.</p>
             <button id="refreshHistoryButton" class="button button-outline full-width">Recarregar histórico da conta</button>
             <p id="historySyncStatus" class="saved" role="status" aria-live="polite">Histórico ainda não validado nesta sessão.</p>
 
@@ -526,9 +543,17 @@
             <div id="treatmentHistoryList" class="history"></div>
           </div>
 
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>PRIVACIDADE E DADOS</b></div>
+            <p class="muted">Peso, medidas, aplicações, movimento, nutrição e tratamento são vinculados à sua Conta Google quando sincronizados. Os registros locais continuam sob seu controle.</p>
+            <a class="quick-access-button" href="../privacy.html" target="_blank" rel="noopener">LER POLÍTICA DE PRIVACIDADE</a>
+            <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
+          </article>
+
           <button class="quick-access-button" data-view-link="home">VOLTAR AO ESCUDO DO DIA</button>
           <button id="switchAccountButton" class="button button-outline full-width">Trocar Conta Google</button>
-          <button id="logoutButtonBottom" class="button button-ghost full-width logout-wide">Sair e voltar à apresentação</button>
+          <button id="logoutButtonBottom" class="button button-ghost full-width logout-wide">Sair da Conta Google</button>
         </section>
       </main>
 
