@@ -896,3 +896,17 @@ body.is-app button:focus-visible{outline:2px solid var(--app-cyan);outline-offse
   body.is-app .shield-badge{width:70px;height:70px}
   body.is-app .nav-track{border-radius:20px}
 }
+
+/* Android profile hierarchy and optional medication tab */
+body.is-app .screen-card .profile-summary{
+  margin:12px 0;display:grid;grid-template-columns:58px minmax(0,1fr);
+  align-items:center;gap:13px
+}
+body.is-app .screen-card .profile-summary strong,
+body.is-app .screen-card .profile-summary span{overflow-wrap:anywhere}
+body.is-app .plan-label{display:block;font-size:18px;color:var(--app-text);margin:10px 0}
+body.is-app .screen-card>.quick-access-button,
+body.is-app .screen-card>.profile-actions{margin-top:12px}
+body.is-app a.quick-access-button{text-decoration:none}
+body.is-app .nav-track:has(#navMedication.hidden){grid-template-columns:repeat(3,minmax(0,1fr))}
+body.is-app .screen-card .app-field+button{margin-top:10px}
