@@ -147,37 +147,27 @@
   <section id="appExperience" class="app-experience hidden" aria-live="polite">
     <div class="app-shell">
       <header class="app-topbar app-like-topbar">
-        <div class="app-brand">
-          <img src="./icon.svg" alt="">
-          <div>
-            <strong>Escudo <span>Fit</span></strong>
-            <small>Proteção que transforma seu dia</small>
-          </div>
+        <div class="app-brand app-brand-android">
+          <strong>Escudo <span>Fit</span></strong>
+          <small>Proteção que transforma seu dia</small>
         </div>
         <div class="user-area">
-          <span id="planBadge" class="plan-badge">FULL</span>
+          <span id="planBadge" class="plan-badge hidden">FULL</span>
           <button class="profile-icon-button" data-view-link="profile" aria-label="Abrir perfil">
-            <img id="topProfilePicture" src="./icon.svg" alt="">
+            <img id="topProfilePicture" src="./icon.svg" alt="Perfil Escudo Fit">
           </button>
-          <button id="logoutButton" class="icon-button" aria-label="Sair da conta" title="Sair">↗</button>
+          <button id="logoutButton" class="icon-button hidden" aria-label="Sair da conta">↗</button>
         </div>
       </header>
 
       <main class="app-main">
         <section class="app-view active" data-view="home">
-          <div class="dashboard-heading">
-            <div>
-              <span class="eyebrow">MEU ESCUDO</span>
-              <h1 id="welcomeName">Seu Escudo</h1>
-              <p id="appGreeting">Olá</p><span id="experienceLabel" class="experience-label">FULL</span>
-            </div>
+          <div class="legacy-dashboard-state hidden" aria-hidden="true">
+            <span id="welcomeName"></span><span id="appGreeting"></span><span id="experienceLabel"></span>
           </div>
-
           <article class="screen-card hero-shield-card">
             <div id="dailyShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
-              <div class="shield-fill"></div>
-              <small>Escudo</small>
-              <strong id="dailyScore">0%</strong>
+              <div class="shield-fill"></div><small>Escudo</small><strong id="dailyScore">0%</strong>
             </div>
             <div class="hero-shield-copy">
               <div class="section-title"><span>🛡️</span><b>ESCUDO DO DIA</b></div>
@@ -188,7 +178,7 @@
           </article>
 
           <div class="shield-list">
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="water" role="button" tabindex="0" aria-label="Abrir hidratação">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO</b></div>
@@ -198,37 +188,25 @@
                   <div class="shield-fill"></div><small>Escudo</small><strong id="waterPct">0%</strong>
                 </div>
               </div>
-              <div class="metric-primary"><strong id="waterMl">0 ml</strong><span> / <span id="waterGoalLabel">2000 ml</span></span></div>
+              <div class="metric-primary"><strong id="waterMl">0 ml</strong><span> / <span id="waterGoalLabel">Meta indisponível</span></span></div>
               <p id="waterRemaining">Registre sua hidratação de hoje.</p>
               <div class="app-progress cyan"><i id="waterBar"></i></div>
-              <div class="quick-row">
-                <button class="app-action" data-water="200">+ 200 ml</button>
-                <button class="app-action" data-water="350">+ 350 ml</button>
-                <button class="app-action" data-water="500">+ 500 ml</button>
-              </div>
-              <button class="card-link" data-view-link="water">Abrir escudo de hidratação</button>
             </article>
-
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="activities" role="button" tabindex="0" aria-label="Abrir movimento">
               <div class="shield-card-top">
                 <div class="shield-card-title">
-                  <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO — HISTÓRICO</b></div>
-            <div id="waterHistoryList" class="history"></div>
-
-            <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
+                  <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
                   <span id="movementStatusPill" class="status-pill green">PENDENTE</span>
                 </div>
                 <div id="movementShieldBadge" class="shield-badge shield-green" style="--fill:0%">
                   <div class="shield-fill"></div><small>Escudo</small><strong id="stepsPct">0%</strong>
                 </div>
               </div>
-              <label class="app-field">Passos hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+              <div class="metric-primary"><strong id="movementCount">0</strong><span id="movementCountLabel">atividades registradas hoje</span></div>
+              <p id="movementHint">Registre sua primeira atividade do dia.</p>
               <div class="app-progress green"><i id="stepsBar"></i></div>
-              <p id="movementHint">Registre seus passos de hoje.</p>
-              <button class="card-link" data-view-link="activities" data-full-only>Abrir escudo de atividades</button>
             </article>
-
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="nutrition" role="button" tabindex="0" aria-label="Abrir nutrição">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title gold"><span>🍽️</span><b>NUTRIÇÃO</b></div>
@@ -238,63 +216,32 @@
                   <div class="shield-fill"></div><small>Escudo</small><strong id="proteinPct">0%</strong>
                 </div>
               </div>
-              <div class="two-inputs app-input-grid">
-                <label class="app-field">Consumido (g)<input id="proteinInput" type="number" min="0" step="1" readonly title="Total calculado a partir do histórico de refeições"></label>
-                <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" step="1"></label>
-              </div>
+              <div class="metric-primary"><strong id="nutritionCount">0 de 5</strong><span id="nutritionSummary">refeições • Proteína 0 g</span></div>
               <div class="app-progress gold"><i id="proteinBar"></i></div>
-              <p id="nutritionHint">Acompanhe sua meta diária de proteína.</p>
-              <div class="app-input-grid" data-full-only>
-                <p class="muted">Registre uma refeição para sincronizar o histórico com o Android.</p>
-                <label class="app-field">Tipo de refeição
-                  <select id="nutritionMealType">
-                    <option value="BREAKFAST">Café da manhã</option>
-                    <option value="LUNCH">Almoço</option>
-                    <option value="DINNER">Jantar</option>
-                    <option value="SNACK">Lanche</option>
-                  </select>
-                </label>
-                <label class="app-field">Proteína (g)<input id="nutritionMealProtein" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal" placeholder="Ex.: 25"></label>
-                <label class="app-field">Descrição opcional<input id="nutritionMealDescription" type="text" maxlength="240" placeholder="Ex.: almoço"></label>
-                <button id="nutritionAddMeal" class="button button-outline full-width">Registrar refeição</button>
-                <p id="nutritionSaved" class="saved"></p>
-              </div>
+              <p id="nutritionHint">Registre suas refeições de hoje.</p>
             </article>
-
-            <article class="screen-card shield-card medication-card" data-full-only>
+            <article id="medicationDashboardCard" class="screen-card shield-card medication-card tappable" data-view-link="applications" role="button" tabindex="0" aria-label="Abrir aplicações">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title gold"><span>💉</span><b>APLICAÇÃO</b></div>
-                  <span class="status-pill neutral">EM DIA</span>
+                  <span id="medicationStatusPill" class="status-pill neutral">CONSULTAR CICLO</span>
                 </div>
-                <div class="shield-badge shield-gold" style="--fill:100%">
-                  <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+                <div id="medicationDashboardBadge" class="shield-badge shield-gold" style="--fill:0%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong id="medicationDashboardPct">0%</strong>
                 </div>
               </div>
-              <h3>Escudo de aplicações</h3>
-              <p>Acesse o registro Web de aplicações. A sincronização do ciclo com o Android será unificada na etapa de histórico compartilhado.</p>
-              <button class="card-link" data-view-link="applications">Abrir escudo de aplicações</button>
-            </article>
-
-            <article class="screen-card shield-card weight-card">
-              <div class="section-title cyan"><span>⚖️</span><b>PESO ATUAL</b></div>
-              <div class="metric-primary"><strong id="lastWeight">—</strong></div>
-              <div class="inline-form" data-full-only>
-                <input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5">
-                <button id="addWeight" class="app-action">Registrar</button>
-              </div>
-              <div id="weightHistory" class="history"></div>
+              <div class="medication-summary"><strong id="medicationLabel">Consultar ciclo</strong><p id="medicationHint">Toque para consultar seu ciclo e histórico.</p></div>
             </article>
           </div>
 
           <div class="quick-access">
             <div class="section-title cyan"><span>⚡</span><b>ACESSOS RÁPIDOS</b></div>
             <button class="quick-access-button" data-view-link="water"><span>💧</span>REGISTRAR ÁGUA</button>
-            <button class="quick-access-button gold" data-focus-target="proteinInput"><span>🍽️</span>REGISTRAR PROTEÍNA</button>
-            <button class="quick-access-button green-action" data-view-link="activities" data-full-only><span>🏃</span>ATIVIDADES</button>
-            <button class="quick-access-button gold" data-view-link="applications" data-full-only><span>💉</span>APLICAÇÕES</button>
-            <button class="quick-access-button" data-view-link="measurements" data-full-only><span>📏</span>MEDIDAS CORPORAIS</button>
+            <button class="quick-access-button gold" data-view-link="nutrition"><span>🍽️</span>REGISTRAR REFEIÇÃO</button>
+            <button class="quick-access-button green-action" data-view-link="activities"><span>🏃</span>REGISTRAR MOVIMENTO</button>
+            <button class="quick-access-button gold" data-view-link="applications"><span>💉</span>AJUSTAR MEDICAÇÃO / DOSE</button>
           </div>
+          <p class="app-medical-note">Metas são orientativas. O Escudo Fit não prescreve, recomenda dose ou determina conduta médica.</p>
         </section>
 
         <section class="app-view" data-view="water">
@@ -329,6 +276,10 @@
           <article class="screen-card">
             <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
             <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+          </article>
+          <article class="screen-card">
+            <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO ANTERIOR</b></div>
+            <div id="waterHistoryList" class="history"></div>
           </article>
         </section>
 
@@ -394,12 +345,12 @@
           </div>
 
           <article class="screen-card hero-shield-card compact-hero">
-            <div id="applicationShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:100%">
-              <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+            <div id="applicationShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="applicationDetailPct">0%</strong>
             </div>
             <div class="hero-shield-copy">
               <div class="section-title gold"><b>ESCUDO DE APLICAÇÕES</b></div>
-              <h3>Ciclo disponível</h3>
+              <h3 id="applicationDetailLabel">Consulte seu ciclo</h3>
               <p>Os registros de aplicações são vinculados à sua Conta Google e podem ser consultados entre Android e Web.</p>
             </div>
           </article>
@@ -496,12 +447,12 @@
       </main>
 
       <nav class="bottom-nav app-like-bottom-nav" aria-label="Navegação do app">
-        <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
-        <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
-        <button class="nav-item" data-target="activities" data-full-only><span>🏃</span><b>Atividades</b></button>
-        <button class="nav-item" data-target="applications" data-full-only><span>💉</span><b>Aplicações</b></button>
-        <button class="nav-item" data-target="measurements" data-full-only><span>📏</span><b>Medidas</b></button>
-        <button class="nav-item" data-target="profile"><span>👤</span><b>Perfil</b></button>
+        <div class="nav-track">
+          <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
+          <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
+          <button class="nav-item" data-target="applications" id="navMedication" data-full-only><span>💉</span><b>Aplicação</b></button>
+          <button class="nav-item" data-target="profile"><img src="./icon.svg" alt=""><b>Perfil</b></button>
+        </div>
       </nav>
     </div>
   </section>
