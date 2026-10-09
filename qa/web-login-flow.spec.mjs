@@ -204,6 +204,25 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
   await page.locator('[data-target="home"]').click();
   await page.locator('.shield-card[data-view-link="water"]').click();
   await expect(page.locator('#waterReset')).toHaveText('- 200 ml');
+  const visual = await page.evaluate(() => {
+    const cards=[...document.querySelectorAll('.shield-list>.shield-card')];
+    const bounds=cards.map(el=>el.getBoundingClientRect());
+    const badge=document.querySelector('#dailyShieldBadge').getBoundingClientRect();
+    const shell=document.querySelector('.app-shell').getBoundingClientRect();
+    return {
+      bg:getComputedStyle(document.body).backgroundColor,
+      cardBg:getComputedStyle(cards[0]).backgroundColor,
+      vertical:bounds.every((v,i)=>i===0||v.top>=bounds[i-1].bottom),
+      badgeSize:Math.round(badge.width),
+      shellWidth:Math.round(shell.width),
+    };
+  });
+  expect(visual.bg).toBe('rgb(6, 28, 32)');
+  expect(visual.cardBg).toBe('rgb(12, 48, 53)');
+  expect(visual.vertical).toBe(true);
+  expect(visual.badgeSize).toBe(112);
+  expect(visual.shellWidth).toBeLessThanOrEqual(390);
+
 
 });
 
@@ -854,6 +873,7 @@ test('web application registration syncs to account history', async ({ page }) =
   await expect(page.locator('#appExperience')).toBeVisible();
   await page.locator('.quick-access [data-view-link="applications"]').click();
   await page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]').click();
+  expect(captured).toBe(null, 'Selecting a body zone must not create a medication application');
   await expect(page.locator('#confirmApplication')).toBeEnabled();
   await page.locator('#confirmApplication').click();
 
