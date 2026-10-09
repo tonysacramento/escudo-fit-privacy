@@ -553,7 +553,9 @@ async function hydrateAccountHistory(){
       : ' Nutrição recebida: API '+primaryCounts.nutrition+
         ', backup '+backupCounts.nutrition+'.';
     const sources='API '+structured.status+' • Backup '+backupRes.status+
-      (backupResponse?' (revisão '+backup.revision+', '+backup.validEntries+' conjuntos válidos)':'');
+      (backupResponse?' (revisão '+backup.revision+', '+backup.totalEntries+
+        ' conjuntos armazenados; '+backup.validEntries+' de histórico interpretados pela Web'+
+        (backup.scheduleEntries?', '+backup.scheduleEntries+' configuração de lembretes preservada':'')+')':'');
 
 
     const remoteWeights=(Array.isArray(data?.weights)?data.weights:[])
