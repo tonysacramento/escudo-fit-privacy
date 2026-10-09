@@ -33,6 +33,22 @@ test('recovers all history categories from authenticated Android backup',()=>{
   assert.equal(result.data.treatment.history.length,1);
 });
 
+test('separately reports application reminder config preserved in backup but not rendered by Web',()=>{
+  const snapshot={revision:1,entries:[
+    entry('profile',{updatedAtMs:1800000000000,medication:'NONE'}),
+    entry('weight_history',[{id:'w1',weightKg:89,timestampMs:1800000000000}]),
+    entry('dose_schedule_config',{enabled:true,intervalHours:7}),
+  ]};
+  const unpacked=bridge.unpackBackup(snapshot);
+  assert.equal(unpacked.totalEntries,3);
+  assert.equal(unpacked.validEntries,2);
+  assert.equal(unpacked.scheduleEntries,1);
+  assert.equal(unpacked.revision,1);
+  assert.equal(unpacked.data.weights.length,1);
+  assert.equal(Object.hasOwn(unpacked.data,'dose_schedule_config'),false,
+    'Do not present private medication schedule as a Web history category');
+});
+
 test('the structured API wins matching IDs while Android backup recovers remote-only records',()=>{
   const structured={weights:[{id:'a',weightKg:80,timestampMs:300}],applications:[],water:[{date:'2026-10-08',consumedMl:1000,updatedAtMs:300}]};
   const backup={weights:[{id:'a',weightKg:82,timestampMs:100},{id:'b',weightKg:79,timestampMs:200}],applications:[{id:'dose-x'}],water:[{date:'2026-10-08',consumedMl:700,updatedAtMs:200},{date:'2026-10-07',consumedMl:900,updatedAtMs:100}]};
