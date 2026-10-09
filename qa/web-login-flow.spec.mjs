@@ -341,10 +341,11 @@ test('FREE account opens Web Full and hydrates complete account history', async 
   await expect(page.locator('.app-view[data-view="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 
-  await page.locator('[data-view-link="applications"]').first().click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
   await expect(page.locator('#applicationHistory')).toContainText('Abdômen esquerdo');
 
-  await page.locator('[data-view-link="activities"]').first().click();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.shield-card[data-view-link="activities"]').click();
   await expect(page.locator('#activityHistoryPrevious')).toContainText('Caminhada');
   await expect(page.locator('#activityHistoryPrevious')).toContainText('35 min');
 
@@ -835,7 +836,7 @@ test('web application registration syncs to account history', async ({ page }) =
 
   await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
   await expect(page.locator('#appExperience')).toBeVisible();
-  await page.locator('[data-view-link="applications"]').first().click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
   await page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]').click();
   await expect(page.locator('#confirmApplication')).toBeEnabled();
   await page.locator('#confirmApplication').click();
