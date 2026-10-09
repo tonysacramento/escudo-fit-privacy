@@ -72,7 +72,7 @@ test('Web markup, service worker and client share same revision and full history
   const html=fs.readFileSync('app/index.html','utf8');
   const js=fs.readFileSync('app/app.js','utf8');
   const sw=fs.readFileSync('app/sw.js','utf8');
-  const version='web-v42-nutrition-rebase-5';
+  const version='web-v43-backup-audit-6';
   for(const file of [html,sw])assert.ok(file.includes(version));
   for(const id of ['nutritionAddMeal','saveTreatment','refreshHistoryButton','historySyncStatus','waterHistoryList','measurementHistoryList','movementHistoryList','nutritionHistoryList','treatmentHistoryList']){
     assert.ok(html.includes('id="'+id+'"'),id);
