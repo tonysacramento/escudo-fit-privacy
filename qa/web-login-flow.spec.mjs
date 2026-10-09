@@ -110,13 +110,14 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
   await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
-  await expect(page.locator('.nav-item[data-target="applications"]')).toBeVisible();
+  await expect(page.locator('.quick-access [data-view-link="applications"]')).toBeVisible();
 
   await page.locator('.shield-card[data-view-link="activities"]').click();
   await expect(page.locator('.app-view[data-view="activities"]')).toBeVisible();
   await expect(page.locator('#addActivity')).toBeVisible();
 
-  await page.locator('.nav-item[data-target="applications"]').click();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
   await expect(page.locator('.app-view[data-view="applications"]')).toBeVisible();
   await expect(page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]')).toBeVisible();
 
@@ -735,6 +736,7 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
 
   await expect(page.locator('#waterMl')).toHaveText('1000 ml');
   await expect(page.locator('#waterGoalLabel')).toHaveText('3500 ml');
+  await page.locator('.shield-card[data-view-link="water"]').click();
   await page.locator('[data-water="200"]').first().click();
   await expect(page.locator('#waterMl')).toHaveText('1200 ml');
   await expect.poll(()=>remoteWater.consumedMl).toBe(1200);
@@ -855,7 +857,7 @@ test('web application registration syncs to account history', async ({ page }) =
   await expect(page.locator('#confirmApplication')).toBeEnabled();
   await page.locator('#confirmApplication').click();
 
-  await expect(page.locator('#applicationSaved')).toContainText('na sua conta');
+  await expect(page.locator('#applicationSaved')).toContainText('na Conta Google');
   expect(Array.isArray(captured?.applications)).toBe(true);
   expect(captured.applications).toHaveLength(1);
   expect(captured.applications[0].applicationSite).toBe('ABDOMEN_LEFT');
