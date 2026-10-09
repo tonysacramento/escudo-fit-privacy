@@ -205,7 +205,7 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
   await page.locator('.shield-card[data-view-link="water"]').click();
   await expect(page.locator('#waterReset')).toHaveText('- 200 ml');
   const visual = await page.evaluate(() => {
-    const cards=[...document.querySelectorAll('.shield-list>.shield-card')];
+    const cards=[...document.querySelectorAll('.shield-list>.shield-card')].filter(el=>getComputedStyle(el).display!=='none');
     const bounds=cards.map(el=>el.getBoundingClientRect());
     const badge=document.querySelector('#dailyShieldBadge').getBoundingClientRect();
     const shell=document.querySelector('.app-shell').getBoundingClientRect();
