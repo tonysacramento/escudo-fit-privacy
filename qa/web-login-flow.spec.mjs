@@ -109,16 +109,16 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#welcomeName')).toHaveText('Elaine Queiroz Silva');
   await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
-  await expect(page.locator('.nav-item[data-target="activities"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
   await expect(page.locator('.nav-item[data-target="applications"]')).toBeVisible();
 
-  await page.locator('.nav-item[data-target="activities"]').click();
+  await page.locator('.shield-card[data-view-link="activities"]').click();
   await expect(page.locator('.app-view[data-view="activities"]')).toBeVisible();
   await expect(page.locator('#addActivity')).toBeVisible();
 
   await page.locator('.nav-item[data-target="applications"]').click();
   await expect(page.locator('.app-view[data-view="applications"]')).toBeVisible();
-  await expect(page.locator('[data-application-site="Abdômen"]')).toBeVisible();
+  await expect(page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]')).toBeVisible();
 
   await page.locator('[data-target="profile"]').click();
   await expect(page.locator('#profileEmail')).toHaveText('elaineqne@gmail.com');
@@ -336,15 +336,15 @@ test('FREE account opens Web Full and hydrates complete account history', async 
   await expect(page.locator('#experienceLabel')).toHaveText('FULL');
   await expect(page.locator('#planBadge')).toHaveText('FREE');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • FREE');
-  await expect(page.locator('[data-target="measurements"]')).not.toHaveClass(/entitlement-hidden/);
-  await expect(page.locator('[data-target="activities"]')).not.toHaveClass(/entitlement-hidden/);
-  await expect(page.locator('[data-target="applications"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="measurements"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="activities"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 
-  await page.locator('[data-target="applications"]').click();
+  await page.locator('[data-view-link="applications"]').first().click();
   await expect(page.locator('#applicationHistory')).toContainText('Abdômen esquerdo');
 
-  await page.locator('[data-target="activities"]').click();
+  await page.locator('[data-view-link="activities"]').first().click();
   await expect(page.locator('#activityHistoryPrevious')).toContainText('Caminhada');
   await expect(page.locator('#activityHistoryPrevious')).toContainText('35 min');
 
@@ -472,10 +472,12 @@ test('same Google account restores remote history after local data is cleared', 
   await page.locator('.mock-google-history-login').click();
 
   await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
 
-  await page.locator('#logoutButton').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('#logoutButtonBottom').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   // Simulate a clean/new device: remove only this account's local app state.
@@ -487,7 +489,8 @@ test('same Google account restores remote history after local data is cleared', 
 
   // History must be restored from the account backend, not from localStorage.
   await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
 });
 
@@ -560,7 +563,8 @@ test('switching Google accounts never leaks the previous account history', async
   await expect(page.locator('#welcomeName')).toHaveText('Conta A');
   await expect(page.locator('#lastWeight')).toHaveText('81,2 kg');
 
-  await page.locator('#logoutButton').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('#logoutButtonBottom').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   await page.locator('[data-scroll-login]').first().click();
@@ -647,7 +651,8 @@ test('pending local history survives login hydration and is not overwritten', as
 
   await expect(page.locator('#weightHistory')).toContainText('77,7 kg');
   await expect(page.locator('#weightHistory')).toContainText('78,8 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('89,5 cm');
 
   await expect.poll(() => historyRequests).toBe(1);
@@ -830,13 +835,16 @@ test('web application registration syncs to account history', async ({ page }) =
 
   await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
   await expect(page.locator('#appExperience')).toBeVisible();
-  await page.locator('[data-target="applications"]').click();
-  await page.locator('[data-application-site="Abdômen"]').click();
+  await page.locator('[data-view-link="applications"]').first().click();
+  await page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]').click();
+  await expect(page.locator('#confirmApplication')).toBeEnabled();
+  await page.locator('#confirmApplication').click();
 
   await expect(page.locator('#applicationSaved')).toContainText('na sua conta');
   expect(Array.isArray(captured?.applications)).toBe(true);
   expect(captured.applications).toHaveLength(1);
-  expect(captured.applications[0].site).toBe('Abdômen');
+  expect(captured.applications[0].applicationSite).toBe('ABDOMEN_LEFT');
+   expect(captured.applications[0].scheduledDateIso).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
   expect(Number.isFinite(Number(captured.applications[0].appliedAtMs))).toBe(true);
 });
 
