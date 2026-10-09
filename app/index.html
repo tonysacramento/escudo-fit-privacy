@@ -403,15 +403,29 @@
             </div>
           </article>
 
-          <article class="screen-card">
-            <div class="section-title gold"><span>📍</span><b>REGISTRAR LOCAL</b></div>
-            <div class="application-site-grid">
-              <button class="app-action application-site" data-application-site="Abdômen">Abdômen</button>
-              <button class="app-action application-site" data-application-site="Coxa direita">Coxa direita</button>
-              <button class="app-action application-site" data-application-site="Coxa esquerda">Coxa esquerda</button>
-              <button class="app-action application-site" data-application-site="Braço">Braço</button>
+          <article class="screen-card application-map-card">
+            <div class="section-title cyan"><span>📍</span><b>MAPA DA APLICAÇÃO</b></div>
+            <p class="muted">Selecione no mapa o local utilizado. O registro só será criado depois da confirmação.</p>
+            <div class="approved-body-map" role="group" aria-label="Mapa de aplicação aprovado, frente e costas">
+              <img id="approvedBodyMap" alt="Mapa corporal Escudo Fit, frente e costas" width="240" height="320">
+              <button class="body-map-marker" type="button" data-application-site="ABDOMEN_LEFT" style="left:22.49%;top:44.68%" aria-label="Abdômen esquerdo" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ABDOMEN_RIGHT" style="left:33.61%;top:44.75%" aria-label="Abdômen direito" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="THIGH_LEFT" style="left:20.72%;top:56.98%" aria-label="Coxa esquerda" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="THIGH_RIGHT" style="left:35.54%;top:56.91%" aria-label="Coxa direita" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ARM_LEFT" style="left:57.83%;top:34.08%" aria-label="Braço esquerdo" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ARM_RIGHT" style="left:86.10%;top:34.08%" aria-label="Braço direito" aria-pressed="false"></button>
             </div>
-            <p id="applicationSaved" class="saved"></p>
+            <div class="application-site-grid" role="group" aria-label="Selecionar local da aplicação">
+              <button class="app-action application-site" data-application-site="ABDOMEN_LEFT">Abdômen esquerdo</button>
+              <button class="app-action application-site" data-application-site="ABDOMEN_RIGHT">Abdômen direito</button>
+              <button class="app-action application-site" data-application-site="THIGH_LEFT">Coxa esquerda</button>
+              <button class="app-action application-site" data-application-site="THIGH_RIGHT">Coxa direita</button>
+              <button class="app-action application-site" data-application-site="ARM_LEFT">Braço esquerdo</button>
+              <button class="app-action application-site" data-application-site="ARM_RIGHT">Braço direito</button>
+            </div>
+            <p id="applicationSelection" class="muted" aria-live="polite">Nenhum local selecionado.</p>
+            <button id="confirmApplication" class="quick-access-button gold" disabled>CONFIRMAR APLICAÇÃO DE HOJE</button>
+            <p id="applicationSaved" class="saved" role="status"></p>
           </article>
 
           <article class="screen-card">
@@ -532,6 +546,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="./history-sync-contract.js?v=web-v43-sync-tombstones-7" defer></script>
   <script src="./history-backup-bridge.js?v=web-v43-sync-tombstones-7" defer></script>
+  <script src="./body-map.js?v=web-v43-android-parity-8" defer></script>
   <script src="./app.js?v=web-v43-sync-tombstones-7" defer></script>
 </body>
 </html>
