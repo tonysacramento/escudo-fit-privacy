@@ -95,8 +95,8 @@ test('Web markup, service worker and client share same revision and full history
   assert.match(html,/data-view="weight"/);
   assert.match(html,/id="approvedBodyMap"/);
   assert.match(html,/data-application-site="ABDOMEN_LEFT"/);
-  assert.match(sw,/body-map\\.js/);
-  assert.match(sw,/android-icon\\.svg/);
+  assert.match(sw,/body-map\.js/);
+  assert.match(sw,/android-icon\.svg/);
   for(const id of ['nutritionAddMeal','saveTreatment','refreshHistoryButton','historySyncStatus','waterHistoryList','measurementHistoryList','movementHistoryList','nutritionHistoryList','treatmentHistoryList']){
     assert.ok(html.includes('id="'+id+'"'),id);
   }
