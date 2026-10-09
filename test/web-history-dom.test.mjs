@@ -49,7 +49,15 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     else if(path.endsWith('/me'))data={user:{id:'qa-user',email:'qa@example.invalid',name:'QA'}};
     else if(path.endsWith('/history'))data=structuredHistory;
     else if(path.endsWith('/history/backup'))data=backupSnapshot;
-    else if(path.endsWith('/history/sync'))data={synced:true};
+    else if(path.endsWith('/history/sync')){
+      const patch=JSON.parse(options.body||'{}');
+      if(Array.isArray(patch.nutrition)){
+        const map=new Map((Array.isArray(structuredHistory.nutrition)?structuredHistory.nutrition:[]).map(day=>[day.date,day]));
+        for(const day of patch.nutrition)map.set(day.date,day);
+        structuredHistory={...structuredHistory,nutrition:[...map.values()]};
+      }
+      data={synced:true};
+    }
     else throw new Error('Unexpected API path '+path);
     return {ok:true,status:200,json:async()=>data};
   };
