@@ -10,6 +10,7 @@ const js=readFileSync('app/app.js','utf8');
 const contract=readFileSync('app/history-sync-contract.js','utf8');
 const bridge=readFileSync('app/history-backup-bridge.js','utf8');
 const weightChart=readFileSync('app/weight-chart.js','utf8');
+const idlePolicy=readFileSync('app/session-idle-policy.js','utf8');
 const pause=()=>new Promise(resolve=>setTimeout(resolve,55));
 
 test('synthetic authenticated Web session renders all categories and posts two-way compatible records',async()=>{
@@ -65,6 +66,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   window.eval(contract);
   window.eval(bridge);
   window.eval(weightChart);
+  window.eval(idlePolicy);
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
