@@ -193,43 +193,61 @@ function activateView(target){
 function renderApp(){
   if(!auth?.user)return;
   const experience=applyExperience();
-  const wp=pct(state.water,state.waterGoal);
+  const today=localDayKey();
+  const todayActivities=(Array.isArray(state.activities)?state.activities:[])
+    .filter(item=>(item.date||localDayKey(item.at))===today);
+  const todayNutrition=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+    .find(day=>day.date===today);
+  const todayMeals=Array.isArray(todayNutrition?.meals)?todayNutrition.meals:[];
+  const weight=Number(state.weights?.[0]?.value);
+  const hasWeight=Number.isFinite(weight)&&weight>0;
+  const waterGoal=hasWeight?waterGoalFromWeight(weight):0;
+  const wp=waterGoal?pct(state.water,waterGoal):0;
   const sp=pct(state.steps,state.stepsGoal);
-  const pp=pct(state.protein,state.proteinGoal);
-  const score=Math.round((wp+sp+pp)/3);
-  const protectedCount=[wp,sp,pp].filter(value=>value>=100).length;
+  const activityProtected=todayActivities.length>0;
+  const pp=pct(todayMeals.length,5); // Android shield: 5 meals, not 100 g protein
+  const mealProtein=todayMeals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
+  const medicationConfigured=!!(state.treatment?.medication&&state.treatment.medication!=='NONE');
+  const todayApplications=(Array.isArray(state.applications)?state.applications:[])
+    .filter(item=>(item.scheduledDateIso||localDayKey(item.at))===today);
+  const applicationConfirmed=todayApplications.length>0;
+  const shields=[
+    ...(hasWeight?[wp>=100]:[]), activityProtected, todayMeals.length>=5,
+    ...(medicationConfigured&&applicationConfirmed?[true]:[]),
+  ];
+  const evaluableCount=shields.length;
+  const protectedCount=shields.filter(Boolean).length;
+  const score=evaluableCount?Math.round(100*protectedCount/evaluableCount):0;
+  const activeCategories=[state.water>0,activityProtected,todayMeals.length>0,applicationConfirmed].filter(Boolean).length;
 
   setText('waterPct',wp+'%');
   setText('waterDetailPct',wp+'%');
   setText('waterMl',state.water+' ml');
   setText('waterDetailMl',state.water+' ml');
-  setText('waterGoalLabel',state.waterGoal+' ml');
-  setText('waterDetailGoal',state.waterGoal+' ml');
+  setText('waterGoalLabel',waterGoal?waterGoal+' ml':'Meta indisponível');
+  setText('waterDetailGoal',waterGoal?waterGoal+' ml':'Meta indisponível');
   if($('waterBar'))$('waterBar').style.width=wp+'%';
   if($('waterDetailBar'))$('waterDetailBar').style.width=wp+'%';
   setShieldFill('waterShieldBadge',wp);
   setShieldFill('waterDetailBadge',wp);
 
-  const waterRemaining=Math.max(0,state.waterGoal-state.water);
-  setText('waterRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
-  setText('waterDetailRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
-  setText('waterStatusPill',wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
+  const waterRemaining=Math.max(0,waterGoal-state.water);
+  setText('waterRemaining',!waterGoal?'Registre seu peso para calcular a meta':wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterDetailRemaining',!waterGoal?'Registre seu peso para calcular a meta':wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterStatusPill',!waterGoal?'META INDISPONÍVEL':wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
   setText('waterDetailStatus',wp>=100?'ESCUDO PROTEGIDO':'META SUGERIDA DO DIA');
 
-  setText('stepsPct',sp+'%');
-  if($('stepsBar'))$('stepsBar').style.width=sp+'%';
+  setText('stepsPct',activityProtected?'100%':'0%');
+  if($('stepsBar'))$('stepsBar').style.width=(activityProtected?100:0)+'%';
+  setShieldFill('movementShieldBadge',activityProtected?100:0);
+  setText('movementCount',String(todayActivities.length));
+  setText('movementCountLabel',todayActivities.length===1?'atividade registrada hoje':'atividades registradas hoje');
+  setText('movementStatusPill',activityProtected?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('movementHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger o escudo.');
   if($('stepsInput'))$('stepsInput').value=state.steps||'';
-  setShieldFill('movementShieldBadge',sp);
-  setText('movementStatusPill',sp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
-  setText('movementHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
-
   if($('activityStepsInput'))$('activityStepsInput').value=state.steps||'';
   if($('activityStepsBar'))$('activityStepsBar').style.width=sp+'%';
-  setText('activityStepsHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
-
-  const today=localDayKey();
-  const todayActivities=(Array.isArray(state.activities)?state.activities:[]).filter(item=>localDayKey(item.at)===today);
-  const activityProtected=todayActivities.length>0;
+  setText('activityStepsHint',sp>=100?'Meta de passos informada para hoje alcançada.':'Passos informados na Web • meta '+state.stepsGoal.toLocaleString('pt-BR')+'.');
   setText('activityPct',activityProtected?'100%':'0%');
   setShieldFill('activityShieldBadge',activityProtected?100:0);
   setText('activityStatus',activityProtected?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
@@ -251,24 +269,51 @@ function renderApp(){
     .join('')||'<small class="muted">Nenhuma aplicação registrada na Web ainda.</small>';
 
   setText('proteinPct',pp+'%');
+  setText('nutritionCount',todayMeals.length+' de 5');
+  setText('nutritionSummary','refeições • Proteína '+mealProtein.toLocaleString('pt-BR')+' g'+(hasWeight?' / '+Math.round(weight*1.4)+' g':''));
   if($('proteinBar'))$('proteinBar').style.width=pp+'%';
-  if($('proteinInput'))$('proteinInput').value=state.protein||'';
-  if($('proteinGoalInput'))$('proteinGoalInput').value=state.proteinGoal||100;
+  if($('proteinInput'))$('proteinInput').value=mealProtein||'';
+  if($('proteinGoalInput'))$('proteinGoalInput').value=hasWeight?Math.round(weight*1.4):(state.proteinGoal||100);
   setShieldFill('nutritionShieldBadge',pp);
-  setText('nutritionStatusPill',pp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
-  setText('nutritionHint',pp>=100?'Meta de proteína de hoje alcançada.':'Faltam '+Math.max(0,state.proteinGoal-state.protein)+' g para a meta.');
+  setText('nutritionStatusPill',todayMeals.length>=5?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('nutritionHint',todayMeals.length>=5?'Cinco refeições registradas hoje.':'Faltam '+Math.max(0,5-todayMeals.length)+' refeições para proteger o escudo.');
+  setText('nutritionDetailPct',pp+'%');
+  setText('nutritionDetailCount',todayMeals.length+' de 5');
+  setText('nutritionDetailProtein','Proteína: '+mealProtein.toLocaleString('pt-BR')+' g'+(hasWeight?' / '+Math.round(weight*1.4)+' g • meta sugerida':''));
+  setText('nutritionDetailStatus',todayMeals.length>=5?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
+  if($('nutritionDetailBar'))$('nutritionDetailBar').style.width=pp+'%';
+  setShieldFill('nutritionDetailBadge',pp);
+  if($('nutritionTodayList'))$('nutritionTodayList').innerHTML=todayMeals
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at))
+    .map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g'+(meal.description?' • '+escapeText(meal.description):'')+'</span><strong>'+fmtDate(meal.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma refeição registrada hoje.</small>';
+  if($('nutritionHistoryPrevious'))$('nutritionHistoryPrevious').innerHTML=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+    .filter(day=>day.date!==today).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30)
+    .map(day=>'<div class="history-day"><strong>'+new Date(day.date+'T12:00:00').toLocaleDateString('pt-BR')+'</strong>'+
+      (Array.isArray(day.meals)?day.meals:[]).map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g</span></div>').join('')+'</div>').join('')||
+    '<small class="muted">Nenhuma refeição de dias anteriores.</small>';
+
+  const medicationVisible=medicationConfigured||state.applications?.length>0;
+  if($('medicationDashboardCard'))$('medicationDashboardCard').classList.toggle('hidden',!medicationVisible);
+  if($('navMedication'))$('navMedication').classList.toggle('hidden',!medicationVisible);
+  setText('medicationDashboardPct',applicationConfirmed?'100%':'0%');
+  setText('applicationDetailPct',applicationConfirmed?'100%':'0%');
+  setText('medicationStatusPill',applicationConfirmed?'ESCUDO PROTEGIDO':'CONSULTAR CICLO');
+  setText('medicationLabel',applicationConfirmed?'Aplicação confirmada hoje':'Ciclo de aplicação');
+  setText('applicationDetailLabel',applicationConfirmed?'Aplicação confirmada hoje':'Consulte seu ciclo');
+  setText('medicationHint',applicationConfirmed?'Registro de hoje salvo na Conta Google.':'Consulte o cronograma e o histórico de aplicações.');
+  setShieldFill('medicationDashboardBadge',applicationConfirmed?100:0);
+  setShieldFill('applicationShieldBadge',applicationConfirmed?100:0);
 
   setText('dailyScore',score+'%');
   setShieldFill('dailyShieldBadge',score);
   if($('dailyBar'))$('dailyBar').style.width=score+'%';
   setText('protectedCount',String(protectedCount));
-  setText('evaluableCount','3');
+  setText('evaluableCount',String(evaluableCount));
   setText('dailyStatus',
-    protectedCount>=2
-      ? 'Dia de Cuidado Ativo atingido!'
-      : protectedCount===1
-        ? 'Continue: falta ativar mais uma categoria.'
-        : 'Comece com uma ação simples de cuidado.'
+    activeCategories>=2?'Dia de Cuidado Ativo atingido!':
+    activeCategories===1?'Continue: falta ativar mais uma categoria.':
+    'Comece com uma ação simples de cuidado.'
   );
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
