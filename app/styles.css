@@ -919,3 +919,11 @@ body.is-app .weight-chart-head span{color:var(--app-muted);font-size:13px}
 body.is-app .weight-trend-svg{display:block;width:100%;height:auto;max-height:270px}
 body.is-app .weight-chart>small{display:block;padding:0 12px 8px;font-size:11px;line-height:1.4}
 @media(max-width:400px){body.is-app .weight-chart{padding:8px 2px}body.is-app .weight-chart-head strong{font-size:20px}}
+
+/* Visible after an unattended session is securely closed. */
+.idle-session-notice{padding-block:18px}
+.idle-session-panel{border:1px solid rgba(86,221,226,.46);border-radius:18px;background:#0C2C33;display:flex;align-items:center;flex-wrap:wrap;gap:15px;padding:20px}
+.idle-session-panel .login-copy{flex:1 1 270px}
+.idle-session-panel .login-copy p{max-width:580px}
+.idle-session-panel .button{flex:0 0 auto;min-height:44px}
+@media(max-width:560px){.idle-session-panel{margin:0 8px}.idle-session-panel .button{width:100%}}
