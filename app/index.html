@@ -269,7 +269,7 @@
               <button class="quick-access-button" data-water="200">+ 200 ml</button>
               <button class="quick-access-button" data-water="350">+ 350 ml</button>
               <button class="quick-access-button" data-water="500">+ 500 ml</button>
-              <button id="waterReset" class="quick-access-button muted-action">Reiniciar hoje</button>
+              <button id="waterReset" class="quick-access-button muted-action">- 200 ml</button>
             </div>
           </article>
 
@@ -351,9 +351,10 @@
 
           <article class="screen-card">
             <div class="section-title cyan"><span>👟</span><b>PASSOS DO DIA</b></div>
-            <label class="app-field">Passos hoje<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+            <label class="app-field">Passos informados na Web<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
             <div class="app-progress green"><i id="activityStepsBar"></i></div>
             <p id="activityStepsHint" class="muted">Meta atual: 8.000 passos.</p>
+            <p class="muted">No Android, o Health Connect fornece a contagem automática. Na Web, os passos são informados manualmente e não substituem os dados do aparelho.</p>
           </article>
 
           <article class="screen-card">
