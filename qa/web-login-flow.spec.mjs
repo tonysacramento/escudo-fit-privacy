@@ -204,6 +204,7 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
   await page.locator('[data-target="home"]').click();
   await page.locator('.shield-card[data-view-link="water"]').click();
   await expect(page.locator('#waterReset')).toHaveText('- 200 ml');
+  await page.locator('[data-target="home"]').click(); // Measure visible Android dashboard, not hidden screen.
   const visual = await page.evaluate(() => {
     const cards=[...document.querySelectorAll('.shield-list>.shield-card')].filter(el=>getComputedStyle(el).display!=='none');
     const bounds=cards.map(el=>el.getBoundingClientRect());
