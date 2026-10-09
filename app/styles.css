@@ -732,3 +732,167 @@ body[data-experience="wellness"] .app-like-bottom-nav{
   color:var(--cyan);
   font-weight:700;
 }
+
+
+/* ------------------------------------------------------------------
+   Escudo Fit v43 FULL Android parity — in-app surfaces only.
+   Source of truth: app/dashboard.tsx, app/water, movement,
+   nutrition, medication, profile and src/ui/theme.ts.
+   Marketing/landing remains independent of the authenticated app.
+   ------------------------------------------------------------------ */
+body.is-app{background:#061C20;color:#F5F7F4}
+body.is-app .app-shell{
+  width:min(100%,480px);min-height:100dvh;margin:0 auto;
+  background:#061C20;box-shadow:none;padding-bottom:95px
+}
+body.is-app .app-main{padding:0 18px 24px}
+body.is-app .app-topbar{
+  position:static;background:#061C20;border:0;
+  padding:16px 18px 14px;backdrop-filter:none
+}
+body.is-app .app-brand-android{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+body.is-app .app-brand-android strong{
+  font-weight:900;font-size:30px;line-height:1.12;letter-spacing:-.04em
+}
+body.is-app .app-brand-android small{
+  display:block!important;font-size:14px;font-weight:500;letter-spacing:0;
+  color:var(--app-muted);white-space:normal
+}
+body.is-app .profile-icon-button{
+  width:48px;height:48px;border:1px solid var(--app-gold);
+  background:var(--app-surface);border-radius:50%;padding:5px;flex-shrink:0
+}
+body.is-app .profile-icon-button img{object-fit:contain;border-radius:15px}
+body.is-app .user-area{gap:0}
+body.is-app .app-view>.screen-card:first-child{margin-top:0}
+body.is-app .screen-card{
+  padding:16px;border-radius:24px;background:var(--app-surface);
+  border:1px solid var(--app-border);box-shadow:none;
+  margin-bottom:12px
+}
+body.is-app .hero-shield-card{gap:18px;border-color:var(--app-gold);margin-bottom:12px}
+body.is-app .compact-hero{border-color:var(--app-cyan)}
+body.is-app .nutrition-hero{border-color:var(--app-gold)}
+body.is-app .shield-badge.shield-large{
+  width:112px;height:112px;border-radius:24px
+}
+body.is-app .shield-badge{
+  width:78px;height:78px;border-radius:24px;background:#08262B
+}
+body.is-app .shield-badge.shield-large strong{font-size:34px}
+body.is-app .shield-badge strong{font-size:24px}
+body.is-app .shield-badge small{font-size:10px}
+body.is-app .shield-list{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0}
+body.is-app .shield-card{gap:9px}
+body.is-app .shield-card-top{align-items:flex-start;gap:12px}
+body.is-app .section-title{font-size:15px;letter-spacing:.025em;line-height:1.3}
+body.is-app .section-title>span{font-size:19px}
+body.is-app .status-pill{
+  padding:5px 10px;font-size:11px;letter-spacing:0;
+  font-weight:900;text-align:center
+}
+body.is-app .hero-shield-copy h2{font-size:22px;line-height:1.2;margin:8px 0}
+body.is-app .hero-shield-copy p{font-size:13px;line-height:1.4}
+body.is-app .metric-primary strong{font-size:21px;letter-spacing:-.025em}
+body.is-app .metric-primary span{font-size:13px}
+body.is-app .app-progress{height:9px;background:#16353A}
+body.is-app .tappable{cursor:pointer;transition:border-color .15s ease}
+body.is-app .tappable:hover,
+body.is-app .tappable:focus-visible{border-color:var(--app-cyan)}
+body.is-app .tappable:focus-visible{outline:2px solid var(--app-cyan);outline-offset:3px}
+body.is-app .medication-summary strong{font-size:18px}
+body.is-app .medication-summary p{font-size:13px}
+body.is-app .quick-access{margin-top:18px;gap:10px}
+body.is-app .quick-access-button{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:#0A292E;border:1px solid var(--app-cyan);
+  border-radius:18px;color:var(--app-cyan);padding:10px 12px;
+  min-height:48px;font-size:15px;font-weight:800;
+  text-transform:uppercase;letter-spacing:0
+}
+body.is-app .quick-access-button.gold{color:var(--app-gold);border-color:var(--app-gold)}
+body.is-app .quick-access-button.green-action{color:var(--app-green);border-color:var(--app-green)}
+body.is-app .quick-access-button[disabled]{opacity:.5;cursor:not-allowed}
+body.is-app .quick-access-button>span{margin-right:0}
+body.is-app .app-medical-note{
+  color:var(--app-muted);font-size:12px;line-height:1.5;text-align:center;
+  margin:18px 0 8px
+}
+body.is-app .app-section-title{padding:10px 2px 16px}
+body.is-app .app-section-title h2{
+  font-size:28px;font-weight:900;letter-spacing:-.02em;margin:0
+}
+body.is-app .app-section-title p{font-size:14px;line-height:1.4}
+body.is-app .app-input-grid.form-section{display:grid;grid-template-columns:1fr;gap:10px}
+body.is-app .app-field{display:grid;gap:7px;font-size:14px;line-height:1.3}
+body.is-app .app-field select,
+body.is-app .app-field input{
+  width:100%;min-width:0;min-height:47px;background:#08262B;
+  color:var(--app-text);border:1px solid var(--app-border);
+  border-radius:12px;padding:12px;font-size:15px
+}
+body.is-app .screen-card .section-title+.history{margin-top:12px}
+body.is-app .screen-card .history+.section-title{margin-top:18px}
+body.is-app .profile-weight-card{display:grid;gap:10px}
+body.is-app .profile-weight-card .quick-access-button{font-size:13px}
+body.is-app .app-like-bottom-nav{
+  position:fixed;left:50%;bottom:0;transform:translateX(-50%);
+  width:min(100%,480px);background:#061C20;border:0;
+  padding:6px 12px max(10px,env(safe-area-inset-bottom));
+  display:block;z-index:40
+}
+body.is-app .nav-track{
+  background:#08282D;border:1px solid var(--app-border);
+  border-radius:24px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  align-items:center;justify-content:space-around;padding:8px;min-height:70px;gap:0
+}
+body.is-app .nav-item{
+  color:var(--app-muted);background:transparent;border:0;
+  display:grid;justify-items:center;align-content:center;
+  gap:2px;min-height:54px;padding:5px 2px;
+  font-size:11px;font-weight:700;border-radius:12px
+}
+body.is-app .nav-item.active{color:var(--app-cyan);background:transparent}
+body.is-app .nav-item span{font-size:19px;line-height:1.1}
+body.is-app .nav-item img{width:22px;height:22px;object-fit:contain;border-radius:6px}
+body.is-app .nav-item b{font-size:inherit}
+body.is-app .approved-body-map{
+  position:relative;width:100%;max-width:320px;aspect-ratio:3/4;
+  margin:16px auto 12px;isolation:isolate
+}
+body.is-app .approved-body-map img{display:block;width:100%;height:100%;object-fit:contain}
+body.is-app .body-map-marker{
+  position:absolute;width:42px;height:50px;transform:translate(-50%,-50%);
+  border:2px solid var(--app-gold);border-radius:21px;
+  background:var(--app-surface-alt);cursor:pointer;
+  display:grid;place-items:center
+}
+body.is-app .body-map-marker:after{
+  content:'';width:13px;height:13px;background:var(--app-gold);
+  border-radius:50%;border:2px solid var(--app-gold)
+}
+body.is-app .body-map-marker[aria-pressed="true"]{
+  border-color:var(--app-cyan);background:var(--app-cyan-soft)
+}
+body.is-app .body-map-marker[aria-pressed="true"]:after{background:var(--app-cyan);border-color:var(--app-cyan)}
+body.is-app .application-site-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+body.is-app .application-site-grid .app-action{
+  font-size:12px;min-height:42px;border-radius:999px;white-space:normal;color:var(--app-text)
+}
+body.is-app [data-application-site][aria-pressed="true"]{
+  border-color:var(--app-cyan);color:var(--app-cyan);background:var(--app-surface-alt)
+}
+body.is-app .application-map-card{display:grid;gap:9px}
+body.is-app .application-map-card .muted{margin:0}
+body.is-app button:focus-visible{outline:2px solid var(--app-cyan);outline-offset:2px}
+@media(max-width:380px){
+  body.is-app .app-main{padding:0 14px 20px}
+  body.is-app .app-topbar{padding:14px 14px 12px}
+  body.is-app .app-brand-android strong{font-size:26px}
+  body.is-app .app-brand-android small{font-size:12px}
+  body.is-app .screen-card{padding:14px}
+  body.is-app .shield-badge.shield-large{width:96px;height:96px}
+  body.is-app .hero-shield-copy h2{font-size:19px}
+  body.is-app .shield-badge{width:70px;height:70px}
+  body.is-app .nav-track{border-radius:20px}
+}
