@@ -7,6 +7,12 @@ on:
       - 'app/**'
       - 'qa/**'
       - '.github/workflows/web-full-qa.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'qa/**'
+      - '.github/workflows/web-full-qa.yml'
   workflow_dispatch:
 
 permissions:
