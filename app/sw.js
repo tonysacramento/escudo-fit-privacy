@@ -1,11 +1,13 @@
-const CACHE='escudo-fit-web-v16-sync-tombstones';
+const CACHE='escudo-fit-web-v17-android-parity';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-tombstones-7',
-  './history-sync-contract.js?v=web-v43-sync-tombstones-7',
-  './history-backup-bridge.js?v=web-v43-sync-tombstones-7',
-  './app.js?v=web-v43-sync-tombstones-7',
+  './styles.css?v=web-v43-android-parity-8',
+  './history-sync-contract.js?v=web-v43-android-parity-8',
+  './history-backup-bridge.js?v=web-v43-android-parity-8',
+  './app.js?v=web-v43-android-parity-8',
+  './body-map.js?v=web-v43-android-parity-8',
+  './android-icon.svg',
   './manifest.webmanifest',
   './icon.svg'
 ];

@@ -82,6 +82,16 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('movementHistoryList').textContent,/Caminhada/);
   assert.match(get('nutritionHistoryList').textContent,/22/);
   assert.match(get('treatmentHistoryList').textContent,/Mounjaro/);
+  // The authenticated Web must use Android's DAILY shield semantics.
+  assert.equal(get('movementCount').textContent,'1');
+  assert.equal(get('stepsPct').textContent,'100%', 'manual steps are not the movement shield');
+  assert.equal(get('nutritionCount').textContent,'1 de 5');
+  assert.equal(get('proteinPct').textContent,'20%', 'the meal goal, not grams, controls this shield');
+  assert.equal(window.document.querySelectorAll('.nav-track .nav-item').length,4);
+  assert.equal(window.document.querySelectorAll('.shield-list > .shield-card').length,4);
+  assert.equal(window.document.querySelectorAll('.app-view[data-view="nutrition"]').length,1);
+  assert.equal(window.document.querySelectorAll('.app-view[data-view="weight"]').length,1);
+
 
   // Real regression: a single Web meal is already displayed, then Android
   // uploads its two older meals on that same calendar day.

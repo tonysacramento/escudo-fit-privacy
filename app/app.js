@@ -6,7 +6,7 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'',stepsHistory:[],stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
@@ -27,6 +27,46 @@ function num(v){const n=Number(String(v).replace(',','.'));return Number.isFinit
 function waterGoalFromWeight(weightKg){const n=Number(weightKg);return Number.isFinite(n)&&n>0?Math.round((n*35)/50)*50:2000}
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
 function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+/** Render today's scalars only; preserve yesterday in dated history.
+ * No API call here and no deletion of any saved record.
+ */
+function reconcileWebLocalDay(){
+  const today=localDayKey();
+  const waterTime=Number(state.waterUpdatedAtMs||0);
+  const waterDay=waterTime>0?localDayKey(waterTime):'';
+  let changed=false;
+  if(waterDay&&waterDay!==today){
+    const old=Array.isArray(state.waterHistory)?state.waterHistory:[];
+    const existing=old.find(item=>item.date===waterDay);
+    if(!existing||Number(existing.updatedAtMs||0)<waterTime){
+      state.waterHistory=[{date:waterDay,consumedMl:state.water,updatedAtMs:waterTime},
+        ...old.filter(item=>item.date!==waterDay)];
+    }
+    const todayWater=state.waterHistory.find(item=>item.date===today);
+    state.water=Number(todayWater?.consumedMl||0);
+    state.waterUpdatedAtMs=Number(todayWater?.updatedAtMs||0);
+    changed=true;
+  }
+  if(state.stepsDateKey&&state.stepsDateKey!==today){
+    if(Number(state.steps||0)>0){
+      const old=Array.isArray(state.stepsHistory)?state.stepsHistory:[];
+      state.stepsHistory=[{date:state.stepsDateKey,steps:state.steps},
+        ...old.filter(item=>item.date!==state.stepsDateKey)].slice(0,365);
+    }
+    state.steps=0;
+    state.stepsDateKey=today;
+    changed=true;
+  } else if(!state.stepsDateKey&&Number(state.steps||0)>0){
+    // Legacy scalar has no dated ownership: do not attribute it to today.
+    state.stepsHistory=[{date:'legacy-undated',steps:state.steps},
+      ...(Array.isArray(state.stepsHistory)?state.stepsHistory:[])];
+    state.steps=0;
+    state.stepsDateKey=today;
+    changed=true;
+  }
+  if(changed)saveState();
+}
+
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
 const mealLabels={BREAKFAST:'Café da manhã',LUNCH:'Almoço',DINNER:'Jantar',SNACK:'Lanche'};
 const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro',NONE:'Nenhum'};
@@ -164,6 +204,7 @@ function showApp(){
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
   state=loadState();
+  reconcileWebLocalDay();
   renderApp();
   activateView('home');
   // One authoritative hydration path prevents a slower duplicate request from
@@ -192,44 +233,63 @@ function activateView(target){
 
 function renderApp(){
   if(!auth?.user)return;
+  reconcileWebLocalDay();
   const experience=applyExperience();
-  const wp=pct(state.water,state.waterGoal);
+  const today=localDayKey();
+  const todayActivities=(Array.isArray(state.activities)?state.activities:[])
+    .filter(item=>(item.date||localDayKey(item.at))===today);
+  const todayNutrition=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+    .find(day=>day.date===today);
+  const todayMeals=Array.isArray(todayNutrition?.meals)?todayNutrition.meals:[];
+  const weight=Number(state.weights?.[0]?.value);
+  const hasWeight=Number.isFinite(weight)&&weight>0;
+  const waterGoal=hasWeight?waterGoalFromWeight(weight):0;
+  const wp=waterGoal?pct(state.water,waterGoal):0;
   const sp=pct(state.steps,state.stepsGoal);
-  const pp=pct(state.protein,state.proteinGoal);
-  const score=Math.round((wp+sp+pp)/3);
-  const protectedCount=[wp,sp,pp].filter(value=>value>=100).length;
+  const activityProtected=todayActivities.length>0;
+  const pp=pct(todayMeals.length,5); // Android shield: 5 meals, not 100 g protein
+  const mealProtein=todayMeals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
+  const medicationConfigured=!!(state.treatment?.medication&&state.treatment.medication!=='NONE');
+  const todayApplications=(Array.isArray(state.applications)?state.applications:[])
+    .filter(item=>(item.scheduledDateIso||localDayKey(item.at))===today);
+  const applicationConfirmed=todayApplications.length>0;
+  const shields=[
+    ...(hasWeight?[wp>=100]:[]), activityProtected, todayMeals.length>=5,
+    ...(medicationConfigured&&applicationConfirmed?[true]:[]),
+  ];
+  const evaluableCount=shields.length;
+  const protectedCount=shields.filter(Boolean).length;
+  const score=evaluableCount?Math.round(100*protectedCount/evaluableCount):0;
+  const activeCategories=[state.water>0,activityProtected,todayMeals.length>0,applicationConfirmed].filter(Boolean).length;
 
   setText('waterPct',wp+'%');
   setText('waterDetailPct',wp+'%');
   setText('waterMl',state.water+' ml');
   setText('waterDetailMl',state.water+' ml');
-  setText('waterGoalLabel',state.waterGoal+' ml');
-  setText('waterDetailGoal',state.waterGoal+' ml');
+  setText('waterGoalLabel',waterGoal?waterGoal+' ml':'Meta indisponível');
+  setText('waterDetailGoal',waterGoal?waterGoal+' ml':'Meta indisponível');
   if($('waterBar'))$('waterBar').style.width=wp+'%';
   if($('waterDetailBar'))$('waterDetailBar').style.width=wp+'%';
   setShieldFill('waterShieldBadge',wp);
   setShieldFill('waterDetailBadge',wp);
 
-  const waterRemaining=Math.max(0,state.waterGoal-state.water);
-  setText('waterRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
-  setText('waterDetailRemaining',wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
-  setText('waterStatusPill',wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
+  const waterRemaining=Math.max(0,waterGoal-state.water);
+  setText('waterRemaining',!waterGoal?'Registre seu peso para calcular a meta':wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterDetailRemaining',!waterGoal?'Registre seu peso para calcular a meta':wp>=100?'Meta de hoje concluída.':waterRemaining+' ml restantes para a meta de hoje.');
+  setText('waterStatusPill',!waterGoal?'META INDISPONÍVEL':wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
   setText('waterDetailStatus',wp>=100?'ESCUDO PROTEGIDO':'META SUGERIDA DO DIA');
 
-  setText('stepsPct',sp+'%');
-  if($('stepsBar'))$('stepsBar').style.width=sp+'%';
+  setText('stepsPct',activityProtected?'100%':'0%');
+  if($('stepsBar'))$('stepsBar').style.width=(activityProtected?100:0)+'%';
+  setShieldFill('movementShieldBadge',activityProtected?100:0);
+  setText('movementCount',String(todayActivities.length));
+  setText('movementCountLabel',todayActivities.length===1?'atividade registrada hoje':'atividades registradas hoje');
+  setText('movementStatusPill',activityProtected?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('movementHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger o escudo.');
   if($('stepsInput'))$('stepsInput').value=state.steps||'';
-  setShieldFill('movementShieldBadge',sp);
-  setText('movementStatusPill',sp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
-  setText('movementHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
-
   if($('activityStepsInput'))$('activityStepsInput').value=state.steps||'';
   if($('activityStepsBar'))$('activityStepsBar').style.width=sp+'%';
-  setText('activityStepsHint',sp>=100?'Meta de passos de hoje alcançada.':'Meta atual: '+state.stepsGoal.toLocaleString('pt-BR')+' passos.');
-
-  const today=localDayKey();
-  const todayActivities=(Array.isArray(state.activities)?state.activities:[]).filter(item=>localDayKey(item.at)===today);
-  const activityProtected=todayActivities.length>0;
+  setText('activityStepsHint',sp>=100?'Meta de passos informada para hoje alcançada.':'Passos informados na Web • meta '+state.stepsGoal.toLocaleString('pt-BR')+'.');
   setText('activityPct',activityProtected?'100%':'0%');
   setShieldFill('activityShieldBadge',activityProtected?100:0);
   setText('activityStatus',activityProtected?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
@@ -251,27 +311,55 @@ function renderApp(){
     .join('')||'<small class="muted">Nenhuma aplicação registrada na Web ainda.</small>';
 
   setText('proteinPct',pp+'%');
+  setText('nutritionCount',todayMeals.length+' de 5');
+  setText('nutritionSummary','refeições • Proteína '+mealProtein.toLocaleString('pt-BR')+' g'+(hasWeight?' / '+Math.round(weight*1.4)+' g':''));
   if($('proteinBar'))$('proteinBar').style.width=pp+'%';
-  if($('proteinInput'))$('proteinInput').value=state.protein||'';
-  if($('proteinGoalInput'))$('proteinGoalInput').value=state.proteinGoal||100;
+  if($('proteinInput'))$('proteinInput').value=mealProtein||'';
+  if($('proteinGoalInput'))$('proteinGoalInput').value=hasWeight?Math.round(weight*1.4):(state.proteinGoal||100);
   setShieldFill('nutritionShieldBadge',pp);
-  setText('nutritionStatusPill',pp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
-  setText('nutritionHint',pp>=100?'Meta de proteína de hoje alcançada.':'Faltam '+Math.max(0,state.proteinGoal-state.protein)+' g para a meta.');
+  setText('nutritionStatusPill',todayMeals.length>=5?'ESCUDO PROTEGIDO':'PENDENTE');
+  setText('nutritionHint',todayMeals.length>=5?'Cinco refeições registradas hoje.':'Faltam '+Math.max(0,5-todayMeals.length)+' refeições para proteger o escudo.');
+  setText('nutritionDetailPct',pp+'%');
+  setText('nutritionDetailCount',todayMeals.length+' de 5');
+  setText('nutritionDetailProtein','Proteína: '+mealProtein.toLocaleString('pt-BR')+' g'+(hasWeight?' / '+Math.round(weight*1.4)+' g • meta sugerida':''));
+  setText('nutritionDetailStatus',todayMeals.length>=5?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
+  if($('nutritionDetailBar'))$('nutritionDetailBar').style.width=pp+'%';
+  setShieldFill('nutritionDetailBadge',pp);
+  if($('nutritionTodayList'))$('nutritionTodayList').innerHTML=todayMeals
+    .slice().sort((a,b)=>new Date(b.at)-new Date(a.at))
+    .map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g'+(meal.description?' • '+escapeText(meal.description):'')+'</span><strong>'+fmtDate(meal.at)+'</strong></div>')
+    .join('')||'<small class="muted">Nenhuma refeição registrada hoje.</small>';
+  if($('nutritionHistoryPrevious'))$('nutritionHistoryPrevious').innerHTML=(Array.isArray(state.nutritionHistory)?state.nutritionHistory:[])
+    .filter(day=>day.date!==today).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30)
+    .map(day=>'<div class="history-day"><strong>'+new Date(day.date+'T12:00:00').toLocaleDateString('pt-BR')+'</strong>'+
+      (Array.isArray(day.meals)?day.meals:[]).map(meal=>'<div class="history-row"><span>'+escapeText(mealLabels[meal.mealType]||meal.mealType)+' • '+Number(meal.proteinG).toLocaleString('pt-BR')+' g</span></div>').join('')+'</div>').join('')||
+    '<small class="muted">Nenhuma refeição de dias anteriores.</small>';
+
+  const medicationVisible=medicationConfigured||state.applications?.length>0;
+  if($('medicationDashboardCard'))$('medicationDashboardCard').classList.toggle('hidden',!medicationVisible);
+  if($('navMedication'))$('navMedication').classList.toggle('hidden',!medicationVisible);
+  setText('medicationDashboardPct',applicationConfirmed?'100%':'0%');
+  setText('applicationDetailPct',applicationConfirmed?'100%':'0%');
+  setText('medicationStatusPill',applicationConfirmed?'ESCUDO PROTEGIDO':'CONSULTAR CICLO');
+  setText('medicationLabel',applicationConfirmed?'Aplicação confirmada hoje':'Ciclo de aplicação');
+  setText('applicationDetailLabel',applicationConfirmed?'Aplicação confirmada hoje':'Consulte seu ciclo');
+  setText('medicationHint',applicationConfirmed?'Registro de hoje salvo na Conta Google.':'Consulte o cronograma e o histórico de aplicações.');
+  setShieldFill('medicationDashboardBadge',applicationConfirmed?100:0);
+  setShieldFill('applicationShieldBadge',applicationConfirmed?100:0);
 
   setText('dailyScore',score+'%');
   setShieldFill('dailyShieldBadge',score);
   if($('dailyBar'))$('dailyBar').style.width=score+'%';
   setText('protectedCount',String(protectedCount));
-  setText('evaluableCount','3');
+  setText('evaluableCount',String(evaluableCount));
   setText('dailyStatus',
-    protectedCount>=2
-      ? 'Dia de Cuidado Ativo atingido!'
-      : protectedCount===1
-        ? 'Continue: falta ativar mais uma categoria.'
-        : 'Comece com uma ação simples de cuidado.'
+    activeCategories>=2?'Dia de Cuidado Ativo atingido!':
+    activeCategories===1?'Continue: falta ativar mais uma categoria.':
+    'Comece com uma ação simples de cuidado.'
   );
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
+  setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
   if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   const m=state.measurements||{};
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
@@ -336,7 +424,7 @@ function renderApp(){
   setText('profileUserName',auth.user.name||displayName);
   setText('profileEmail',auth.user.email);
   if($('profilePicture'))$('profilePicture').src=auth.user.picture||'./icon.svg';
-  if($('topProfilePicture'))$('topProfilePicture').src=auth.user.picture||'./icon.svg';
+  if($('topProfilePicture'))$('topProfilePicture').src='./android-icon.svg';
 
   const p=planLabel(auth.entitlement?.mode);
   if(experience==='FULL'){
@@ -656,14 +744,23 @@ async function hydrateAccountHistory(){
     const waterDays=(Array.isArray(data?.water)?data.water:[])
       .filter(item=>historyContract.validDate(item?.date)&&Number.isFinite(Number(item?.consumedMl)))
       .sort((a,b)=>b.date.localeCompare(a.date));
-    state.waterHistory=waterDays;
+    const priorDays=Array.isArray(state.waterHistory)?state.waterHistory:[];
+    const latestWaterDays=new Map(priorDays.map(item=>[item.date,item]));
+    for(const item of waterDays){
+      const previous=latestWaterDays.get(item.date);
+      if(!previous||Number(item.updatedAtMs||0)>=Number(previous.updatedAtMs||0)){
+        latestWaterDays.set(item.date,item);
+      }
+    }
+    state.waterHistory=[...latestWaterDays.values()].sort((a,b)=>b.date.localeCompare(a.date));
     const remoteWater=waterDays.find(entry=>entry?.date===today);
     const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
     const remoteWaterUpdatedAtMs=Number(remoteWater?.updatedAtMs||0);
     if(remoteWater&&remoteWaterUpdatedAtMs>=localWaterUpdatedAtMs){
       state.water=clamp(Number(remoteWater.consumedMl)||0,0,10000);
       state.waterUpdatedAtMs=remoteWaterUpdatedAtMs;
-    }else if(localWaterUpdatedAtMs>remoteWaterUpdatedAtMs){
+    }else if(localWaterUpdatedAtMs>remoteWaterUpdatedAtMs&&localDayKey(localWaterUpdatedAtMs)===today){
+      // Never re-send yesterday's water as today's new hydration.
       void syncHistoryPatch({
         water:[{date:today,consumedMl:state.water,updatedAtMs:localWaterUpdatedAtMs}],
       });
@@ -905,9 +1002,9 @@ async function updateWater(nextWater){
 }
 
 document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{void updateWater(state.water+Number(b.dataset.water))}));
-$('waterReset').addEventListener('click',()=>{void updateWater(0)});
-$('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Movimento salvo')});
-$('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
+$('waterReset')?.addEventListener('click',()=>{void updateWater(Math.max(0,state.water-200))});
+$('stepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);state.stepsDateKey=localDayKey();saveState();renderApp();toast('Passos atualizados')});
+$('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);state.stepsDateKey=localDayKey();saveState();renderApp();toast('Passos atualizados')});
 // Protein consumed is a derived total of dated meals, never an unsynchronized counter.
 $('proteinGoalInput').addEventListener('change',e=>{state.proteinGoal=clamp(num(e.target.value)||100,1,1000);saveState();renderApp()});
 
@@ -1061,26 +1158,64 @@ $('addActivity')?.addEventListener('click',async()=>{
   toast(synced?'Atividade sincronizada':'Atividade registrada');
 });
 
-document.querySelectorAll('[data-application-site]').forEach(btn=>btn.addEventListener('click',async()=>{
-  const site=String(btn.dataset.applicationSite||'').trim();
-  if(!site)return;
+// Selecting a map zone is NOT evidence of an application. Android requires
+// an explicit confirmation; apply the same protection in the Web experience.
+let selectedApplicationSite=null;
+const mapImg=$('approvedBodyMap');
+if(mapImg&&window.escudoFitApprovedBodyMapUri)mapImg.src=window.escudoFitApprovedBodyMapUri;
+document.querySelectorAll('[data-application-site]').forEach(btn=>{
+  btn.setAttribute('aria-pressed','false');
+  btn.addEventListener('click',()=>{
+    selectedApplicationSite=String(btn.dataset.applicationSite||'');
+    document.querySelectorAll('[data-application-site]').forEach(zone=>{
+      zone.setAttribute('aria-pressed',String(zone.dataset.applicationSite||'')===selectedApplicationSite?'true':'false');
+    });
+    setText('applicationSelection',applicationSiteLabels[selectedApplicationSite]||'Selecione um local.');
+    $('confirmApplication').disabled=!selectedApplicationSite;
+    setText('applicationSaved','');
+  });
+});
+$('confirmApplication')?.addEventListener('click',async()=>{
+  if(!selectedApplicationSite)return;
+  const date=localDayKey();
+  if((Array.isArray(state.applications)?state.applications:[]).some(item=>
+    (item.scheduledDateIso||localDayKey(item.at))===date)){
+    setText('applicationSaved','Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
+    return;
+  }
   const appliedAtMs=Date.now();
-  const entry={id:(crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs),site,at:new Date(appliedAtMs).toISOString()};
+  const applicationSite=selectedApplicationSite;
+  const id=crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs;
+  const entry={id,site:applicationSiteLabels[applicationSite]||applicationSite,
+    siteCode:applicationSite,at:new Date(appliedAtMs).toISOString(),scheduledDateIso:date};
+  const button=$('confirmApplication');
+  button.disabled=true;
   state.applications=[entry,...(Array.isArray(state.applications)?state.applications:[])].slice(0,200);
   saveState();renderApp();
-  const synced=await syncHistoryPatch({applications:[{id:entry.id,site,appliedAtMs}]});
-  if($('applicationSaved'))$('applicationSaved').textContent=synced
-    ? 'Aplicação registrada na sua conta em '+site+'.'
-    : 'Aplicação registrada neste navegador; sincronização pendente.';
-  toast(synced?'Aplicação sincronizada':'Aplicação registrada');
-}));
+  const synced=await syncHistoryPatch({applications:[{
+    id,applicationSite,appliedAtMs,scheduledDateIso:date,
+  }]});
+  setText('applicationSaved',synced
+    ?'Aplicação de hoje confirmada na Conta Google.'
+    :'Aplicação salva neste navegador. O envio à conta será tentado novamente.');
+  selectedApplicationSite=null;
+  document.querySelectorAll('[data-application-site]').forEach(zone=>zone.setAttribute('aria-pressed','false'));
+  setText('applicationSelection','Nenhum local selecionado.');
+  button.disabled=true;
+  toast(synced?'Aplicação sincronizada':'Aplicação salva localmente');
+});
 
 $('saveProfile').addEventListener('click',()=>{state.profile={name:$('profileName').value.trim()};saveState();renderApp();toast('Nome atualizado')});
 
-document.querySelectorAll('[data-view-link]').forEach(btn=>btn.addEventListener('click',()=>activateView(btn.dataset.viewLink)));
+document.querySelectorAll('[data-view-link]').forEach(btn=>{
+  btn.addEventListener('click',()=>activateView(btn.dataset.viewLink));
+  if(btn.getAttribute('role')==='button')btn.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();activateView(btn.dataset.viewLink);}
+  });
+});
 
 document.querySelectorAll('[data-focus-target]').forEach(btn=>btn.addEventListener('click',()=>{
-  activateView('home');
+  activateView(btn.dataset.focusView||'nutrition');
   setTimeout(()=>{
     const target=$(btn.dataset.focusTarget);
     if(target){target.scrollIntoView({behavior:'smooth',block:'center'});target.focus();}

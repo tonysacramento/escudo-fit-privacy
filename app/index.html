@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#071d23">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-sync-tombstones-7">
+  <meta name="escudo-fit-build" content="web-v43-android-parity-8">
   <title>Escudo Fit</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-tombstones-7">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-android-parity-8">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -147,37 +147,27 @@
   <section id="appExperience" class="app-experience hidden" aria-live="polite">
     <div class="app-shell">
       <header class="app-topbar app-like-topbar">
-        <div class="app-brand">
-          <img src="./icon.svg" alt="">
-          <div>
-            <strong>Escudo <span>Fit</span></strong>
-            <small>Proteção que transforma seu dia</small>
-          </div>
+        <div class="app-brand app-brand-android">
+          <strong>Escudo <span>Fit</span></strong>
+          <small>Proteção que transforma seu dia</small>
         </div>
         <div class="user-area">
-          <span id="planBadge" class="plan-badge">FULL</span>
+          <span id="planBadge" class="plan-badge hidden">FULL</span>
           <button class="profile-icon-button" data-view-link="profile" aria-label="Abrir perfil">
-            <img id="topProfilePicture" src="./icon.svg" alt="">
+            <img id="topProfilePicture" src="./android-icon.svg" alt="Perfil Escudo Fit">
           </button>
-          <button id="logoutButton" class="icon-button" aria-label="Sair da conta" title="Sair">↗</button>
+          <button id="logoutButton" class="icon-button hidden" aria-label="Sair da conta">↗</button>
         </div>
       </header>
 
       <main class="app-main">
         <section class="app-view active" data-view="home">
-          <div class="dashboard-heading">
-            <div>
-              <span class="eyebrow">MEU ESCUDO</span>
-              <h1 id="welcomeName">Seu Escudo</h1>
-              <p id="appGreeting">Olá</p><span id="experienceLabel" class="experience-label">FULL</span>
-            </div>
+          <div class="legacy-dashboard-state hidden" aria-hidden="true">
+            <span id="welcomeName"></span><span id="appGreeting"></span><span id="experienceLabel"></span>
           </div>
-
           <article class="screen-card hero-shield-card">
             <div id="dailyShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
-              <div class="shield-fill"></div>
-              <small>Escudo</small>
-              <strong id="dailyScore">0%</strong>
+              <div class="shield-fill"></div><small>Escudo</small><strong id="dailyScore">0%</strong>
             </div>
             <div class="hero-shield-copy">
               <div class="section-title"><span>🛡️</span><b>ESCUDO DO DIA</b></div>
@@ -188,7 +178,7 @@
           </article>
 
           <div class="shield-list">
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="water" role="button" tabindex="0" aria-label="Abrir hidratação">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO</b></div>
@@ -198,37 +188,25 @@
                   <div class="shield-fill"></div><small>Escudo</small><strong id="waterPct">0%</strong>
                 </div>
               </div>
-              <div class="metric-primary"><strong id="waterMl">0 ml</strong><span> / <span id="waterGoalLabel">2000 ml</span></span></div>
+              <div class="metric-primary"><strong id="waterMl">0 ml</strong><span> / <span id="waterGoalLabel">Meta indisponível</span></span></div>
               <p id="waterRemaining">Registre sua hidratação de hoje.</p>
               <div class="app-progress cyan"><i id="waterBar"></i></div>
-              <div class="quick-row">
-                <button class="app-action" data-water="200">+ 200 ml</button>
-                <button class="app-action" data-water="350">+ 350 ml</button>
-                <button class="app-action" data-water="500">+ 500 ml</button>
-              </div>
-              <button class="card-link" data-view-link="water">Abrir escudo de hidratação</button>
             </article>
-
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="activities" role="button" tabindex="0" aria-label="Abrir movimento">
               <div class="shield-card-top">
                 <div class="shield-card-title">
-                  <div class="section-title cyan"><span>💧</span><b>HIDRATAÇÃO — HISTÓRICO</b></div>
-            <div id="waterHistoryList" class="history"></div>
-
-            <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
+                  <div class="section-title green"><span>🏃</span><b>MOVIMENTO</b></div>
                   <span id="movementStatusPill" class="status-pill green">PENDENTE</span>
                 </div>
                 <div id="movementShieldBadge" class="shield-badge shield-green" style="--fill:0%">
                   <div class="shield-fill"></div><small>Escudo</small><strong id="stepsPct">0%</strong>
                 </div>
               </div>
-              <label class="app-field">Passos hoje<input id="stepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+              <div class="metric-primary"><strong id="movementCount">0</strong><span id="movementCountLabel">atividades registradas hoje</span></div>
+              <p id="movementHint">Registre sua primeira atividade do dia.</p>
               <div class="app-progress green"><i id="stepsBar"></i></div>
-              <p id="movementHint">Registre seus passos de hoje.</p>
-              <button class="card-link" data-view-link="activities" data-full-only>Abrir escudo de atividades</button>
             </article>
-
-            <article class="screen-card shield-card">
+            <article class="screen-card shield-card tappable" data-view-link="nutrition" role="button" tabindex="0" aria-label="Abrir nutrição">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title gold"><span>🍽️</span><b>NUTRIÇÃO</b></div>
@@ -238,63 +216,32 @@
                   <div class="shield-fill"></div><small>Escudo</small><strong id="proteinPct">0%</strong>
                 </div>
               </div>
-              <div class="two-inputs app-input-grid">
-                <label class="app-field">Consumido (g)<input id="proteinInput" type="number" min="0" step="1" readonly title="Total calculado a partir do histórico de refeições"></label>
-                <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" step="1"></label>
-              </div>
+              <div class="metric-primary"><strong id="nutritionCount">0 de 5</strong><span id="nutritionSummary">refeições • Proteína 0 g</span></div>
               <div class="app-progress gold"><i id="proteinBar"></i></div>
-              <p id="nutritionHint">Acompanhe sua meta diária de proteína.</p>
-              <div class="app-input-grid" data-full-only>
-                <p class="muted">Registre uma refeição para sincronizar o histórico com o Android.</p>
-                <label class="app-field">Tipo de refeição
-                  <select id="nutritionMealType">
-                    <option value="BREAKFAST">Café da manhã</option>
-                    <option value="LUNCH">Almoço</option>
-                    <option value="DINNER">Jantar</option>
-                    <option value="SNACK">Lanche</option>
-                  </select>
-                </label>
-                <label class="app-field">Proteína (g)<input id="nutritionMealProtein" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal" placeholder="Ex.: 25"></label>
-                <label class="app-field">Descrição opcional<input id="nutritionMealDescription" type="text" maxlength="240" placeholder="Ex.: almoço"></label>
-                <button id="nutritionAddMeal" class="button button-outline full-width">Registrar refeição</button>
-                <p id="nutritionSaved" class="saved"></p>
-              </div>
+              <p id="nutritionHint">Registre suas refeições de hoje.</p>
             </article>
-
-            <article class="screen-card shield-card medication-card" data-full-only>
+            <article id="medicationDashboardCard" class="screen-card shield-card medication-card tappable" data-view-link="applications" role="button" tabindex="0" aria-label="Abrir aplicações">
               <div class="shield-card-top">
                 <div class="shield-card-title">
                   <div class="section-title gold"><span>💉</span><b>APLICAÇÃO</b></div>
-                  <span class="status-pill neutral">EM DIA</span>
+                  <span id="medicationStatusPill" class="status-pill neutral">CONSULTAR CICLO</span>
                 </div>
-                <div class="shield-badge shield-gold" style="--fill:100%">
-                  <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+                <div id="medicationDashboardBadge" class="shield-badge shield-gold" style="--fill:0%">
+                  <div class="shield-fill"></div><small>Escudo</small><strong id="medicationDashboardPct">0%</strong>
                 </div>
               </div>
-              <h3>Escudo de aplicações</h3>
-              <p>Acesse o registro Web de aplicações. A sincronização do ciclo com o Android será unificada na etapa de histórico compartilhado.</p>
-              <button class="card-link" data-view-link="applications">Abrir escudo de aplicações</button>
-            </article>
-
-            <article class="screen-card shield-card weight-card">
-              <div class="section-title cyan"><span>⚖️</span><b>PESO ATUAL</b></div>
-              <div class="metric-primary"><strong id="lastWeight">—</strong></div>
-              <div class="inline-form" data-full-only>
-                <input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Ex.: 78,5">
-                <button id="addWeight" class="app-action">Registrar</button>
-              </div>
-              <div id="weightHistory" class="history"></div>
+              <div class="medication-summary"><strong id="medicationLabel">Consultar ciclo</strong><p id="medicationHint">Toque para consultar seu ciclo e histórico.</p></div>
             </article>
           </div>
 
           <div class="quick-access">
             <div class="section-title cyan"><span>⚡</span><b>ACESSOS RÁPIDOS</b></div>
             <button class="quick-access-button" data-view-link="water"><span>💧</span>REGISTRAR ÁGUA</button>
-            <button class="quick-access-button gold" data-focus-target="proteinInput"><span>🍽️</span>REGISTRAR PROTEÍNA</button>
-            <button class="quick-access-button green-action" data-view-link="activities" data-full-only><span>🏃</span>ATIVIDADES</button>
-            <button class="quick-access-button gold" data-view-link="applications" data-full-only><span>💉</span>APLICAÇÕES</button>
-            <button class="quick-access-button" data-view-link="measurements" data-full-only><span>📏</span>MEDIDAS CORPORAIS</button>
+            <button class="quick-access-button gold" data-view-link="nutrition"><span>🍽️</span>REGISTRAR REFEIÇÃO</button>
+            <button class="quick-access-button green-action" data-view-link="activities"><span>🏃</span>REGISTRAR MOVIMENTO</button>
+            <button class="quick-access-button gold" data-view-link="applications"><span>💉</span>AJUSTAR MEDICAÇÃO / DOSE</button>
           </div>
+          <p class="app-medical-note">Metas são orientativas. O Escudo Fit não prescreve, recomenda dose ou determina conduta médica.</p>
         </section>
 
         <section class="app-view" data-view="water">
@@ -317,19 +264,71 @@
           </article>
 
           <article class="screen-card">
+            <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
+            <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+          </article>
+          <article class="screen-card">
             <div class="section-title cyan"><span>＋</span><b>REGISTRAR ÁGUA</b></div>
             <div class="water-actions">
               <button class="quick-access-button" data-water="200">+ 200 ml</button>
               <button class="quick-access-button" data-water="350">+ 350 ml</button>
               <button class="quick-access-button" data-water="500">+ 500 ml</button>
-              <button id="waterReset" class="quick-access-button muted-action">Reiniciar hoje</button>
+              <button id="waterReset" class="quick-access-button muted-action">- 200 ml</button>
             </div>
           </article>
 
           <article class="screen-card">
-            <div class="section-title gold"><span>🌡️</span><b>TEMPERATURA LOCAL</b></div>
-            <p class="muted">O clima local continua disponível na experiência Android. A ativação no navegador será feita separadamente.</p>
+            <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO ANTERIOR</b></div>
+            <div id="waterHistoryList" class="history"></div>
           </article>
+        </section>
+
+        <section class="app-view" data-view="nutrition" data-full-only>
+          <div class="app-section-title"><h2>🍽️ Nutrição</h2><p>Cinco refeições protegem seu escudo. Proteína é indicador secundário.</p></div>
+          <article class="screen-card hero-shield-card compact-hero nutrition-hero">
+            <div id="nutritionDetailBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="nutritionDetailPct">0%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title gold"><b id="nutritionDetailStatus">ESCUDO PENDENTE</b></div>
+              <div class="metric-primary"><strong id="nutritionDetailCount">0 de 5</strong></div>
+              <p>refeições registradas hoje</p>
+              <div class="app-progress gold"><i id="nutritionDetailBar"></i></div>
+              <p id="nutritionDetailProtein">Proteína: 0 g</p>
+            </div>
+          </article>
+          <article class="screen-card">
+            <div class="section-title gold"><span>＋</span><b>REGISTRAR REFEIÇÃO</b></div>
+            <div class="app-input-grid form-section">
+              <label class="app-field">Tipo de refeição
+                <select id="nutritionMealType">
+                  <option value="BREAKFAST">Café da manhã</option>
+                  <option value="LUNCH">Almoço</option>
+                  <option value="DINNER">Jantar</option>
+                  <option value="SNACK">Lanche</option>
+                </select>
+              </label>
+              <label class="app-field">Proteína (g)<input id="nutritionMealProtein" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal" placeholder="Proteína (g)"></label>
+              <label class="app-field">Descrição opcional<input id="nutritionMealDescription" type="text" maxlength="240" placeholder="Descrição opcional"></label>
+              <button id="nutritionAddMeal" class="quick-access-button gold">REGISTRAR REFEIÇÃO</button>
+              <p id="nutritionSaved" class="saved" role="status"></p>
+            </div>
+          </article>
+          <article class="screen-card nutrition-reference">
+            <div class="section-title cyan"><span>ℹ️</span><b>REFERÊNCIA DE PROTEÍNA</b></div>
+            <div class="two-inputs app-input-grid">
+              <label class="app-field">Consumido (g)<input id="proteinInput" type="number" readonly title="Calculado a partir das refeições"></label>
+              <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" max="1000" step="1"></label>
+            </div>
+            <p class="muted">Indicador secundário. Necessidades individuais variam; consulte um profissional quando necessário.</p>
+          </article>
+          <article class="screen-card">
+            <div class="section-title gold"><span>🗓️</span><b>HOJE</b></div>
+            <div id="nutritionTodayList" class="history"></div>
+            <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO ANTERIOR</b></div>
+            <div id="nutritionHistoryPrevious" class="history"></div>
+          </article>
+          <button class="quick-access-button" data-view-link="home">VOLTAR AO ESCUDO DO DIA</button>
         </section>
 
         <section class="app-view" data-view="activities" data-full-only>
@@ -352,9 +351,10 @@
 
           <article class="screen-card">
             <div class="section-title cyan"><span>👟</span><b>PASSOS DO DIA</b></div>
-            <label class="app-field">Passos hoje<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
+            <label class="app-field">Passos informados na Web<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
             <div class="app-progress green"><i id="activityStepsBar"></i></div>
             <p id="activityStepsHint" class="muted">Meta atual: 8.000 passos.</p>
+            <p class="muted">No Android, o Health Connect fornece a contagem automática. Na Web, os passos são informados manualmente e não substituem os dados do aparelho.</p>
           </article>
 
           <article class="screen-card">
@@ -394,25 +394,39 @@
           </div>
 
           <article class="screen-card hero-shield-card compact-hero">
-            <div id="applicationShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:100%">
-              <div class="shield-fill"></div><small>Escudo</small><strong>100%</strong>
+            <div id="applicationShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="applicationDetailPct">0%</strong>
             </div>
             <div class="hero-shield-copy">
               <div class="section-title gold"><b>ESCUDO DE APLICAÇÕES</b></div>
-              <h3>Ciclo disponível</h3>
+              <h3 id="applicationDetailLabel">Consulte seu ciclo</h3>
               <p>Os registros de aplicações são vinculados à sua Conta Google e podem ser consultados entre Android e Web.</p>
             </div>
           </article>
 
-          <article class="screen-card">
-            <div class="section-title gold"><span>📍</span><b>REGISTRAR LOCAL</b></div>
-            <div class="application-site-grid">
-              <button class="app-action application-site" data-application-site="Abdômen">Abdômen</button>
-              <button class="app-action application-site" data-application-site="Coxa direita">Coxa direita</button>
-              <button class="app-action application-site" data-application-site="Coxa esquerda">Coxa esquerda</button>
-              <button class="app-action application-site" data-application-site="Braço">Braço</button>
+          <article class="screen-card application-map-card">
+            <div class="section-title cyan"><span>📍</span><b>MAPA DA APLICAÇÃO</b></div>
+            <p class="muted">Selecione no mapa o local utilizado. O registro só será criado depois da confirmação.</p>
+            <div class="approved-body-map" role="group" aria-label="Mapa de aplicação aprovado, frente e costas">
+              <img id="approvedBodyMap" alt="Mapa corporal Escudo Fit, frente e costas" width="240" height="320">
+              <button class="body-map-marker" type="button" data-application-site="ABDOMEN_LEFT" style="left:22.49%;top:44.68%" aria-label="Abdômen esquerdo" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ABDOMEN_RIGHT" style="left:33.61%;top:44.75%" aria-label="Abdômen direito" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="THIGH_LEFT" style="left:20.72%;top:56.98%" aria-label="Coxa esquerda" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="THIGH_RIGHT" style="left:35.54%;top:56.91%" aria-label="Coxa direita" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ARM_LEFT" style="left:57.83%;top:34.08%" aria-label="Braço esquerdo" aria-pressed="false"></button>
+              <button class="body-map-marker" type="button" data-application-site="ARM_RIGHT" style="left:86.10%;top:34.08%" aria-label="Braço direito" aria-pressed="false"></button>
             </div>
-            <p id="applicationSaved" class="saved"></p>
+            <div class="application-site-grid" role="group" aria-label="Selecionar local da aplicação">
+              <button class="app-action application-site" data-application-site="ABDOMEN_LEFT">Abdômen esquerdo</button>
+              <button class="app-action application-site" data-application-site="ABDOMEN_RIGHT">Abdômen direito</button>
+              <button class="app-action application-site" data-application-site="THIGH_LEFT">Coxa esquerda</button>
+              <button class="app-action application-site" data-application-site="THIGH_RIGHT">Coxa direita</button>
+              <button class="app-action application-site" data-application-site="ARM_LEFT">Braço esquerdo</button>
+              <button class="app-action application-site" data-application-site="ARM_RIGHT">Braço direito</button>
+            </div>
+            <p id="applicationSelection" class="muted" aria-live="polite">Nenhum local selecionado.</p>
+            <button id="confirmApplication" class="quick-access-button gold" disabled>CONFIRMAR APLICAÇÃO DE HOJE</button>
+            <p id="applicationSaved" class="saved" role="status"></p>
           </article>
 
           <article class="screen-card">
@@ -439,28 +453,67 @@
           </div>
         </section>
 
+        <section class="app-view" data-view="weight" data-full-only>
+          <div class="app-section-title"><h2>⚖️ Peso</h2><p>Um registro oficial por dia, com histórico preservado.</p></div>
+          <article class="screen-card">
+            <div class="section-title gold"><b>REGISTRAR NOVO PESO</b></div>
+            <p class="muted">O Escudo Fit mantém seu histórico de pesos e permite acompanhar sua evolução.</p>
+            <div class="metric-primary"><strong id="lastWeight">—</strong></div>
+            <label class="app-field">Peso em kg<input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Peso em kg"></label>
+            <button id="addWeight" class="quick-access-button gold">SALVAR NOVO PESO</button>
+          </article>
+          <article class="screen-card">
+            <div class="section-title cyan"><span>📈</span><b>HISTÓRICO DE PESO</b></div>
+            <div id="weightHistory" class="history"></div>
+          </article>
+          <button class="quick-access-button" data-view-link="profile">VOLTAR AO PERFIL</button>
+        </section>
+
         <section class="app-view" data-view="profile">
-          <div class="app-section-title"><span class="eyebrow">CONTA</span><h2>Meu perfil</h2></div>
-          <div class="screen-card profile-summary">
-            <img id="profilePicture" src="./icon.svg" alt="">
-            <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
-            <span id="profilePlan" class="plan-badge">FULL</span>
-          </div>
+          <div class="app-section-title"><h2>Perfil</h2><p>Seus dados para personalizar o cuidado diário.</p></div>
+          <article class="screen-card">
+            <div class="section-title cyan"><b>CONTA E ACESSO</b></div>
+            <div class="profile-summary">
+              <img id="profilePicture" src="./android-icon.svg" alt="Identidade Escudo Fit">
+              <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
+            </div>
+            <p class="muted">A Conta Google vincula seu acesso e seus registros na Web e no Android.</p>
+          </article>
 
-          <div class="screen-card">
-            <label class="app-field">Como deseja ser chamado?<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
-            <button id="saveProfile" class="button button-outline full-width">Salvar nome local</button>
-          </div>
+          <article class="screen-card">
+            <div class="section-title gold"><b>SEU PLANO</b></div>
+            <p class="muted">Plano conectado a esta Conta Google:</p>
+            <strong id="profilePlan" class="plan-label">FULL</strong>
+          </article>
 
-          <div class="screen-card">
-            <h3>Seus dados</h3>
-            <p class="muted">Peso, medidas, aplicações, movimento, nutrição e histórico de tratamento podem ser vinculados à sua Conta Google para consulta entre Android e Web.</p>
-            <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
-          </div>
+          <article class="screen-card">
+            <div class="section-title cyan"><b>DADOS PESSOAIS</b></div>
+            <label class="app-field">Nome<input id="profileName" type="text" maxlength="60" placeholder="Seu nome"></label>
+            <button id="saveProfile" class="quick-access-button">SALVAR PERFIL</button>
+          </article>
+
+          <article class="screen-card profile-weight-card">
+            <div class="section-title gold"><b>PESO E APLICAÇÃO</b></div>
+            <p class="muted">Peso atual: <strong id="profileCurrentWeight">não registrado</strong></p>
+            <button class="quick-access-button gold" data-view-link="weight">REGISTRAR NOVO PESO / VER HISTÓRICO</button>
+            <button class="quick-access-button" data-view-link="applications">ABRIR APLICAÇÃO</button>
+            <button class="quick-access-button" data-view-link="measurements">MEDIDAS CORPORAIS</button>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>EVOLUÇÃO DO PESO</b></div>
+            <p class="muted">Seu histórico e as variações de peso estão disponíveis na seção Peso.</p>
+            <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
+          </article>
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>LEMBRETES DE HIDRATAÇÃO</b></div>
+            <p class="muted">Os alarmes locais são configurados pelo aplicativo Android. O navegador não programa as notificações nativas do aparelho.</p>
+          </article>
 
           <div class="screen-card" data-full-only>
-            <div class="section-title cyan"><span>☁️</span><b>HISTÓRICO SINCRONIZADO</b></div>
-            <p class="muted">Registros recuperados da sua Conta Google. O histórico local do aparelho continua preservado durante a sincronização.</p>
+            <div class="section-title green"><span>☁️</span><b>PROTEÇÃO DO HISTÓRICO</b></div>
+            <p class="muted">O histórico é consultado automaticamente ao entrar ou voltar à Web com sua Conta Google. Os dados locais permanecem preservados, e a consulta manual continua disponível.</p>
             <button id="refreshHistoryButton" class="button button-outline full-width">Recarregar histórico da conta</button>
             <p id="historySyncStatus" class="saved" role="status" aria-live="polite">Histórico ainda não validado nesta sessão.</p>
 
@@ -490,26 +543,36 @@
             <div id="treatmentHistoryList" class="history"></div>
           </div>
 
+
+          <article class="screen-card">
+            <div class="section-title cyan"><b>PRIVACIDADE E DADOS</b></div>
+            <p class="muted">Peso, medidas, aplicações, movimento, nutrição e tratamento são vinculados à sua Conta Google quando sincronizados. Os registros locais continuam sob seu controle.</p>
+            <a class="quick-access-button" href="../privacy.html" target="_blank" rel="noopener">LER POLÍTICA DE PRIVACIDADE</a>
+            <div class="profile-actions"><button id="exportData" class="button button-outline">Exportar backup</button><button id="clearData" class="button button-danger">Apagar dados locais</button></div>
+          </article>
+
+          <button class="quick-access-button" data-view-link="home">VOLTAR AO ESCUDO DO DIA</button>
           <button id="switchAccountButton" class="button button-outline full-width">Trocar Conta Google</button>
-          <button id="logoutButtonBottom" class="button button-ghost full-width logout-wide">Sair e voltar à apresentação</button>
+          <button id="logoutButtonBottom" class="button button-ghost full-width logout-wide">Sair da Conta Google</button>
         </section>
       </main>
 
       <nav class="bottom-nav app-like-bottom-nav" aria-label="Navegação do app">
-        <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
-        <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
-        <button class="nav-item" data-target="activities" data-full-only><span>🏃</span><b>Atividades</b></button>
-        <button class="nav-item" data-target="applications" data-full-only><span>💉</span><b>Aplicações</b></button>
-        <button class="nav-item" data-target="measurements" data-full-only><span>📏</span><b>Medidas</b></button>
-        <button class="nav-item" data-target="profile"><span>👤</span><b>Perfil</b></button>
+        <div class="nav-track">
+          <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
+          <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
+          <button class="nav-item" data-target="applications" id="navMedication" data-full-only><span>💉</span><b>Aplicação</b></button>
+          <button class="nav-item" data-target="profile"><img src="./android-icon.svg" alt=""><b>Perfil</b></button>
+        </div>
       </nav>
     </div>
   </section>
 
   <button id="installButtonFloating" class="install-floating hidden">＋ Instalar Escudo Fit</button>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-sync-tombstones-7" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-sync-tombstones-7" defer></script>
-  <script src="./app.js?v=web-v43-sync-tombstones-7" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-android-parity-8" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-android-parity-8" defer></script>
+  <script src="./body-map.js?v=web-v43-android-parity-8" defer></script>
+  <script src="./app.js?v=web-v43-android-parity-8" defer></script>
 </body>
 </html>

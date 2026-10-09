@@ -109,16 +109,17 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#welcomeName')).toHaveText('Elaine Queiroz Silva');
   await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
-  await expect(page.locator('.nav-item[data-target="activities"]')).toBeVisible();
-  await expect(page.locator('.nav-item[data-target="applications"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
+  await expect(page.locator('.quick-access [data-view-link="applications"]')).toBeVisible();
 
-  await page.locator('.nav-item[data-target="activities"]').click();
+  await page.locator('.shield-card[data-view-link="activities"]').click();
   await expect(page.locator('.app-view[data-view="activities"]')).toBeVisible();
   await expect(page.locator('#addActivity')).toBeVisible();
 
-  await page.locator('.nav-item[data-target="applications"]').click();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
   await expect(page.locator('.app-view[data-view="applications"]')).toBeVisible();
-  await expect(page.locator('[data-application-site="Abdômen"]')).toBeVisible();
+  await expect(page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]')).toBeVisible();
 
   await page.locator('[data-target="profile"]').click();
   await expect(page.locator('#profileEmail')).toHaveText('elaineqne@gmail.com');
@@ -190,6 +191,40 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
 
   await expect(page.locator('.bottom-nav')).toBeVisible();
   await expect(page.locator('#welcomeName')).toHaveText('QA Mobile');
+  await expect(page.locator('.nav-track .nav-item')).toHaveCount(4);
+  await expect(page.locator('.shield-list > .shield-card')).toHaveCount(4);
+  await expect(page.locator('.shield-card[data-view-link="water"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
+  await expect(page.locator('.shield-card[data-view-link="nutrition"]')).toBeVisible();
+  await expect(page.locator('.app-view[data-view="home"] [data-water]')).toHaveCount(0);
+  await expect(page.locator('#nutritionCount')).toHaveText('0 de 5');
+  await page.locator('.shield-card[data-view-link="nutrition"]').click();
+  await expect(page.locator('#nutritionMealType')).toBeVisible();
+  await expect(page.locator('#nutritionAddMeal')).toBeVisible();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.shield-card[data-view-link="water"]').click();
+  await expect(page.locator('#waterReset')).toHaveText('- 200 ml');
+  await page.locator('[data-target="home"]').click(); // Measure visible Android dashboard, not hidden screen.
+  const visual = await page.evaluate(() => {
+    const cards=[...document.querySelectorAll('.shield-list>.shield-card')].filter(el=>getComputedStyle(el).display!=='none');
+    const bounds=cards.map(el=>el.getBoundingClientRect());
+    const badge=document.querySelector('#dailyShieldBadge').getBoundingClientRect();
+    const shell=document.querySelector('.app-shell').getBoundingClientRect();
+    return {
+      bg:getComputedStyle(document.body).backgroundColor,
+      cardBg:getComputedStyle(cards[0]).backgroundColor,
+      vertical:bounds.every((v,i)=>i===0||v.top>=bounds[i-1].bottom),
+      badgeSize:Math.round(badge.width),
+      shellWidth:Math.round(shell.width),
+    };
+  });
+  expect(visual.bg).toBe('rgb(6, 28, 32)');
+  expect(visual.cardBg).toBe('rgb(12, 48, 53)');
+  expect(visual.vertical).toBe(true);
+  expect(visual.badgeSize).toBe(112);
+  expect(visual.shellWidth).toBeLessThanOrEqual(390);
+
+
 });
 
 
@@ -336,15 +371,16 @@ test('FREE account opens Web Full and hydrates complete account history', async 
   await expect(page.locator('#experienceLabel')).toHaveText('FULL');
   await expect(page.locator('#planBadge')).toHaveText('FREE');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • FREE');
-  await expect(page.locator('[data-target="measurements"]')).not.toHaveClass(/entitlement-hidden/);
-  await expect(page.locator('[data-target="activities"]')).not.toHaveClass(/entitlement-hidden/);
-  await expect(page.locator('[data-target="applications"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="measurements"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="activities"]')).not.toHaveClass(/entitlement-hidden/);
+  await expect(page.locator('.app-view[data-view="applications"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('#lastWeight')).toHaveText('82,4 kg');
 
-  await page.locator('[data-target="applications"]').click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
   await expect(page.locator('#applicationHistory')).toContainText('Abdômen esquerdo');
 
-  await page.locator('[data-target="activities"]').click();
+  await page.locator('[data-target="home"]').click();
+  await page.locator('.shield-card[data-view-link="activities"]').click();
   await expect(page.locator('#activityHistoryPrevious')).toContainText('Caminhada');
   await expect(page.locator('#activityHistoryPrevious')).toContainText('35 min');
 
@@ -472,10 +508,12 @@ test('same Google account restores remote history after local data is cleared', 
   await page.locator('.mock-google-history-login').click();
 
   await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
 
-  await page.locator('#logoutButton').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('#logoutButtonBottom').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   // Simulate a clean/new device: remove only this account's local app state.
@@ -487,7 +525,8 @@ test('same Google account restores remote history after local data is cleared', 
 
   // History must be restored from the account backend, not from localStorage.
   await expect(page.locator('#lastWeight')).toHaveText('79,6 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('90,2 cm');
 });
 
@@ -560,7 +599,8 @@ test('switching Google accounts never leaks the previous account history', async
   await expect(page.locator('#welcomeName')).toHaveText('Conta A');
   await expect(page.locator('#lastWeight')).toHaveText('81,2 kg');
 
-  await page.locator('#logoutButton').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('#logoutButtonBottom').click();
   await expect(page.locator('#marketingExperience')).toBeVisible();
 
   await page.locator('[data-scroll-login]').first().click();
@@ -647,7 +687,8 @@ test('pending local history survives login hydration and is not overwritten', as
 
   await expect(page.locator('#weightHistory')).toContainText('77,7 kg');
   await expect(page.locator('#weightHistory')).toContainText('78,8 kg');
-  await page.locator('[data-target="measurements"]').click();
+  await page.locator('[data-target="profile"]').click();
+  await page.locator('.profile-weight-card [data-view-link="measurements"]').click();
   await expect(page.locator('#measurementHistoryList')).toContainText('89,5 cm');
 
   await expect.poll(() => historyRequests).toBe(1);
@@ -715,6 +756,7 @@ test('Web hydration writes account history and reloads from remote', async ({ pa
 
   await expect(page.locator('#waterMl')).toHaveText('1000 ml');
   await expect(page.locator('#waterGoalLabel')).toHaveText('3500 ml');
+  await page.locator('.shield-card[data-view-link="water"]').click();
   await page.locator('[data-water="200"]').first().click();
   await expect(page.locator('#waterMl')).toHaveText('1200 ml');
   await expect.poll(()=>remoteWater.consumedMl).toBe(1200);
@@ -830,13 +872,17 @@ test('web application registration syncs to account history', async ({ page }) =
 
   await page.goto('http://127.0.0.1:4173/app/', {waitUntil:'networkidle'});
   await expect(page.locator('#appExperience')).toBeVisible();
-  await page.locator('[data-target="applications"]').click();
-  await page.locator('[data-application-site="Abdômen"]').click();
+  await page.locator('.quick-access [data-view-link="applications"]').click();
+  await page.locator('.application-site-grid [data-application-site="ABDOMEN_LEFT"]').click();
+  expect(captured).toBe(null, 'Selecting a body zone must not create a medication application');
+  await expect(page.locator('#confirmApplication')).toBeEnabled();
+  await page.locator('#confirmApplication').click();
 
-  await expect(page.locator('#applicationSaved')).toContainText('na sua conta');
+  await expect(page.locator('#applicationSaved')).toContainText('na Conta Google');
   expect(Array.isArray(captured?.applications)).toBe(true);
   expect(captured.applications).toHaveLength(1);
-  expect(captured.applications[0].site).toBe('Abdômen');
+  expect(captured.applications[0].applicationSite).toBe('ABDOMEN_LEFT');
+   expect(captured.applications[0].scheduledDateIso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(Number.isFinite(Number(captured.applications[0].appliedAtMs))).toBe(true);
 });
 
