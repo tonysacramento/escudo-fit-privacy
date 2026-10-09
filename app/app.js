@@ -455,21 +455,52 @@ function loadHistoryOutbox(){
 function storeHistoryOutbox(entries){localStorage.setItem(historyOutboxKey(),JSON.stringify(entries))}
 async function flushPendingHistory(){
   if(!auth?.access_token||!auth?.user)return false;
+  const owner=auth.user.id;
   const entries=loadHistoryOutbox();
   for(const entry of entries){
     try{
+      let payload=entry.payload;
+      let expectedNutritionIds=null;
+      const nutritionPatches=Array.isArray(payload?.nutrition)?payload.nutrition:null;
+      if(nutritionPatches?.length){
+        // A Web tab can remain open while Android logs two more meals.
+        // Fetch and merge by meal ID immediately before sending any dated
+        // nutrition update; a stale local day must not replace remote meals.
+        const latest=await authenticatedFetch('/history');
+        if(!latest.ok||auth?.user?.id!==owner)return false;
+        const history=await latest.json();
+        if(!Array.isArray(history?.nutrition))return false;
+        const combined=historyContract.mergeNutritionDays(nutritionPatches,history.nutrition);
+        const affected=new Set(nutritionPatches.map(day=>day.date));
+        const rebased=combined.filter(day=>affected.has(day.date))
+          .map(day=>historyContract.nutritionPatch(day));
+        expectedNutritionIds=new Set(rebased.flatMap(day=>day.meals.map(meal=>meal.id)));
+        payload={...payload,nutrition:rebased};
+      }
+      if(auth?.user?.id!==owner)return false;
       const res=await authenticatedFetch('/history/sync',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(entry.payload)
+        body:JSON.stringify(payload)
       });
       if(!res.ok)return false;
+      if(expectedNutritionIds){
+        // POST 200 alone cannot prove the database retained concurrent edits.
+        const verified=await authenticatedFetch('/history');
+        if(!verified.ok||auth?.user?.id!==owner)return false;
+        const history=await verified.json();
+        const observed=new Set((Array.isArray(history?.nutrition)?history.nutrition:[])
+          .flatMap(day=>Array.isArray(day?.meals)?day.meals:[])
+          .map(meal=>String(meal.id||'')));
+        if([...expectedNutritionIds].some(id=>!observed.has(id)))return false;
+      }
       const remaining=loadHistoryOutbox().filter(item=>item.id!==entry.id);
       storeHistoryOutbox(remaining);
     }catch{return false}
   }
   return true;
 }
+
 async function syncHistoryPatch(payload){
   if(!auth?.user)return false;
   const pending=historyPatchChain.then(async()=>{
