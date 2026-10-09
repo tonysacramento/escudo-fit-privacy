@@ -103,6 +103,11 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('nutritionHistoryList').textContent,/28/);
   assert.match(get('nutritionHistoryList').textContent,/22/);
 
+  structuredHistory={...structuredHistory,nutrition:[{
+    ...structuredHistory.nutrition[0],updatedAtMs:now+500,
+    meals:[...structuredHistory.nutrition[0].meals,
+      {id:'android-late',mealType:'SNACK',proteinG:11,timestampMs:now-250}],
+  }]};
   get('nutritionMealType').value='DINNER';
   get('nutritionMealProtein').value='25';
   get('nutritionMealDescription').value='Jantar QA';
@@ -112,6 +117,8 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     .map(c=>JSON.parse(c.options.body||'{}')).filter(x=>x.nutrition);
   assert.ok(meals.length>=1,'Web should POST nutrition');
   assert.equal(meals.at(-1).nutrition[0].meals.at(-1).proteinG,25);
+  assert.ok(meals.at(-1).nutrition[0].meals.some(meal=>meal.id==='android-late'));
+  assert.equal(meals.at(-1).nutrition[0].meals.length,5);
 
   get('treatmentMedication').value='WEGOVY';
   get('treatmentDose').value='registro do usuário';
