@@ -861,7 +861,7 @@ test('web application registration syncs to account history', async ({ page }) =
   expect(Array.isArray(captured?.applications)).toBe(true);
   expect(captured.applications).toHaveLength(1);
   expect(captured.applications[0].applicationSite).toBe('ABDOMEN_LEFT');
-   expect(captured.applications[0].scheduledDateIso).toMatch(/^\\d{4}-\\d{2}-\\d{2}$/);
+   expect(captured.applications[0].scheduledDateIso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(Number.isFinite(Number(captured.applications[0].appliedAtMs))).toBe(true);
 });
 
