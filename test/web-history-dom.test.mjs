@@ -147,7 +147,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   };
   get('refreshHistoryButton').click();
   await pause();
-  assert.match(get('historySyncStatus').textContent,/Backup 200 \(revisão 4/);
+  assert.match(get('historySyncStatus').textContent,/Backup 200 \\(revisão 4, 0 conjuntos armazenados; 0 de histórico interpretados pela Web/);
   assert.match(get('weightHistory').textContent,/72,3/);
   assert.match(get('waterHistoryList').textContent,/910/);
   assert.match(get('applicationHistory').textContent,/Braço direito/);
