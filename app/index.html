@@ -283,6 +283,54 @@
           </article>
         </section>
 
+        <section class="app-view" data-view="nutrition" data-full-only>
+          <div class="app-section-title"><h2>🍽️ Nutrição</h2><p>Cinco refeições protegem seu escudo. Proteína é indicador secundário.</p></div>
+          <article class="screen-card hero-shield-card compact-hero nutrition-hero">
+            <div id="nutritionDetailBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
+              <div class="shield-fill"></div><small>Escudo</small><strong id="nutritionDetailPct">0%</strong>
+            </div>
+            <div class="hero-shield-copy">
+              <div class="section-title gold"><b id="nutritionDetailStatus">ESCUDO PENDENTE</b></div>
+              <div class="metric-primary"><strong id="nutritionDetailCount">0 de 5</strong></div>
+              <p>refeições registradas hoje</p>
+              <div class="app-progress gold"><i id="nutritionDetailBar"></i></div>
+              <p id="nutritionDetailProtein">Proteína: 0 g</p>
+            </div>
+          </article>
+          <article class="screen-card">
+            <div class="section-title gold"><span>＋</span><b>REGISTRAR REFEIÇÃO</b></div>
+            <div class="app-input-grid form-section">
+              <label class="app-field">Tipo de refeição
+                <select id="nutritionMealType">
+                  <option value="BREAKFAST">Café da manhã</option>
+                  <option value="LUNCH">Almoço</option>
+                  <option value="DINNER">Jantar</option>
+                  <option value="SNACK">Lanche</option>
+                </select>
+              </label>
+              <label class="app-field">Proteína (g)<input id="nutritionMealProtein" type="number" min="0.1" max="1000" step="0.1" inputmode="decimal" placeholder="Proteína (g)"></label>
+              <label class="app-field">Descrição opcional<input id="nutritionMealDescription" type="text" maxlength="240" placeholder="Descrição opcional"></label>
+              <button id="nutritionAddMeal" class="quick-access-button gold">REGISTRAR REFEIÇÃO</button>
+              <p id="nutritionSaved" class="saved" role="status"></p>
+            </div>
+          </article>
+          <article class="screen-card nutrition-reference">
+            <div class="section-title cyan"><span>ℹ️</span><b>REFERÊNCIA DE PROTEÍNA</b></div>
+            <div class="two-inputs app-input-grid">
+              <label class="app-field">Consumido (g)<input id="proteinInput" type="number" readonly title="Calculado a partir das refeições"></label>
+              <label class="app-field">Meta (g)<input id="proteinGoalInput" type="number" min="1" max="1000" step="1"></label>
+            </div>
+            <p class="muted">Indicador secundário. Necessidades individuais variam; consulte um profissional quando necessário.</p>
+          </article>
+          <article class="screen-card">
+            <div class="section-title gold"><span>🗓️</span><b>HOJE</b></div>
+            <div id="nutritionTodayList" class="history"></div>
+            <div class="section-title cyan"><span>🕘</span><b>HISTÓRICO ANTERIOR</b></div>
+            <div id="nutritionHistoryPrevious" class="history"></div>
+          </article>
+          <button class="quick-access-button" data-view-link="home">VOLTAR AO ESCUDO DO DIA</button>
+        </section>
+
         <section class="app-view" data-view="activities" data-full-only>
           <div class="app-section-title">
             <span class="eyebrow">ESCUDO DE ATIVIDADES</span>
@@ -390,6 +438,22 @@
           </div>
         </section>
 
+        <section class="app-view" data-view="weight" data-full-only>
+          <div class="app-section-title"><h2>⚖️ Peso</h2><p>Um registro oficial por dia, com histórico preservado.</p></div>
+          <article class="screen-card">
+            <div class="section-title gold"><b>REGISTRAR NOVO PESO</b></div>
+            <p class="muted">O Escudo Fit mantém seu histórico de pesos e permite acompanhar sua evolução.</p>
+            <div class="metric-primary"><strong id="lastWeight">—</strong></div>
+            <label class="app-field">Peso em kg<input id="weightInput" type="number" min="20" max="400" step="0.1" inputmode="decimal" placeholder="Peso em kg"></label>
+            <button id="addWeight" class="quick-access-button gold">SALVAR NOVO PESO</button>
+          </article>
+          <article class="screen-card">
+            <div class="section-title cyan"><span>📈</span><b>HISTÓRICO DE PESO</b></div>
+            <div id="weightHistory" class="history"></div>
+          </article>
+          <button class="quick-access-button" data-view-link="profile">VOLTAR AO PERFIL</button>
+        </section>
+
         <section class="app-view" data-view="profile">
           <div class="app-section-title"><span class="eyebrow">CONTA</span><h2>Meu perfil</h2></div>
           <div class="screen-card profile-summary">
@@ -403,6 +467,12 @@
             <button id="saveProfile" class="button button-outline full-width">Salvar nome local</button>
           </div>
 
+          <div class="screen-card profile-weight-card">
+            <div class="section-title gold"><b>PESO E APLICAÇÃO</b></div>
+            <button class="quick-access-button gold" data-view-link="weight">REGISTRAR NOVO PESO / VER HISTÓRICO</button>
+            <button class="quick-access-button" data-view-link="applications">ABRIR APLICAÇÃO</button>
+            <button class="quick-access-button" data-view-link="measurements">MEDIDAS CORPORAIS</button>
+          </div>
           <div class="screen-card">
             <h3>Seus dados</h3>
             <p class="muted">Peso, medidas, aplicações, movimento, nutrição e histórico de tratamento podem ser vinculados à sua Conta Google para consulta entre Android e Web.</p>
@@ -441,6 +511,7 @@
             <div id="treatmentHistoryList" class="history"></div>
           </div>
 
+          <button class="quick-access-button" data-view-link="home">VOLTAR AO ESCUDO DO DIA</button>
           <button id="switchAccountButton" class="button button-outline full-width">Trocar Conta Google</button>
           <button id="logoutButtonBottom" class="button button-ghost full-width logout-wide">Sair e voltar à apresentação</button>
         </section>
