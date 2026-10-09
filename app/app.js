@@ -207,9 +207,7 @@ function showApp(){
   reconcileWebLocalDay();
   renderApp();
   activateView('home');
-  // One authoritative hydration path prevents a slower duplicate request from
-  // overwriting local records that have not synchronized yet.
-  void hydrateAccountHistory();
+  // activateView already schedules account reconciliation without a second request.
   window.scrollTo({top:0,behavior:'instant'});
 }
 
@@ -229,6 +227,8 @@ function activateView(target){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.target===target));
   document.querySelectorAll('.app-view').forEach(v=>v.classList.toggle('active',v.dataset.view===target));
   window.scrollTo({top:0,behavior:'smooth'});
+  // A shield change requests a fresh account check; throttling prevents API storms.
+  void requestHistoryHydration();
 }
 
 function renderApp(){
@@ -360,6 +360,8 @@ function renderApp(){
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
+  if($('weightTrendChart'))$('weightTrendChart').innerHTML=window.EscudoWeightChart
+    ? window.EscudoWeightChart.build(state.weights) : '<p class="muted">Gráfico temporariamente indisponível. Seus registros estão preservados abaixo.</p>';
   if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   const m=state.measurements||{};
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
@@ -610,10 +612,10 @@ async function syncHistoryPatch(payload){
   return pending;
 }
 
-async function hydrateAccountHistory(){
+async function hydrateAccountHistory({quiet=false}={}){
   if(!auth?.user)return false;
   const accountId=auth.user.id;
-  setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
+  if(!quiet)setText('historySyncStatus','Verificando os registros da sua Conta Google…');
   try{
     await historyPatchChain;
     const flushed=await flushPendingHistory();
@@ -713,11 +715,16 @@ async function hydrateAccountHistory(){
       const remoteAt=Number(day.updatedAtMs||0);
       const localDay=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))===date);
       const localAt=Math.max(0,...localDay.map(entry=>Number(entry.dayUpdatedAtMs||new Date(entry.at).getTime())));
-      if(remoteAt>=localAt){
-        // A newer day snapshot also carries explicit removals.
-        mergedActivities=mergedActivities.filter(entry=>(entry.date||localDayKey(entry.at))!==date)
-          .concat(remoteByDay.get(date)||[]);
+      // Snapshots are additive. A newer remote day must NOT erase a Web-only
+      // activity still queued for upload on this device.
+      const byId=new Map(localDay.filter(entry=>entry?.id).map(entry=>[entry.id,entry]));
+      for(const entry of remoteByDay.get(date)||[]){
+        if(!entry?.id)continue;
+        if(!byId.has(entry.id)||remoteAt>=localAt)byId.set(entry.id,entry);
       }
+      mergedActivities=mergedActivities
+        .filter(entry=>(entry.date||localDayKey(entry.at))!==date)
+        .concat([...byId.values()]);
     }
     // Explicit Android deletions win over a stale local Web cache.
     const deletedMovementIds=new Set(remoteMovementDays.flatMap(day=>
@@ -780,9 +787,25 @@ async function hydrateAccountHistory(){
 
     return true;
   }catch{
-    setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
+    if(!quiet)setText('historySyncStatus','Não foi possível consultar o histórico agora; os dados locais foram preservados.');
     return false;
   }
+}
+
+// One in-flight request per tab. Switching shields never starts concurrent
+// fetches that could overwrite pending local edits with an older response.
+const HISTORY_REFRESH_MIN_MS=15000;
+let inFlightHistoryRefresh=null;
+let lastHistoryRefreshAt=0;
+function requestHistoryHydration({force=false}={}){
+  if(!auth?.user||document.visibilityState==='hidden')return Promise.resolve(false);
+  if(inFlightHistoryRefresh)return inFlightHistoryRefresh;
+  if(!force&&Date.now()-lastHistoryRefreshAt<HISTORY_REFRESH_MIN_MS)return Promise.resolve(true);
+  lastHistoryRefreshAt=Date.now();
+  const attempt=hydrateAccountHistory({quiet:!force});
+  inFlightHistoryRefresh=attempt;
+  void attempt.finally(()=>{if(inFlightHistoryRefresh===attempt)inFlightHistoryRefresh=null;});
+  return attempt;
 }
 
 async function loadAccountHistory(){
@@ -1083,7 +1106,7 @@ $('saveTreatment')?.addEventListener('click',async()=>{
 
 $('refreshHistoryButton')?.addEventListener('click',async()=>{
   setText('historySyncStatus','Consultando o histórico da sua conta…');
-  const synced=await hydrateAccountHistory();
+  const synced=await requestHistoryHydration({force:true});
   toast(synced?'Histórico da conta atualizado':'Histórico local preservado; consulta pendente');
 });
 $('addWeight').addEventListener('click',async()=>{
@@ -1235,11 +1258,16 @@ $('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)
 window.addEventListener('appinstalled',()=>toast('Escudo Fit instalado'));
 
 window.addEventListener('focus',()=>{
-  if(auth?.user)void hydrateAccountHistory();
+  if(auth?.user)void requestHistoryHydration();
 });
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&auth?.user)void hydrateAccountHistory();
+  if(document.visibilityState==='visible'&&auth?.user)void requestHistoryHydration();
 });
+// Sync only while the browser is running and the account is authenticated.
+// A closed browser cannot be updated until its next visit.
+setInterval(()=>{
+  if(auth?.user&&document.visibilityState==='visible')void requestHistoryHydration();
+},90000);
 
 if('serviceWorker'in navigator){
   let reloadingForWorker=false;
