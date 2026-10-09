@@ -8,6 +8,7 @@ const ASSETS=[
   './app.js?v=web-v44-weight-silent-sync-9',
   './body-map.js?v=web-v44-weight-silent-sync-9',
   './weight-chart.js?v=web-v44-weight-silent-sync-9',
+  './session-idle-policy.js?v=web-v44-weight-silent-sync-9',
   './android-icon.svg',
   './manifest.webmanifest',
   './icon.svg'
