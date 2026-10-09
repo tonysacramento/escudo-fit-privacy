@@ -17,7 +17,8 @@
   function unpackBackup(snapshot){
     const data=blank();
     let validEntries=0;
-    if(!isObj(snapshot)||!Array.isArray(snapshot.entries))return {data,validEntries,revision:0};
+    let scheduleEntries=0;
+    if(!isObj(snapshot)||!Array.isArray(snapshot.entries))return {data,validEntries,scheduleEntries,totalEntries:0,revision:0};
     const entries=snapshot.entries.slice(0,2500);
     for(const entry of entries){
       if(!isObj(entry)||typeof entry.key!=='string'||typeof entry.value!=='string'||entry.value.length>120000)continue;
@@ -51,6 +52,10 @@
           };
         }
         validEntries++;
+      }else if(entry.key==='dose_schedule_config'&&isObj(value)){
+        // Android also backs up the application reminder schedule. It is
+        // preserved in the cloud but has no Web history section to display.
+        scheduleEntries++;
       }else{
         const match=/^(water|nutrition|movement):(\d{4}-\d{2}-\d{2})$/.exec(entry.key);
         if(!match||!validDate(match[2])||!isObj(value)||!ts(value.updatedAtMs))continue;
@@ -67,7 +72,7 @@
         }
       }
     }
-    return {data,validEntries,revision:Number(snapshot.revision)||0};
+    return {data,validEntries,scheduleEntries,totalEntries:entries.length,revision:Number(snapshot.revision)||0};
   }
 
   function mergeByKey(primary,backup,key){
