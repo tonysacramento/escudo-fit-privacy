@@ -25,12 +25,26 @@ test('measurement hips use the exact API field and valid dates',()=>{
   assert.equal(c.asMeasurement({date:'2026-02-30',hips:102}),null);
 });
 
-test('newer nutrition day wins, preserving a local edit on timestamp ties',()=>{
-  const remote=[{date:'2026-10-08',updatedAtMs:200,meals:[{id:'remote'}]}];
-  const local=[{date:'2026-10-08',updatedAtMs:300,meals:[{id:'local'}]}];
-  assert.equal(c.mergeNutritionDays(local,remote)[0].meals[0].id,'local');
-  assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:100}],remote)[0].meals[0].id,'remote');
-  assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:200}],remote)[0].meals[0].id,'local');
+test('Web keeps independent meals from Android even when daily update timestamps differ',()=>{
+  const remote=[{date:'2026-10-08',updatedAtMs:200,meals:[{id:'web',at:'2026-10-08T15:00:00Z'}]}];
+  const local=[{date:'2026-10-08',updatedAtMs:300,meals:[
+    {id:'android-1',at:'2026-10-08T08:00:00Z'},
+    {id:'android-2',at:'2026-10-08T12:00:00Z'},
+  ]}];
+  const first=c.mergeNutritionDays(local,remote);
+  assert.deepEqual(first[0].meals.map(meal=>meal.id),['android-1','android-2','web']);
+  assert.equal(first[0].updatedAtMs,300);
+  const webNewer=c.mergeNutritionDays([{...local[0],updatedAtMs:100}],remote);
+  assert.deepEqual(webNewer[0].meals.map(meal=>meal.id),['android-1','android-2','web']);
+  const repeat=c.mergeNutritionDays(first,remote);
+  assert.equal(repeat[0].meals.length,3,'same ID must never duplicate a meal');
+});
+
+test('Web preserves latest edit for an identical meal ID while keeping unique records',()=>{
+  const remote=[{date:'2026-10-08',updatedAtMs:300,meals:[{id:'same',proteinG:25,at:'2026-10-08T12:00:00Z'}]}];
+  const local=[{date:'2026-10-08',updatedAtMs:200,meals:[{id:'same',proteinG:20,at:'2026-10-08T12:00:00Z'}]}];
+  assert.equal(c.mergeNutritionDays(local,remote)[0].meals[0].proteinG,25);
+  assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:300}],remote)[0].meals[0].proteinG,20);
 });
 
 test('nutrition patch matches backend required meal fields and validates protein',()=>{
