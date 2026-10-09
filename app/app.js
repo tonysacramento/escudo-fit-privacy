@@ -6,7 +6,7 @@ const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googl
 const AUTH_KEY='escudofit_web_auth_v1';
 const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
-const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
+const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'',stepsHistory:[],stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
@@ -27,6 +27,46 @@ function num(v){const n=Number(String(v).replace(',','.'));return Number.isFinit
 function waterGoalFromWeight(weightKg){const n=Number(weightKg);return Number.isFinite(n)&&n>0?Math.round((n*35)/50)*50:2000}
 function fmtDate(iso){return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(iso))}
 function localDayKey(value=new Date()){const d=value instanceof Date?value:new Date(value);const y=d.getFullYear();const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+/** Render today's scalars only; preserve yesterday in dated history.
+ * No API call here and no deletion of any saved record.
+ */
+function reconcileWebLocalDay(){
+  const today=localDayKey();
+  const waterTime=Number(state.waterUpdatedAtMs||0);
+  const waterDay=waterTime>0?localDayKey(waterTime):'';
+  let changed=false;
+  if(waterDay&&waterDay!==today){
+    const old=Array.isArray(state.waterHistory)?state.waterHistory:[];
+    const existing=old.find(item=>item.date===waterDay);
+    if(!existing||Number(existing.updatedAtMs||0)<waterTime){
+      state.waterHistory=[{date:waterDay,consumedMl:state.water,updatedAtMs:waterTime},
+        ...old.filter(item=>item.date!==waterDay)];
+    }
+    const todayWater=state.waterHistory.find(item=>item.date===today);
+    state.water=Number(todayWater?.consumedMl||0);
+    state.waterUpdatedAtMs=Number(todayWater?.updatedAtMs||0);
+    changed=true;
+  }
+  if(state.stepsDateKey&&state.stepsDateKey!==today){
+    if(Number(state.steps||0)>0){
+      const old=Array.isArray(state.stepsHistory)?state.stepsHistory:[];
+      state.stepsHistory=[{date:state.stepsDateKey,steps:state.steps},
+        ...old.filter(item=>item.date!==state.stepsDateKey)].slice(0,365);
+    }
+    state.steps=0;
+    state.stepsDateKey=today;
+    changed=true;
+  } else if(!state.stepsDateKey&&Number(state.steps||0)>0){
+    // Legacy scalar has no dated ownership: do not attribute it to today.
+    state.stepsHistory=[{date:'legacy-undated',steps:state.steps},
+      ...(Array.isArray(state.stepsHistory)?state.stepsHistory:[])];
+    state.steps=0;
+    state.stepsDateKey=today;
+    changed=true;
+  }
+  if(changed)saveState();
+}
+
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
 const mealLabels={BREAKFAST:'Café da manhã',LUNCH:'Almoço',DINNER:'Jantar',SNACK:'Lanche'};
 const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro',NONE:'Nenhum'};
@@ -164,6 +204,7 @@ function showApp(){
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
   state=loadState();
+  reconcileWebLocalDay();
   renderApp();
   activateView('home');
   // One authoritative hydration path prevents a slower duplicate request from
@@ -192,6 +233,7 @@ function activateView(target){
 
 function renderApp(){
   if(!auth?.user)return;
+  reconcileWebLocalDay();
   const experience=applyExperience();
   const today=localDayKey();
   const todayActivities=(Array.isArray(state.activities)?state.activities:[])
@@ -701,14 +743,23 @@ async function hydrateAccountHistory(){
     const waterDays=(Array.isArray(data?.water)?data.water:[])
       .filter(item=>historyContract.validDate(item?.date)&&Number.isFinite(Number(item?.consumedMl)))
       .sort((a,b)=>b.date.localeCompare(a.date));
-    state.waterHistory=waterDays;
+    const priorDays=Array.isArray(state.waterHistory)?state.waterHistory:[];
+    const latestWaterDays=new Map(priorDays.map(item=>[item.date,item]));
+    for(const item of waterDays){
+      const previous=latestWaterDays.get(item.date);
+      if(!previous||Number(item.updatedAtMs||0)>=Number(previous.updatedAtMs||0)){
+        latestWaterDays.set(item.date,item);
+      }
+    }
+    state.waterHistory=[...latestWaterDays.values()].sort((a,b)=>b.date.localeCompare(a.date));
     const remoteWater=waterDays.find(entry=>entry?.date===today);
     const localWaterUpdatedAtMs=Number(state.waterUpdatedAtMs||0);
     const remoteWaterUpdatedAtMs=Number(remoteWater?.updatedAtMs||0);
     if(remoteWater&&remoteWaterUpdatedAtMs>=localWaterUpdatedAtMs){
       state.water=clamp(Number(remoteWater.consumedMl)||0,0,10000);
       state.waterUpdatedAtMs=remoteWaterUpdatedAtMs;
-    }else if(localWaterUpdatedAtMs>remoteWaterUpdatedAtMs){
+    }else if(localWaterUpdatedAtMs>remoteWaterUpdatedAtMs&&localDayKey(localWaterUpdatedAtMs)===today){
+      // Never re-send yesterday's water as today's new hydration.
       void syncHistoryPatch({
         water:[{date:today,consumedMl:state.water,updatedAtMs:localWaterUpdatedAtMs}],
       });
@@ -950,9 +1001,9 @@ async function updateWater(nextWater){
 }
 
 document.querySelectorAll('[data-water]').forEach(b=>b.addEventListener('click',()=>{void updateWater(state.water+Number(b.dataset.water))}));
-$('waterReset').addEventListener('click',()=>{void updateWater(0)});
-$('stepsInput').addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Movimento salvo')});
-$('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);saveState();renderApp();toast('Passos atualizados')});
+$('waterReset')?.addEventListener('click',()=>{void updateWater(Math.max(0,state.water-200))});
+$('stepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);state.stepsDateKey=localDayKey();saveState();renderApp();toast('Passos atualizados')});
+$('activityStepsInput')?.addEventListener('change',e=>{state.steps=clamp(num(e.target.value),0,100000);state.stepsDateKey=localDayKey();saveState();renderApp();toast('Passos atualizados')});
 // Protein consumed is a derived total of dated meals, never an unsynchronized counter.
 $('proteinGoalInput').addEventListener('change',e=>{state.proteinGoal=clamp(num(e.target.value)||100,1,1000);saveState();renderApp()});
 
