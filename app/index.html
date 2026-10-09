@@ -120,6 +120,17 @@
         </div>
       </section>
 
+      <section id="idleSessionNotice" class="section idle-session-notice hidden" role="status" aria-live="polite" aria-label="Sessão encerrada por inatividade">
+        <div class="login-panel idle-session-panel">
+          <div class="login-copy">
+            <span class="eyebrow">ACESSO PROTEGIDO</span>
+            <h2>Sua sessão foi encerrada por inatividade.</h2>
+            <p>Você ficou mais de 60 minutos sem usar o Escudo Fit. Deseja entrar novamente? Seu histórico e os registros pendentes continuam preservados.</p>
+          </div>
+          <button id="idleLoginAgain" class="button button-primary" type="button">ENTRAR NOVAMENTE</button>
+        </div>
+      </section>
+
       <section id="loginSection" class="section login-section">
         <div class="login-panel">
           <div class="login-copy">
@@ -577,6 +588,7 @@
   <script src="./history-backup-bridge.js?v=web-v44-weight-silent-sync-9" defer></script>
   <script src="./body-map.js?v=web-v44-weight-silent-sync-9" defer></script>
   <script src="./weight-chart.js?v=web-v44-weight-silent-sync-9" defer></script>
+  <script src="./session-idle-policy.js?v=web-v44-weight-silent-sync-9" defer></script>
   <script src="./app.js?v=web-v44-weight-silent-sync-9" defer></script>
 </body>
 </html>
