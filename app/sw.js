@@ -1,12 +1,13 @@
-const CACHE='escudo-fit-web-v17-android-parity';
+const CACHE='escudo-fit-web-v18-weight-silent-sync';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-android-parity-8',
-  './history-sync-contract.js?v=web-v43-android-parity-8',
-  './history-backup-bridge.js?v=web-v43-android-parity-8',
-  './app.js?v=web-v43-android-parity-8',
-  './body-map.js?v=web-v43-android-parity-8',
+  './styles.css?v=web-v44-weight-silent-sync-9',
+  './history-sync-contract.js?v=web-v44-weight-silent-sync-9',
+  './history-backup-bridge.js?v=web-v44-weight-silent-sync-9',
+  './app.js?v=web-v44-weight-silent-sync-9',
+  './body-map.js?v=web-v44-weight-silent-sync-9',
+  './weight-chart.js?v=web-v44-weight-silent-sync-9',
   './android-icon.svg',
   './manifest.webmanifest',
   './icon.svg'
