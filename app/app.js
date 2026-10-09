@@ -423,7 +423,7 @@ function renderApp(){
   setText('profileUserName',auth.user.name||displayName);
   setText('profileEmail',auth.user.email);
   if($('profilePicture'))$('profilePicture').src=auth.user.picture||'./icon.svg';
-  if($('topProfilePicture'))$('topProfilePicture').src=auth.user.picture||'./icon.svg';
+  if($('topProfilePicture'))$('topProfilePicture').src='./android-icon.svg';
 
   const p=planLabel(auth.entitlement?.mode);
   if(experience==='FULL'){
