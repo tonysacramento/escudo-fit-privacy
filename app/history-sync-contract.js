@@ -42,15 +42,37 @@
 
   function mergeNutritionDays(localDays,remoteDays){
     const byDate=new Map();
+    // Historical nutrition records represent individual meals, not an
+    // authoritative snapshot of all meals in the account. A newer Android
+    // day must not remove meals that were registered independently on Web.
     for(const source of [remoteDays,localDays]){
       for(const item of Array.isArray(source)?source:[]){
         if(!validDate(item?.date))continue;
-        const next=Number(item?.updatedAtMs||0);
-        const prev=byDate.get(item.date);
-        // A local draft wins ties to avoid losing a pending offline edit.
-        if(!prev||next>=Number(prev.updatedAtMs||0)){
-          byDate.set(item.date,{date:item.date,updatedAtMs:next,meals:Array.isArray(item.meals)?item.meals:[]});
+        const updatedAtMs=Number(item?.updatedAtMs||0);
+        const incoming=Array.isArray(item.meals)?item.meals:[];
+        const existing=byDate.get(item.date);
+        if(!existing){
+          byDate.set(item.date,{date:item.date,updatedAtMs,meals:[...incoming]});
+          continue;
         }
+        const joined=new Map();
+        const order=updatedAtMs>=Number(existing.updatedAtMs||0)
+          ? [existing.meals,incoming] : [incoming,existing.meals];
+        for(const collection of order){
+          for(const meal of collection){
+            if(meal&&typeof meal.id==='string'&&meal.id)joined.set(meal.id,meal);
+          }
+        }
+        // Backend limits 100 meals/day. Never silently truncate personal data.
+        if(joined.size>100)throw new Error('HISTORY_NUTRITION_LIMIT_EXCEEDED');
+        byDate.set(item.date,{
+          date:item.date,updatedAtMs:Math.max(existing.updatedAtMs,updatedAtMs),
+          meals:[...joined.values()].sort((a,b)=>{
+            const ta=Number(a.timestampMs||Date.parse(a.at)||0);
+            const tb=Number(b.timestampMs||Date.parse(b.at)||0);
+            return ta-tb||String(a.id).localeCompare(String(b.id));
+          })
+        });
       }
     }
     return [...byDate.values()].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,365);

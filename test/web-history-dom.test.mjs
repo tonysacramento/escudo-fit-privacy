@@ -75,6 +75,26 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('nutritionHistoryList').textContent,/22/);
   assert.match(get('treatmentHistoryList').textContent,/Mounjaro/);
 
+  // Real regression: a single Web meal is already displayed, then Android
+  // uploads its two older meals on that same calendar day.
+  structuredHistory={
+    ...payload,
+    nutrition:[{
+      date:apiDate,updatedAtMs:now,
+      meals:[
+        {id:'ml1',mealType:'LUNCH',proteinG:22,timestampMs:now},
+        {id:'android-a',mealType:'BREAKFAST',proteinG:16,timestampMs:now-1000},
+        {id:'android-b',mealType:'DINNER',proteinG:28,timestampMs:now-500},
+      ],
+    }],
+  };
+  get('refreshHistoryButton').click();
+  await pause();
+  assert.match(get('historySyncStatus').textContent,/3 refeições/);
+  assert.match(get('nutritionHistoryList').textContent,/16/);
+  assert.match(get('nutritionHistoryList').textContent,/28/);
+  assert.match(get('nutritionHistoryList').textContent,/22/);
+
   get('nutritionMealType').value='DINNER';
   get('nutritionMealProtein').value='25';
   get('nutritionMealDescription').value='Jantar QA';
