@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Escudo Fit">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="78%"><stop offset="0" stop-color="#123B45"/><stop offset="0.58" stop-color="#0F2B33"/><stop offset="1" stop-color="#061C20"/></radialGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34F0F7"/><stop offset="0.48" stop-color="#00C2D1"/><stop offset="1" stop-color="#008CA5"/></linearGradient>
+    <linearGradient id="white" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.55" stop-color="#F2F6F8"/><stop offset="1" stop-color="#AEB6BF"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#79F36C"/><stop offset="0.5" stop-color="#27AE60"/><stop offset="1" stop-color="#0A7F3B"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- Unified shield/person silhouette, following the approved brand reference. -->
+  <g>
+    <path d="M512 160 C432 232 318 270 226 280 L226 494 C226 686 328 812 452 884 L478 828 C355 751 282 645 282 494 L282 328 C374 313 452 283 512 234 Z" fill="url(#cyan)"/>
+    <path d="M512 160 C592 232 706 270 798 280 L798 494 C798 646 750 746 698 786 C736 701 742 606 742 494 L742 328 C650 313 572 283 512 234 Z" fill="url(#white)"/>
+    <circle cx="506" cy="414" r="58" fill="url(#cyan)"/>
+    <path d="M300 406 C310 395 324 428 344 448 C392 497 455 514 501 555 C550 507 634 484 688 405 C704 389 699 432 686 460 C659 518 611 565 559 610 C516 648 490 725 478 828 L452 884 C446 790 456 695 443 640 C431 590 386 563 350 523 C322 491 298 443 300 406 Z" fill="url(#cyan)"/>
+    <path d="M496 932 C450 794 516 693 609 645 C672 612 717 596 750 554 C750 713 697 839 540 885 C547 809 601 746 677 683 C578 744 508 827 496 932 Z" fill="url(#green)"/>
+  </g>
+</svg>
