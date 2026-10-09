@@ -51,8 +51,15 @@
         const updatedAtMs=Number(item?.updatedAtMs||0);
         const incoming=Array.isArray(item.meals)?item.meals:[];
         const existing=byDate.get(item.date);
+        const deletedIds=[...new Set([
+          ...(Array.isArray(existing?.deletedIds)?existing.deletedIds:[]),
+          ...(Array.isArray(item?.deletedIds)?item.deletedIds:[]),
+        ])];
+        const removed=new Set(deletedIds);
         if(!existing){
-          byDate.set(item.date,{date:item.date,updatedAtMs,meals:[...incoming]});
+          byDate.set(item.date,{date:item.date,updatedAtMs,
+            meals:incoming.filter(meal=>!removed.has(meal?.id)),
+            ...(deletedIds.length?{deletedIds}:{})});
           continue;
         }
         const joined=new Map();
@@ -63,10 +70,12 @@
             if(meal&&typeof meal.id==='string'&&meal.id)joined.set(meal.id,meal);
           }
         }
+        for(const id of removed)joined.delete(id);
         // Backend limits 100 meals/day. Never silently truncate personal data.
         if(joined.size>100)throw new Error('HISTORY_NUTRITION_LIMIT_EXCEEDED');
         byDate.set(item.date,{
           date:item.date,updatedAtMs:Math.max(existing.updatedAtMs,updatedAtMs),
+          ...(deletedIds.length?{deletedIds}:{}),
           meals:[...joined.values()].sort((a,b)=>{
             const ta=Number(a.timestampMs||Date.parse(a.at)||0);
             const tb=Number(b.timestampMs||Date.parse(b.at)||0);
@@ -95,7 +104,9 @@
       };
     });
     if(meals.length>100)throw new Error('TOO_MANY_MEALS');
-    return {date:day.date,updatedAtMs,meals};
+    const deletedIds=Array.isArray(day.deletedIds)?day.deletedIds.filter(id=>typeof id==='string'&&id.trim()&&id.length<=120):[];
+    if(deletedIds.length>200)throw new Error('TOO_MANY_DELETIONS');
+    return {date:day.date,updatedAtMs,meals,...(deletedIds.length?{deletedIds}:{})};
   }
 
   function treatmentPatch(raw){

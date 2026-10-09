@@ -408,6 +408,7 @@ function remoteNutritionToLocal(days){
     return [{
       date,
       updatedAtMs:Number(day?.updatedAtMs||0),
+      deletedIds:Array.isArray(day?.deletedIds)?day.deletedIds:[],
       meals:meals.flatMap(meal=>{
         const timestampMs=Number(meal?.timestampMs);
         const proteinG=Number(meal?.proteinG);
@@ -630,7 +631,11 @@ async function hydrateAccountHistory(){
           .concat(remoteByDay.get(date)||[]);
       }
     }
-    state.activities=mergedActivities.sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,500);
+    // Explicit Android deletions win over a stale local Web cache.
+    const deletedMovementIds=new Set(remoteMovementDays.flatMap(day=>
+      Array.isArray(day?.deletedIds)?day.deletedIds:[]));
+    state.activities=mergedActivities.filter(entry=>!deletedMovementIds.has(entry.id))
+      .sort((a,b)=>new Date(b.at)-new Date(a.at)).slice(0,500);
 
     const remoteNutrition=remoteNutritionToLocal(data?.nutrition);
     state.nutritionHistory=historyContract.mergeNutritionDays(state.nutritionHistory,remoteNutrition);

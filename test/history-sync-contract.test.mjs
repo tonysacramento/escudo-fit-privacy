@@ -47,6 +47,23 @@ test('Web preserves latest edit for an identical meal ID while keeping unique re
   assert.equal(c.mergeNutritionDays([{...local[0],updatedAtMs:300}],remote)[0].meals[0].proteinG,20);
 });
 
+test('Web does not resurrect meals deleted on Android from an older local cache',()=>{
+  const remote=[{date:'2026-10-09',updatedAtMs:300,deletedIds:['gone'],
+    meals:[{id:'keep',at:'2026-10-09T08:00:00Z'}]}];
+  const local=[{date:'2026-10-09',updatedAtMs:200,meals:[
+    {id:'gone',at:'2026-10-09T07:00:00Z'},
+    {id:'keep',at:'2026-10-09T08:00:00Z'},
+  ]}];
+  const merged=c.mergeNutritionDays(local,remote);
+  assert.deepEqual(merged[0].meals.map(x=>x.id),['keep']);
+  assert.deepEqual(merged[0].deletedIds,['gone']);
+  const stale=c.mergeNutritionDays(local,merged);
+  assert.deepEqual(stale[0].meals.map(x=>x.id),['keep']);
+  assert.deepEqual(c.nutritionPatch({...merged[0],meals:[{
+    id:'keep',mealType:'BREAKFAST',proteinG:12,at:'2026-10-09T08:00:00Z',
+  }]}).deletedIds,['gone']);
+});
+
 test('nutrition patch matches backend required meal fields and validates protein',()=>{
   const at='2026-10-08T12:00:00.000Z';
   const day=c.nutritionPatch({date:'2026-10-08',updatedAtMs:1791460800000,meals:[
@@ -72,7 +89,7 @@ test('Web markup, service worker and client share same revision and full history
   const html=fs.readFileSync('app/index.html','utf8');
   const js=fs.readFileSync('app/app.js','utf8');
   const sw=fs.readFileSync('app/sw.js','utf8');
-  const version='web-v43-backup-audit-6';
+  const version='web-v43-sync-tombstones-7';
   for(const file of [html,sw])assert.ok(file.includes(version));
   for(const id of ['nutritionAddMeal','saveTreatment','refreshHistoryButton','historySyncStatus','waterHistoryList','measurementHistoryList','movementHistoryList','nutritionHistoryList','treatmentHistoryList']){
     assert.ok(html.includes('id="'+id+'"'),id);
