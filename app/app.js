@@ -1290,8 +1290,11 @@ function canInstallFullPwa(){return ['VIP_LIFETIME','PREMIUM'].includes(auth?.en
 function renderInstallAction(){
   const button=$('installButtonFloating');
   const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
-  button.classList.toggle('hidden',!auth?.user||standalone);
-  button.textContent=canInstallFullPwa()?'Instalar Escudo Fit FULL V43':'Baixar Escudo Fit na Google Play';
+  const hidden=!auth?.user||standalone;
+  button.classList.toggle('hidden',hidden);
+  $('installDescription').classList.toggle('hidden',hidden);
+  setText('installDescription',canInstallFullPwa()?'Tenha todos os seus escudos na tela inicial do celular.':'Baixe o aplicativo Android pela Google Play.');
+  button.textContent=canInstallFullPwa()?'Instalar Escudo Fit':'Abrir Google Play';
 }
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();installPrompt=e;renderInstallAction();
@@ -1305,7 +1308,7 @@ $('installButtonFloating').addEventListener('click',async()=>{
   renderInstallAction();
 });
 window.addEventListener('appinstalled',()=>{
-  installPrompt=null;$('installButtonFloating').classList.add('hidden');toast('Escudo Fit instalado');
+  installPrompt=null;$('installButtonFloating').classList.add('hidden');$('installDescription').classList.add('hidden');toast('Escudo Fit instalado');
 });
 
 // Android can finish uploading after the Web's initial read. Keep a visible
