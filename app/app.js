@@ -1291,7 +1291,7 @@ function renderInstallAction(){
   const button=$('installButtonFloating');
   const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
   button.classList.toggle('hidden',!auth?.user||standalone);
-  button.textContent=canInstallFullPwa()?'＋ Instalar Escudo Fit completo':'Baixar Escudo Fit na Google Play';
+  button.textContent=canInstallFullPwa()?'Instalar Escudo Fit FULL V43':'Baixar Escudo Fit na Google Play';
 }
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();installPrompt=e;renderInstallAction();
