@@ -228,7 +228,7 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
 });
 
 
-test('stale cached profile is not trusted when backend validation fails', async ({ page }) => {
+test('revoked cached session requires a new login', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
       user: { id:'stale-user', email:'old-profile@example.com', name:'Perfil Antigo' },
@@ -259,7 +259,7 @@ test('stale cached profile is not trusted when backend validation fails', async 
   });
 
   await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/me', async route => {
-    await route.fulfill({ status: 500, contentType:'application/json', body:'{"code":"INTERNAL_ERROR"}' });
+    await route.fulfill({ status: 403, contentType:'application/json', body:'{"code":"SESSION_REVOKED"}' });
   });
 
   await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
@@ -894,3 +894,4 @@ test('measurements view renders a single recent history block', async ({ page })
   await expect(page.locator('#measurementHistoryList')).toHaveCount(1);
   await expect(page.locator('#measurementHistory')).toHaveCount(0);
 });
+
