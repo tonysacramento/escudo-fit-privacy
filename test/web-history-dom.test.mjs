@@ -188,7 +188,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
 });
 
 
-async function liveSession({mode='PREMIUM',failure='',savedStorage}={}){
+async function liveSession({mode='PREMIUM',failure='',savedStorage,validationGate,onBoot}={}){
   const dom=new JSDOM(html,{url:'https://escudofit.example/app/',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;
   w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
@@ -205,6 +205,7 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage}={}){
     if(path.endsWith('/auth/refresh')){refreshed++;return failure==='revoked'?response(401):response(200,{access_token:'new-access',refresh_token:'new-refresh'})}
     if(path.endsWith('/entitlement/me'))return response(200,{mode});
     if(path.endsWith('/me')){
+      if(validationGate)await validationGate;
       if(failure==='outage')return response(503);
       if((failure==='expired'&&!refreshed)||failure==='revoked')return response(401);
       return response(200,{user:session.user});
@@ -213,7 +214,7 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage}={}){
     if(path.endsWith('/history/backup'))return response(200,{revision:0,entries:[]});
     return response(200);
   };
-  w.eval(contract);w.eval(bridge);w.eval(js);await pause();
+  w.eval(contract);w.eval(bridge);w.eval(js);onBoot?.(w);await pause();
   return {dom,w,timers,session,reads:()=>reads,refreshed:()=>refreshed,setRemote:value=>remote=value,block:value=>block=value,
     tick:async()=>{for(const t of timers.values())if(t.ms===30000)t.fn();await pause()}};
 }
@@ -259,4 +260,31 @@ for(const failure of ['offline','outage','expired','revoked'])test('PWA reopen s
     assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),!retained);
     if(failure==='expired'){assert.equal(h.refreshed(),1);assert.equal(JSON.parse(h.w.localStorage.getItem('escudofit_web_auth_v1')).access_token,'new-access')}
   }finally{h.w.close()}
+});
+
+
+test('opening a saved session never flashes marketing while validation is pending',async()=>{
+  let release;const validationGate=new Promise(resolve=>release=resolve);
+  const h=await liveSession({validationGate,onBoot:w=>{
+    assert.equal(w.document.getElementById('marketingExperience').classList.contains('hidden'),true);
+    assert.equal(w.document.getElementById('sessionLoading').classList.contains('hidden'),false);
+    release();
+  }});
+  try{
+    assert.equal(h.w.document.getElementById('sessionLoading').classList.contains('hidden'),true);
+    assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),false);
+  }finally{h.w.close()}
+});
+
+test('installation guidance persists and installed PWA explains its state',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const button=w.document.getElementById('installButtonFloating');
+    button.click();await h.tick();
+    assert.match(w.document.getElementById('installDescription').textContent,/Instalar e criar atalho/);
+    w.matchMedia=()=>({matches:true});w.eval('renderInstallAction()');
+    assert.equal(button.classList.contains('hidden'),true);
+    assert.equal(w.document.getElementById('installDescription').classList.contains('hidden'),false);
+    assert.match(w.document.getElementById('installDescription').textContent,/já está instalado/);
+  }finally{w.close()}
 });

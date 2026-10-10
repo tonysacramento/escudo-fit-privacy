@@ -11,6 +11,8 @@ let auth=loadAuth();
 let accountUiReady=false;
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
+let pwaInstalledThisSession=false;
+let installHelpRequested=false;
 const historyDraftFields=new Set();
 document.addEventListener('input',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
 document.addEventListener('change',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
@@ -197,6 +199,7 @@ async function registerQuickTrial(event){
 
 
 function showMarketing(){
+  $('sessionLoading').classList.add('hidden');
   accountUiReady=false;
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
@@ -207,6 +210,7 @@ function showMarketing(){
 }
 
 function showApp(){
+  $('sessionLoading').classList.add('hidden');
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
@@ -1290,10 +1294,15 @@ function canInstallFullPwa(){return ['VIP_LIFETIME','PREMIUM'].includes(auth?.en
 function renderInstallAction(){
   const button=$('installButtonFloating');
   const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
-  const hidden=!auth?.user||standalone;
+  const installed=standalone||pwaInstalledThisSession;
+  const hidden=!auth?.user||(installed&&canInstallFullPwa());
   button.classList.toggle('hidden',hidden);
-  $('installDescription').classList.toggle('hidden',hidden);
-  setText('installDescription',canInstallFullPwa()?'Tenha todos os seus escudos na tela inicial do celular.':'Baixe o aplicativo Android pela Google Play.');
+  $('installDescription').classList.toggle('hidden',!auth?.user);
+  setText('installDescription',canInstallFullPwa()
+    ? installed?'Seu Escudo Fit já está instalado. Todos os seus escudos estão disponíveis aqui.'
+      : installHelpRequested?'No menu ⋮ do Chrome, toque em Instalar e criar atalho. Se aparecer que o app já está instalado, escolha abrir o app. Em outros navegadores, procure Instalar aplicativo ou Adicionar à tela inicial.'
+      : 'Tenha todos os seus escudos na tela inicial do celular.'
+    : 'Baixe o aplicativo Android pela Google Play.');
   button.textContent=canInstallFullPwa()?'Instalar Escudo Fit':'Abrir Google Play';
 }
 window.addEventListener('beforeinstallprompt',e=>{
@@ -1302,13 +1311,13 @@ window.addEventListener('beforeinstallprompt',e=>{
 $('installButtonFloating').addEventListener('click',async()=>{
   if(!auth?.user)return;
   if(!canInstallFullPwa()){window.location.assign(PLAY_STORE_URL);return}
-  if(!installPrompt){toast('No menu do navegador, escolha Instalar aplicativo ou Adicionar à tela inicial.');return}
+  if(!installPrompt){installHelpRequested=true;renderInstallAction();return}
   const prompt=installPrompt;installPrompt=null;
   await prompt.prompt();await prompt.userChoice;
   renderInstallAction();
 });
 window.addEventListener('appinstalled',()=>{
-  installPrompt=null;$('installButtonFloating').classList.add('hidden');$('installDescription').classList.add('hidden');toast('Escudo Fit instalado');
+  installPrompt=null;pwaInstalledThisSession=true;renderInstallAction();toast('Escudo Fit instalado');
 });
 
 // Android can finish uploading after the Web's initial read. Keep a visible
