@@ -8,6 +8,7 @@ const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
 const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'',stepsHistory:[],stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
+let accountUiReady=false;
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
 const historyDraftFields=new Set();
@@ -196,6 +197,7 @@ async function registerQuickTrial(event){
 
 
 function showMarketing(){
+  accountUiReady=false;
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
   document.body.classList.remove('is-app');
@@ -209,6 +211,7 @@ function showApp(){
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
   state=loadState();
+  accountUiReady=true;
   reconcileWebLocalDay();
   renderApp();
   activateView('home');
@@ -1308,7 +1311,7 @@ window.addEventListener('appinstalled',()=>{
 // Android can finish uploading after the Web's initial read. Keep a visible
 // signed-in page current without requiring navigation or a manual button.
 function refreshVisibleAccountHistory(){
-  if(!auth?.user||document.visibilityState!=='visible'||navigator.onLine===false)return;
+  if(!accountUiReady||!auth?.user||document.visibilityState!=='visible'||navigator.onLine===false)return;
   void hydrateAccountHistory({silent:true});
 }
 window.addEventListener('focus',refreshVisibleAccountHistory);
