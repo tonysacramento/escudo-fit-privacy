@@ -89,7 +89,7 @@ test('Web markup, service worker and client share same revision and full history
   const html=fs.readFileSync('app/index.html','utf8');
   const js=fs.readFileSync('app/app.js','utf8');
   const sw=fs.readFileSync('app/sw.js','utf8');
-  const version='web-v43-android-parity-8';
+  const version='web-v43-live-poll-9';
   for(const file of [html,sw])assert.ok(file.includes(version));
   assert.match(html,/data-view="nutrition"/);
   assert.match(html,/data-view="weight"/);
@@ -109,3 +109,4 @@ test('Web markup, service worker and client share same revision and full history
   }
   assert.ok(!js.includes("proteinInput').addEventListener('change'"),'protein must be event sourced');
 });
+

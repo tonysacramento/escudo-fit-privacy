@@ -186,3 +186,77 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     dom.window.close();
   }
 });
+
+
+async function liveSession({mode='PREMIUM',failure='',savedStorage}={}){
+  const dom=new JSDOM(html,{url:'https://escudofit.example/app/',runScripts:'outside-only',pretendToBeVisual:true});
+  const w=dom.window;
+  w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
+  const session={user:{id:'live-user',email:'live@example.invalid'},access_token:'access',refresh_token:'refresh',entitlement:{mode}};
+  w.localStorage.setItem('escudofit_web_auth_v1',savedStorage||JSON.stringify(session));
+  const timers=new Map();let next=0;
+  w.setInterval=(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id};
+  w.clearInterval=id=>timers.delete(id);
+  let remote={};let reads=0;let refreshed=0;let block=null;
+  const response=(status,data={})=>({status,ok:status>=200&&status<300,json:async()=>data});
+  w.fetch=async(url)=>{
+    const path=String(url);
+    if(failure==='offline')throw Error('offline');
+    if(path.endsWith('/auth/refresh')){refreshed++;return failure==='revoked'?response(401):response(200,{access_token:'new-access',refresh_token:'new-refresh'})}
+    if(path.endsWith('/entitlement/me'))return response(200,{mode});
+    if(path.endsWith('/me')){
+      if(failure==='outage')return response(503);
+      if((failure==='expired'&&!refreshed)||failure==='revoked')return response(401);
+      return response(200,{user:session.user});
+    }
+    if(path.endsWith('/history')){reads++;if(block)await block;return response(200,remote)}
+    if(path.endsWith('/history/backup'))return response(200,{revision:0,entries:[]});
+    return response(200);
+  };
+  w.eval(contract);w.eval(bridge);w.eval(js);await pause();
+  return {dom,w,timers,session,reads:()=>reads,refreshed:()=>refreshed,setRemote:value=>remote=value,block:value=>block=value,
+    tick:async()=>{for(const t of timers.values())if(t.ms===30000)t.fn();await pause()}};
+}
+
+test('visible Web imports delayed Android movement, nutrition and water without navigation; preserves drafts and avoids overlap',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const now=Date.now(),date=w.eval('localDayKey()');
+    h.setRemote({movement:[{date,updatedAtMs:now,records:[{id:'delayed-move',activityType:'FUNCTIONAL',durationMinutes:7,timestampMs:now}]}],nutrition:[{date,updatedAtMs:now,meals:[{id:'delayed-meal',mealType:'BREAKFAST',proteinG:21,timestampMs:now}]}],water:[{date,consumedMl:700,updatedAtMs:now}]});
+    w.document.getElementById('profileName').value='Texto ainda não salvo';
+    w.document.getElementById('profileName').dispatchEvent(new w.Event('input',{bubbles:true}));
+    let release;h.block(new Promise(resolve=>release=resolve));const before=h.reads();
+    for(const t of h.timers.values())t.fn();w.dispatchEvent(new w.Event('focus'));w.dispatchEvent(new w.Event('online'));
+    await pause();assert.equal(h.reads(),before+1);release();h.block(null);await pause();
+    assert.match(w.document.getElementById('movementHistoryList').textContent,/Funcional/);
+    assert.match(w.document.getElementById('nutritionHistoryList').textContent,/21/);
+    assert.equal(w.document.getElementById('waterMl').textContent,'700 ml');
+    assert.equal(w.document.getElementById('profileName').value,'Texto ainda não salvo');
+    const count=h.reads();Object.defineProperty(w.document,'visibilityState',{configurable:true,value:'hidden'});await h.tick();assert.equal(h.reads(),count);
+    Object.defineProperty(w.document,'visibilityState',{configurable:true,value:'visible'});
+    Object.defineProperty(w.navigator,'onLine',{configurable:true,value:false});await h.tick();assert.equal(h.reads(),count);
+    for(let i=0;i<3;i++){w.dispatchEvent(new w.Event('pagehide'));assert.equal(h.timers.size,0);w.dispatchEvent(new w.Event('pageshow'));assert.equal(h.timers.size,1)}
+  }finally{h.dom.window.close()}
+});
+
+for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('installation follows '+mode+' account and requires signed-in session',async()=>{
+  const h=await liveSession({mode});const {w}=h;
+  try{
+    let prompted=0;const event=new w.Event('beforeinstallprompt',{cancelable:true});
+    event.prompt=async()=>{prompted++};event.userChoice=Promise.resolve({outcome:'accepted'});w.dispatchEvent(event);
+    const button=w.document.getElementById('installButtonFloating');assert.equal(button.classList.contains('hidden'),false);assert.equal(event.defaultPrevented,true);
+    if(mode==='FREE'){assert.match(button.textContent,/Google Play/);assert.equal(w.eval('canInstallFullPwa()'),false)}
+    else{assert.match(button.textContent,/completo/);button.click();await pause();assert.equal(prompted,1);assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':'VIP VITALÍCIO'))}
+    w.document.getElementById('logoutButton').click();await pause();assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);assert.equal(button.classList.contains('hidden'),true);
+  }finally{w.close()}
+});
+
+for(const failure of ['offline','outage','expired','revoked'])test('PWA reopen session: '+failure,async()=>{
+  const h=await liveSession({failure});
+  try{
+    const retained=failure!=='revoked';
+    assert.equal(!!h.w.localStorage.getItem('escudofit_web_auth_v1'),retained);
+    assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),!retained);
+    if(failure==='expired'){assert.equal(h.refreshed(),1);assert.equal(JSON.parse(h.w.localStorage.getItem('escudofit_web_auth_v1')).access_token,'new-access')}
+  }finally{h.w.close()}
+});

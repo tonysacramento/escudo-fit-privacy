@@ -10,6 +10,9 @@ const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'
 let auth=loadAuth();
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
+const historyDraftFields=new Set();
+document.addEventListener('input',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
+document.addEventListener('change',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
 let googleReady=false;
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
 const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
@@ -100,6 +103,7 @@ function applyExperience(){
   // Keep the real entitlement visible without using it to choose the Web edition.
   setText('planBadge',planLabel(mode));
   setText('profilePlan','WEB FULL • '+planLabel(mode));
+  renderInstallAction();
   return experience;
 }
 
@@ -196,6 +200,7 @@ function showMarketing(){
   $('appExperience').classList.add('hidden');
   document.body.classList.remove('is-app');
   delete document.body.dataset.experience;
+  renderInstallAction();
   setTimeout(initGoogle,50);
 }
 
@@ -232,6 +237,7 @@ function activateView(target){
 }
 
 function renderApp(){
+  historyDraftFields.clear();
   if(!auth?.user)return;
   reconcileWebLocalDay();
   const experience=applyExperience();
@@ -610,12 +616,36 @@ async function syncHistoryPatch(payload){
   return pending;
 }
 
-async function hydrateAccountHistory(){
+// One account-history request at a time, including focus, timer and manual refresh.
+let accountHistoryFlight=null;
+function hydrateAccountHistory(options={}){
+  if(accountHistoryFlight?.accountId===auth?.user?.id)return accountHistoryFlight.task;
+  const task=hydrateAccountHistoryOnce(options);
+  accountHistoryFlight={accountId:auth?.user?.id,task};
+  void task.finally(()=>{if(accountHistoryFlight?.task===task)accountHistoryFlight=null;});
+  return task;
+}
+
+// Preserve unfinished form edits when remote records refresh the dashboard.
+function renderHistoryUpdate(silent){
+  const drafts=silent?Array.from(historyDraftFields)
+    .map(element=>({element,value:element.value,checked:element.checked})):[];
+  renderApp();
+  for(const {element,value,checked} of drafts){
+    if(!element.isConnected)continue;
+    historyDraftFields.add(element);
+    element.value=value;
+    if(typeof checked==='boolean')element.checked=checked;
+  }
+}
+
+async function hydrateAccountHistoryOnce({silent=false}={}){
   if(!auth?.user)return false;
   const accountId=auth.user.id;
-  setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
+  if(!silent)setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
   try{
     await historyPatchChain;
+    if(auth?.user?.id!==accountId)return false;
     const flushed=await flushPendingHistory();
     // Legacy Android builds may have uploaded only /history/backup.
     // Do not interpret an empty /history response as proof of empty account history.
@@ -767,14 +797,14 @@ async function hydrateAccountHistory(){
     }
 
     saveState();
-    renderApp();
+    renderHistoryUpdate(silent);
     const total=Object.values(counts).reduce((sum,value)=>sum+value,0);
     setText('historySyncStatus',
       (total?'Histórico carregado':'Nenhum histórico remoto encontrado')+
       ': '+counts.weights+' pesos, '+counts.measurements+' medidas, '+
       counts.applications+' aplicações, '+counts.movement+' movimentos, '+
       counts.nutrition+' refeições, '+counts.treatment+' tratamento(s), '+
-      counts.water+' dias de água. '+sources+'. Pendências locais: '+
+      counts.water+' dias de água. '+sources+'. Pendências deste navegador: '+
       loadHistoryOutbox().length+'.'+nutritionSourceDetails+(flushed?'':'. Algumas alterações da Web seguem pendentes.')+
       (total?'':'. Se os registros estiverem apenas no celular, será necessário enviá-los a esta mesma conta.'));
 
@@ -867,35 +897,56 @@ async function syncAccountHistory(payload){
   }catch{return false}
 }
 
-async function refreshSession(){
-  if(!auth?.refresh_token)return false;
-  try{
-    const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:auth.refresh_token})});
-    if(!res.ok)return false;
-    const data=await res.json();
-    auth={...auth,access_token:data.access_token,refresh_token:data.refresh_token};
-    saveAuth(auth);
-    return true;
-  }catch{return false}
+let refreshFlight=null;
+let sessionRejected=false;
+function refreshSession(){
+  const session=auth;
+  if(!session?.refresh_token)return Promise.resolve(false);
+  if(refreshFlight?.session===session)return refreshFlight.promise;
+  const promise=(async()=>{
+    try{
+      const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+      if(auth!==session)return false;
+      if(res.status===401||res.status===403){sessionRejected=true;return false}
+      if(!res.ok)return false;
+      const data=await res.json();
+      if(auth!==session||!data.access_token)return false;
+      saveAuth({...session,access_token:data.access_token,refresh_token:data.refresh_token||session.refresh_token});
+      sessionRejected=false;
+      return true;
+    }catch{return false}
+  })();
+  refreshFlight={session,promise};
+  void promise.finally(()=>{if(refreshFlight?.promise===promise)refreshFlight=null});
+  return promise;
 }
 
 async function validateStoredSession(){
   if(!auth?.user||!auth?.refresh_token)return false;
+  const accountId=auth.user.id;
+  sessionRejected=false;
   try{
     let res=await apiFetch('/me');
-    if(res.status===401&&await refreshSession())res=await apiFetch('/me');
-    if(!res.ok)return false;
+    if(res.status===401){
+      if(await refreshSession())res=await apiFetch('/me');
+      else return !sessionRejected&&auth?.user?.id===accountId;
+    }
+    if(auth?.user?.id!==accountId)return false;
+    if(res.status===401||res.status===403)return false;
+    if(!res.ok)return true; // Keep the saved session during a service outage.
     const me=await res.json();
-    if(!me?.user?.id||!me?.user?.email)return false;
-    const entRes=await apiFetch('/entitlement/me');
-    if(!entRes.ok)return false;
+    if(me?.user?.id!==accountId||!me?.user?.email)return false;
+    const entRes=await authenticatedFetch('/entitlement/me');
+    if(auth?.user?.id!==accountId)return false;
+    if(sessionRejected)return false;
+    if(!entRes.ok)return true;
     const entitlement=await entRes.json();
-    if(!entitlement?.mode)return false;
-    auth={...auth,user:me.user,entitlement};
-    saveAuth(auth);
+    if(auth?.user?.id!==accountId)return false;
+    if(!entitlement?.mode)return true;
+    saveAuth({...auth,user:me.user,entitlement});
     return true;
   }catch{
-    return false;
+    return !sessionRejected&&auth?.user?.id===accountId;
   }
 }
 
@@ -960,12 +1011,13 @@ function initGoogle(){
 }
 
 async function resetGoogleSession(message){
-  try{if(auth?.access_token)await apiFetch('/auth/logout',{method:'POST'})}catch{}
+  const logoutRequest=auth?.access_token?apiFetch('/auth/logout',{method:'POST'}).catch(()=>{}):Promise.resolve();
   saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
   setLoginStatus(message);
+  await logoutRequest;
   setTimeout(()=>document.getElementById('loginSection')?.scrollIntoView({behavior:'smooth'}),100);
 }
 
@@ -1230,16 +1282,45 @@ $('logoutButton').addEventListener('click',logout);
 $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;$('installButtonFloating').classList.remove('hidden')});
-$('installButtonFloating').addEventListener('click',async()=>{if(!installPrompt)return;installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$('installButtonFloating').classList.add('hidden')});
-window.addEventListener('appinstalled',()=>toast('Escudo Fit instalado'));
+const PLAY_STORE_URL='https://play.google.com/store/apps/details?id=com.escudofit.app';
+function canInstallFullPwa(){return ['VIP_LIFETIME','PREMIUM'].includes(auth?.entitlement?.mode)}
+function renderInstallAction(){
+  const button=$('installButtonFloating');
+  const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
+  button.classList.toggle('hidden',!auth?.user||standalone);
+  button.textContent=canInstallFullPwa()?'＋ Instalar Escudo Fit completo':'Baixar Escudo Fit na Google Play';
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();installPrompt=e;renderInstallAction();
+});
+$('installButtonFloating').addEventListener('click',async()=>{
+  if(!auth?.user)return;
+  if(!canInstallFullPwa()){window.location.assign(PLAY_STORE_URL);return}
+  if(!installPrompt){toast('No menu do navegador, escolha Instalar aplicativo ou Adicionar à tela inicial.');return}
+  const prompt=installPrompt;installPrompt=null;
+  await prompt.prompt();await prompt.userChoice;
+  renderInstallAction();
+});
+window.addEventListener('appinstalled',()=>{
+  installPrompt=null;$('installButtonFloating').classList.add('hidden');toast('Escudo Fit instalado');
+});
 
-window.addEventListener('focus',()=>{
-  if(auth?.user)void hydrateAccountHistory();
-});
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&auth?.user)void hydrateAccountHistory();
-});
+// Android can finish uploading after the Web's initial read. Keep a visible
+// signed-in page current without requiring navigation or a manual button.
+function refreshVisibleAccountHistory(){
+  if(!auth?.user||document.visibilityState!=='visible'||navigator.onLine===false)return;
+  void hydrateAccountHistory({silent:true});
+}
+window.addEventListener('focus',refreshVisibleAccountHistory);
+window.addEventListener('online',refreshVisibleAccountHistory);
+document.addEventListener('visibilitychange',refreshVisibleAccountHistory);
+let accountHistoryPoll=null;
+function startAccountHistoryPoll(){
+  if(accountHistoryPoll===null)accountHistoryPoll=setInterval(refreshVisibleAccountHistory,30_000);
+}
+startAccountHistoryPoll();
+window.addEventListener('pagehide',()=>{clearInterval(accountHistoryPoll);accountHistoryPoll=null});
+window.addEventListener('pageshow',()=>{startAccountHistoryPoll();refreshVisibleAccountHistory()});
 
 if('serviceWorker'in navigator){
   let reloadingForWorker=false;
@@ -1259,3 +1340,4 @@ if('serviceWorker'in navigator){
   if(auth&&await validateStoredSession())showApp();
   else{if(auth)saveAuth(null);auth=null;showMarketing()}
 })();
+
