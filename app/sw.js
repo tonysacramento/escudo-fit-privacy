@@ -1,12 +1,12 @@
-const CACHE='escudo-fit-web-v18-live-poll';
+const CACHE='escudo-fit-web-v19-live-poll';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-live-poll-9',
-  './history-sync-contract.js?v=web-v43-live-poll-9',
-  './history-backup-bridge.js?v=web-v43-live-poll-9',
-  './app.js?v=web-v43-live-poll-9',
-  './body-map.js?v=web-v43-live-poll-9',
+  './styles.css?v=web-v43-live-poll-10',
+  './history-sync-contract.js?v=web-v43-live-poll-10',
+  './history-backup-bridge.js?v=web-v43-live-poll-10',
+  './app.js?v=web-v43-live-poll-10',
+  './body-map.js?v=web-v43-live-poll-10',
   './android-icon.svg',
   './manifest.webmanifest',
   './icon.svg'
