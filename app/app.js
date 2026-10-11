@@ -198,7 +198,14 @@ async function registerQuickTrial(event){
 }
 
 
+function isStandalonePwa(){
+  return window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
 function showMarketing(){
+  const installed=isStandalonePwa();
+  document.documentElement.dataset.entry=installed?'installed':'guest';
+  document.body.classList.toggle('pwa-login-mode',installed);
   $('sessionLoading').classList.add('hidden');
   accountUiReady=false;
   $('marketingExperience').classList.remove('hidden');
@@ -210,6 +217,8 @@ function showMarketing(){
 }
 
 function showApp(){
+  document.documentElement.dataset.entry='app';
+  document.body.classList.remove('pwa-login-mode');
   $('sessionLoading').classList.add('hidden');
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.remove('hidden');
