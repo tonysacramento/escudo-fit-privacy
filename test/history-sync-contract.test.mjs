@@ -89,8 +89,14 @@ test('Web markup, service worker and client share same revision and full history
   const html=fs.readFileSync('app/index.html','utf8');
   const js=fs.readFileSync('app/app.js','utf8');
   const sw=fs.readFileSync('app/sw.js','utf8');
-  const version='web-v43-brand-install-12';
-  for(const file of [html,sw])assert.ok(file.includes(version));
+  const version=/<meta name="escudo-fit-build" content="([^"]+)"/.exec(html)?.[1];
+  assert.ok(version,'Web HTML must declare a build version');
+  assert.ok(version.startsWith('web-v43-'),'keep the approved v43 Web identity');
+  assert.ok(sw.includes(version),'service worker must cache the same HTML build');
+  for(const asset of ['styles.css','app.js','history-sync-contract.js','history-backup-bridge.js','body-map.js']){
+    assert.ok(html.includes(asset+'?v='+version),'HTML version for '+asset);
+    assert.ok(sw.includes(asset+'?v='+version),'service worker version for '+asset);
+  }
   assert.match(html,/data-view="nutrition"/);
   assert.match(html,/data-view="weight"/);
   assert.match(html,/id="approvedBodyMap"/);

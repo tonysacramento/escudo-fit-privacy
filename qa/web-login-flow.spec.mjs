@@ -20,6 +20,39 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('public visitor sees original landing on first paint even if app JavaScript is unavailable', async ({ page }) => {
+  await page.route('https://accounts.google.com/gsi/client', route => route.abort());
+  await page.route('**/app/app.js*', route => route.abort());
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil: 'load' });
+  await expect(page.locator('html')).toHaveAttribute('data-entry', 'guest');
+  await expect(page.locator('#marketingExperience')).toBeVisible();
+  await expect(page.locator('.landing-hero')).toBeVisible();
+  await expect(page.locator('#trialSection')).toBeVisible();
+  await expect(page.locator('#sessionLoading')).toBeHidden();
+  await expect(page.locator('#appExperience')).toBeHidden();
+});
+
+test('installed PWA without signed-in account shows branded login instead of public landing or private dashboard', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'standalone', { configurable: true, value: true });
+  });
+  await page.route('https://accounts.google.com/gsi/client', route => route.fulfill({
+    status: 200, contentType: 'application/javascript',
+    body: `window.google = {accounts:{id:{
+      initialize(){}, renderButton(el){el.textContent='Continuar com Google';},
+      disableAutoSelect(){}
+    }}};`,
+  }));
+  await page.goto('http://127.0.0.1:4173/app/', { waitUntil: 'networkidle' });
+  await expect(page.locator('html')).toHaveAttribute('data-entry', 'installed');
+  await expect(page.locator('#marketingExperience')).toBeVisible();
+  await expect(page.locator('#loginSection')).toBeVisible();
+  await expect(page.locator('.landing-hero')).toBeHidden();
+  await expect(page.locator('#trialSection')).toBeHidden();
+  await expect(page.locator('#sessionLoading')).toBeHidden();
+  await expect(page.locator('#appExperience')).toBeHidden();
+});
+
 test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await page.route('https://accounts.google.com/gsi/client', async route => {
     const mock = `
