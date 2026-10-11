@@ -4,14 +4,27 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#102E35">
+  <script>
+    // Decide the initial surface before the first paint: visitors see the
+    // original landing; returning users and installed PWAs see the splash.
+    (function () {
+      let hasSession = false;
+      try {
+        const saved = JSON.parse(localStorage.getItem('escudofit_web_auth_v1') || 'null');
+        hasSession = Boolean(saved?.user?.id && saved?.refresh_token);
+      } catch {}
+      const installed = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+      document.documentElement.dataset.entry = hasSession ? 'returning' : installed ? 'installed' : 'guest';
+    })();
+  </script>
   <meta name="apple-mobile-web-app-title" content="Escudo Fit Web">
   <link rel="apple-touch-icon" href="./icon-approved-v43.png">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-brand-install-12">
+  <meta name="escudo-fit-build" content="web-v43-entry-routing-13">
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-brand-install-12">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-entry-routing-13">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -581,9 +594,9 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-brand-install-12" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-brand-install-12" defer></script>
-  <script src="./body-map.js?v=web-v43-brand-install-12" defer></script>
-  <script src="./app.js?v=web-v43-brand-install-12" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-entry-routing-13" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-entry-routing-13" defer></script>
+  <script src="./body-map.js?v=web-v43-entry-routing-13" defer></script>
+  <script src="./app.js?v=web-v43-entry-routing-13" defer></script>
 </body>
 </html>
