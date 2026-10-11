@@ -910,3 +910,10 @@ body.is-app .screen-card>.profile-actions{margin-top:12px}
 body.is-app a.quick-access-button{text-decoration:none}
 body.is-app .nav-track:has(#navMedication.hidden){grid-template-columns:repeat(3,minmax(0,1fr))}
 body.is-app .screen-card .app-field+button{margin-top:10px}
+
+
+/* The Web identity reuses the exact approved Android artwork. */
+.session-loading{min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px;background:#102E35;color:#fff}
+.session-loading img{width:min(55vw,220px);height:auto;object-fit:contain}
+.session-loading strong{font-size:26px}.session-loading strong span{color:#34CFDA}
+.session-loading p{color:#ADC4C8;font-size:15px}

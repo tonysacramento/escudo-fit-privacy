@@ -109,6 +109,12 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#welcomeName')).toHaveText('Elaine Queiroz Silva');
   await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
   await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
+  await expect(page.locator('#navMedication')).toBeVisible();
+  await page.locator('[data-target="profile"]').click();
+  await expect(page.locator('#installButtonFloating')).toHaveText('Instalar Escudo Fit Web');
+  await expect(page.locator('#downloadAndroidFull')).toBeVisible();
+  await expect(page.locator('#downloadAndroidFull')).toHaveAttribute('href',/v43-full-approved\/escudo-fit-v43-full\.apk$/);
+  await page.locator('[data-target="home"]').click();
   await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
   await expect(page.locator('.quick-access [data-view-link="applications"]')).toBeVisible();
 

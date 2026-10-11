@@ -247,7 +247,7 @@ for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('installation follows '
     event.prompt=async()=>{prompted++};event.userChoice=Promise.resolve({outcome:'accepted'});w.dispatchEvent(event);
     const button=w.document.getElementById('installButtonFloating');assert.equal(button.classList.contains('hidden'),false);assert.equal(event.defaultPrevented,true);
     if(mode==='FREE'){assert.match(button.textContent,/Google Play/);assert.equal(w.eval('canInstallFullPwa()'),false)}
-    else{assert.match(button.textContent,/^Instalar Escudo Fit$/);button.click();await pause();assert.equal(prompted,1);assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':'VIP VITALÍCIO'))}
+    else{assert.match(button.textContent,/^Instalar Escudo Fit Web$/);button.click();await pause();assert.equal(prompted,1);assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':'VIP VITALÍCIO'))}
     w.document.getElementById('logoutButton').click();await pause();assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);assert.equal(button.classList.contains('hidden'),true);
   }finally{w.close()}
 });
@@ -287,4 +287,33 @@ test('installation guidance persists and installed PWA explains its state',async
     assert.equal(w.document.getElementById('installDescription').classList.contains('hidden'),false);
     assert.match(w.document.getElementById('installDescription').textContent,/já está instalado/);
   }finally{w.close()}
+});
+
+for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('plan '+mode+' selects Application navigation and Android distribution without treatment',async()=>{
+  const h=await liveSession({mode});const {w}=h;
+  try{
+    const full=mode!=='FREE';
+    assert.equal(w.document.getElementById('navMedication').classList.contains('hidden'),!full);
+    assert.equal(w.document.getElementById('medicationDashboardCard').classList.contains('hidden'),!full);
+    assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),!full);
+    if(full){
+      w.document.getElementById('navMedication').click();
+      assert.equal(w.document.querySelector('[data-view="applications"]').classList.contains('active'),true);
+      assert.equal(w.document.getElementById('downloadAndroidFull').href,'https://github.com/tonysacramento/escudo-fit-privacy/releases/download/v43-full-approved/escudo-fit-v43-full.apk');
+      w.matchMedia=()=>({matches:true});w.eval('renderInstallAction()');
+      assert.equal(w.document.getElementById('installButtonFloating').classList.contains('hidden'),true);
+      assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),false,'native download remains available inside installed PWA');
+    }
+    w.document.getElementById('logoutButton').click();await pause();
+    assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),true);
+  }finally{w.close()}
+});
+
+test('PWA name and startup use approved unmodified V43 artwork',()=>{
+  const manifest=JSON.parse(readFileSync('app/manifest.webmanifest','utf8'));
+  assert.equal(manifest.name,'Escudo Fit Web');assert.equal(manifest.short_name,'Escudo Fit Web');
+  assert.equal(manifest.id,'./');assert.equal(manifest.start_url,'./');
+  assert.equal(manifest.icons[0].src,'./icon-approved-v43.png');
+  assert.match(html,/splash-approved-v43\.png/);
+  assert.match(html,/Instalar Escudo Fit Web/);
 });

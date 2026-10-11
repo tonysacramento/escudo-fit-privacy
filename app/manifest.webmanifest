@@ -1,14 +1,20 @@
 {
-  "name": "Escudo Fit Full",
-  "short_name": "Escudo Fit",
-  "description": "Escudo Fit Full — sua rotina e evolução em um único escudo.",
+  "id": "./",
+  "name": "Escudo Fit Web",
+  "short_name": "Escudo Fit Web",
+  "description": "Escudo Fit Web — todos os seus escudos na sua Conta Google.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#061C20",
-  "theme_color": "#061C20",
+  "background_color": "#102E35",
+  "theme_color": "#102E35",
   "orientation": "portrait",
   "icons": [
-    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {
+      "src": "./icon-approved-v43.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
