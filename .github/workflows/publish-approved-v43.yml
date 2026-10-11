@@ -1,0 +1,27 @@
+name: Publish existing approved V43 APK
+on:
+  push:
+    branches: [distribution/v43-approved-apk-20261011]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download existing approved artifact (no build)
+        env:
+          SOURCE_URL: 'https://sdmntprbrazilsouth.oaiusercontent.com/files/00000000-b8ec-820e-8949-2f0a70968023/raw?se=2026-10-11T00%3A45%3A30Z&sp=r&sv=2026-02-06&sr=b&scid=1e826b7a-b9b0-4e3c-9207-5f3fece3deb5&skoid=a6356955-0ca0-4033-9150-c0c162458498&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-10-10T10%3A23%3A05Z&ske=2026-10-11T10%3A23%3A05Z&sks=b&skv=2026-02-06&sig=rYQARpBl78M/kWeyxpm%2B6U8ZSs//0MxiU59PYVcgGGE%3D'
+        run: |
+          curl --fail --silent --show-error --location --max-time 120 "$SOURCE_URL" -o artifact.zip
+          echo 'c2e7b1871c828676953440ea5edf39b64666d890228aaa623a6acb2a253f22ed  artifact.zip' | sha256sum --check
+          unzip artifact.zip
+          echo '7f5a3129875a6469afe23eb10e80d823b755d8902d4106c50368407bf642ec8c  escudo-fit-full-v43-history-safe.apk' | sha256sum --check
+          mv escudo-fit-full-v43-history-safe.apk escudo-fit-v43-full.apk
+          echo '7f5a3129875a6469afe23eb10e80d823b755d8902d4106c50368407bf642ec8c  escudo-fit-v43-full.apk' > escudo-fit-v43-full.sha256
+      - name: Publish exact approved bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create v43-full-approved escudo-fit-v43-full.apk escudo-fit-v43-full.sha256 --target 544d3efba532977796c49ce0ca9df7be808ad322 --title "Escudo Fit V43 FULL — Android" --notes "APK existente do build aprovado #37977693703, versão 1.0.43, código 43. Nenhum novo build. SHA-256: 7f5a3129875a6469afe23eb10e80d823b755d8902d4106c50368407bf642ec8c. Acesso aos recursos conforme a Conta Google. Preserve a instalação e os dados atuais."
