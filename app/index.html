@@ -3,22 +3,28 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#071d23">
+  <meta name="theme-color" content="#102E35">
+  <meta name="apple-mobile-web-app-title" content="Escudo Fit Web">
+  <link rel="apple-touch-icon" href="./icon-approved-v43.png">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-session-opening-11">
-  <title>Escudo Fit</title>
+  <meta name="escudo-fit-build" content="web-v43-brand-install-12">
+  <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-session-opening-11">
+  <link rel="icon" href="./icon-approved-v43.png" type="image/png">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-brand-install-12">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div id="sessionLoading" role="status" aria-live="polite" style="min-height:100dvh;display:grid;place-content:center;text-align:center;padding:24px"><strong>Escudo Fit</strong><p>Abrindo seu Escudo Fit…</p></div>
+  <div id="sessionLoading" class="session-loading" role="status" aria-live="polite">
+    <img src="./splash-approved-v43.png" alt="" width="220" height="220">
+    <strong>Escudo Fit <span>Web</span></strong>
+    <p>Abrindo seu Escudo Fit…</p>
+  </div>
   <noscript><style>#sessionLoading{display:none!important}#marketingExperience{display:block!important}</style></noscript>
   <section id="marketingExperience" class="marketing hidden">
     <header class="marketing-nav">
       <a class="brand-lockup" href="./" aria-label="Escudo Fit">
-        <img src="./icon.svg" alt="">
+        <img src="./icon-approved-v43.png" alt="">
         <span><strong>Escudo Fit</strong><small>WEB</small></span>
       </a>
       <div class="nav-actions">
@@ -52,7 +58,7 @@
           <div class="phone">
             <div class="phone-top"><span></span><span></span></div>
             <div class="app-preview-header">
-              <img src="./icon.svg" alt="">
+              <img src="./icon-approved-v43.png" alt="">
               <div><small>Bom dia</small><strong>Meu Escudo</strong></div>
               <span class="mini-plan">FULL</span>
             </div>
@@ -130,7 +136,7 @@
             <p>Use sua Conta Google para abrir seu perfil.</p>
           </div>
           <div class="login-box">
-            <img src="./icon.svg" alt="Escudo Fit">
+            <img src="./icon-approved-v43.png" alt="Escudo Fit">
             <h3>Entrar</h3>
             <div id="googleLoginSlot" class="google-slot"></div>
             <button id="retryGoogleButton" class="button button-outline hidden">Tentar carregar o login novamente</button>
@@ -140,7 +146,7 @@
       </section>
 
       <footer class="marketing-footer">
-        <div class="brand-lockup"><img src="./icon.svg" alt=""><span><strong>Escudo Fit</strong><small>Proteção que transforma seu dia</small></span></div>
+        <div class="brand-lockup"><img src="./icon-approved-v43.png" alt=""><span><strong>Escudo Fit</strong><small>Proteção que transforma seu dia</small></span></div>
         <div><a href="../privacy.html">Privacidade</a><a href="../terms.html">Termos</a><a href="../support.html">Suporte</a></div>
       </footer>
     </main>
@@ -156,7 +162,7 @@
         <div class="user-area">
           <span id="planBadge" class="plan-badge hidden">FULL</span>
           <button class="profile-icon-button" data-view-link="profile" aria-label="Abrir perfil">
-            <img id="topProfilePicture" src="./android-icon.svg" alt="Perfil Escudo Fit">
+            <img id="topProfilePicture" src="./icon-approved-v43.png" alt="Perfil Escudo Fit">
           </button>
           <button id="logoutButton" class="icon-button hidden" aria-label="Sair da conta">↗</button>
         </div>
@@ -476,7 +482,7 @@
           <article class="screen-card">
             <div class="section-title cyan"><b>CONTA E ACESSO</b></div>
             <div class="profile-summary">
-              <img id="profilePicture" src="./android-icon.svg" alt="Identidade Escudo Fit">
+              <img id="profilePicture" src="./icon-approved-v43.png" alt="Identidade Escudo Fit">
               <div><strong id="profileUserName">Usuário</strong><span id="profileEmail">—</span></div>
             </div>
             <p class="muted">A Conta Google vincula seu acesso e seus registros na Web e no Android.</p>
@@ -487,7 +493,9 @@
             <p class="muted">Plano conectado a esta Conta Google:</p>
             <strong id="profilePlan" class="plan-label">FULL</strong>
             <p id="installDescription" class="muted hidden"></p>
-            <button id="installButtonFloating" class="quick-access-button hidden">Instalar Escudo Fit</button>
+            <button id="installButtonFloating" class="quick-access-button hidden">Instalar Escudo Fit Web</button>
+            <p id="androidFullDescription" class="muted hidden">Prefere o aplicativo Android completo? Baixe a versão aprovada. Preserve seus dados: não desinstale o aplicativo atual.</p>
+            <a id="downloadAndroidFull" class="quick-access-button gold hidden" href="https://github.com/tonysacramento/escudo-fit-privacy/releases/download/v43-full-approved/escudo-fit-v43-full.apk" target="_blank" rel="noopener">Baixar Escudo Fit para Android</a>
           </article>
 
           <article class="screen-card">
@@ -566,16 +574,16 @@
           <button class="nav-item active" data-target="home"><span>🛡️</span><b>Escudo</b></button>
           <button class="nav-item" data-target="water"><span>💧</span><b>Água</b></button>
           <button class="nav-item" data-target="applications" id="navMedication" data-full-only><span>💉</span><b>Aplicação</b></button>
-          <button class="nav-item" data-target="profile"><img src="./android-icon.svg" alt=""><b>Perfil</b></button>
+          <button class="nav-item" data-target="profile"><img src="./icon-approved-v43.png" alt=""><b>Perfil</b></button>
         </div>
       </nav>
     </div>
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-session-opening-11" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-session-opening-11" defer></script>
-  <script src="./body-map.js?v=web-v43-session-opening-11" defer></script>
-  <script src="./app.js?v=web-v43-session-opening-11" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-brand-install-12" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-brand-install-12" defer></script>
+  <script src="./body-map.js?v=web-v43-brand-install-12" defer></script>
+  <script src="./app.js?v=web-v43-brand-install-12" defer></script>
 </body>
 </html>

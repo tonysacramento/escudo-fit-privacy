@@ -1,13 +1,15 @@
-const CACHE='escudo-fit-web-v20-session-opening';
+const CACHE='escudo-fit-web-v21-brand-install';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-session-opening-11',
-  './history-sync-contract.js?v=web-v43-session-opening-11',
-  './history-backup-bridge.js?v=web-v43-session-opening-11',
-  './app.js?v=web-v43-session-opening-11',
-  './body-map.js?v=web-v43-session-opening-11',
+  './styles.css?v=web-v43-brand-install-12',
+  './history-sync-contract.js?v=web-v43-brand-install-12',
+  './history-backup-bridge.js?v=web-v43-brand-install-12',
+  './app.js?v=web-v43-brand-install-12',
+  './body-map.js?v=web-v43-brand-install-12',
   './android-icon.svg',
+  './icon-approved-v43.png',
+  './splash-approved-v43.png',
   './manifest.webmanifest',
   './icon.svg'
 ];
