@@ -917,3 +917,30 @@ body.is-app .screen-card .app-field+button{margin-top:10px}
 .session-loading img{width:min(55vw,220px);height:auto;object-fit:contain}
 .session-loading strong{font-size:26px}.session-loading strong span{color:#34CFDA}
 .session-loading p{color:#ADC4C8;font-size:15px}
+
+/* First paint: anonymous browser visitors land on the original public page.
+   Installed PWAs and valid stored sessions retain the approved V43 opening. */
+html[data-entry="guest"] #sessionLoading{display:none!important}
+html[data-entry="guest"] #marketingExperience{display:block!important}
+
+/* A signed-out installed PWA remains an app login, not the public sales page.
+   Never expose the account dashboard without authenticating the session. */
+body.pwa-login-mode #marketingExperience .marketing-nav,
+body.pwa-login-mode #marketingExperience .marketing-footer,
+body.pwa-login-mode #marketingExperience > main > section:not(#loginSection){display:none!important}
+body.pwa-login-mode #loginSection{
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  padding:24px 16px;
+}
+body.pwa-login-mode #loginSection .login-panel{
+  width:min(100%,650px);
+  grid-template-columns:1fr;
+  gap:18px;
+  padding:28px 22px;
+}
+body.pwa-login-mode #loginSection .login-box{
+  justify-self:center;
+  width:min(100%,410px);
+}
