@@ -1,12 +1,12 @@
-const CACHE='escudo-fit-web-v21-brand-install';
+const CACHE='escudo-fit-web-v22-entry-routing';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-brand-install-12',
-  './history-sync-contract.js?v=web-v43-brand-install-12',
-  './history-backup-bridge.js?v=web-v43-brand-install-12',
-  './app.js?v=web-v43-brand-install-12',
-  './body-map.js?v=web-v43-brand-install-12',
+  './styles.css?v=web-v43-entry-routing-13',
+  './history-sync-contract.js?v=web-v43-entry-routing-13',
+  './history-backup-bridge.js?v=web-v43-entry-routing-13',
+  './app.js?v=web-v43-entry-routing-13',
+  './body-map.js?v=web-v43-entry-routing-13',
   './android-icon.svg',
   './icon-approved-v43.png',
   './splash-approved-v43.png',
