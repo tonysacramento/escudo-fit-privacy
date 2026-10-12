@@ -460,7 +460,7 @@ function renderApp(){
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
-  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).slice(-12).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   renderWeightChart('weightChartFull');
   renderWeightChart('weightChartProfile');
   const m=state.measurements||{};
