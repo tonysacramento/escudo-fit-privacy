@@ -252,6 +252,78 @@ function activateView(target){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
+// Weight evolution uses only account-bound history already loaded by the Web.
+// Keep one latest reading per local calendar day, as in the Android weight view.
+function weightChartSeries(records,limit=12){
+  const days=new Map();
+  for(const record of Array.isArray(records)?records:[]){
+    const kg=Number(record?.value);
+    const time=Date.parse(record?.at||'');
+    if(!Number.isFinite(kg)||kg<20||kg>400||!Number.isFinite(time))continue;
+    const day=localDayKey(new Date(time));
+    const current=days.get(day);
+    if(!current||time>current.time)days.set(day,{day,time,kg});
+  }
+  return [...days.values()].sort((a,b)=>a.time-b.time).slice(-limit);
+}
+
+function renderWeightChart(containerId){
+  const root=$(containerId);
+  if(!root)return;
+  const series=weightChartSeries(state.weights);
+  if(!series.length){
+    root.innerHTML='<p class="weight-chart-empty">Ainda não há registros de peso para criar o gráfico. Registre seu primeiro peso para começar.</p>';
+    return;
+  }
+  const fmt=value=>value.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const displayDay=day=>day.slice(8,10)+'/'+day.slice(5,7);
+  const earliest=series[0],latest=series[series.length-1];
+  const change=latest.kg-earliest.kg;
+  const delta=series.length>1?(change>0?'+':'')+fmt(change)+' kg':'—';
+  const chartWidth=360, left=43, right=344, top=18, bottom=149;
+  const low=Math.min(...series.map(p=>p.kg)), high=Math.max(...series.map(p=>p.kg));
+  const padding=Math.max(0.7,(high-low)*0.16);
+  const min=low-padding,max=high+padding;
+  const points=series.map((point,i)=>({
+    ...point,
+    x:series.length===1?(left+right)/2:left+(right-left)*i/(series.length-1),
+    y:bottom-(point.kg-min)/(max-min)*(bottom-top)
+  }));
+  const position=value=>Number(value.toFixed(2));
+  const line=points.map(point=>position(point.x)+','+position(point.y)).join(' ');
+  const area='M '+position(points[0].x)+' '+bottom+' L '+
+    points.map(point=>position(point.x)+' '+position(point.y)).join(' L ')+
+    ' L '+position(points.at(-1).x)+' '+bottom+' Z';
+  const ticks=[min,(min+max)/2,max].map(v=>{
+    const y=position(bottom-(v-min)/(max-min)*(bottom-top));
+    return '<line x1="'+left+'" x2="'+right+'" y1="'+y+'" y2="'+y+'" class="weight-grid-line"/>'+
+      '<text x="37" y="'+(y+4)+'" text-anchor="end" class="weight-axis-label">'+fmt(v)+'</text>';
+  }).join('');
+  const dots=points.map((point,i)=>
+    '<circle class="weight-chart-point'+(i===points.length-1?' latest':'')+'" cx="'+position(point.x)+
+      '" cy="'+position(point.y)+'" r="'+(i===points.length-1?5:3.5)+'">'+
+      '<title>'+displayDay(point.day)+': '+fmt(point.kg)+' kg</title></circle>'
+  ).join('');
+  const lastLabel=series.length===1?'Primeiro registro':'Último registro';
+  const aria='Evolução do peso de '+fmt(earliest.kg)+' kg em '+displayDay(earliest.day)+
+    ' para '+fmt(latest.kg)+' kg em '+displayDay(latest.day)+
+    '. '+series.length+' dias com registros.';
+  root.innerHTML='<div class="weight-chart-summary">'+
+    '<div><small>'+lastLabel+'</small><strong>'+fmt(latest.kg)+' kg</strong></div>'+
+    '<div><small>Variação no período</small><strong class="weight-chart-delta">'+delta+'</strong></div></div>'+
+    '<svg class="weight-chart-svg" viewBox="0 0 '+chartWidth+' 190" role="img" aria-label="'+aria+'">'+
+    '<g>'+ticks+'</g>'+
+    '<path class="weight-chart-area" d="'+area+'"/>'+
+    (points.length>1?'<polyline class="weight-chart-line" points="'+line+'"/>':'')+
+    dots+
+    '<text x="'+left+'" y="175" text-anchor="start" class="weight-axis-label">'+displayDay(earliest.day)+'</text>'+
+    '<text x="'+right+'" y="175" text-anchor="end" class="weight-axis-label">'+displayDay(latest.day)+'</text>'+
+    '</svg>'+
+    '<p class="weight-chart-caption">'+series.length+' '+(series.length===1?'dia registrado':'dias registrados')+
+    ' • últimos '+Math.min(12,series.length)+' registros diários'+
+    (series.length===1?' • Registre outro dia para acompanhar a tendência.':'')+'</p>';
+}
+
 function renderApp(){
   historyDraftFields.clear();
   if(!auth?.user)return;
@@ -382,7 +454,9 @@ function renderApp(){
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
-  if($('weightHistory'))$('weightHistory').innerHTML=state.weights.slice(0,5).map(w=>'<div class="history-row"><span>'+fmtDate(w.at)+'</span><strong>'+w.value.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  renderWeightChart('weightChartFull');
+  renderWeightChart('weightChartProfile');
   const m=state.measurements||{};
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
   if($('measurementHistoryList')){

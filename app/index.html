@@ -20,11 +20,11 @@
   <meta name="apple-mobile-web-app-title" content="Escudo Fit Web">
   <link rel="apple-touch-icon" href="./icon-approved-v43.png">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-entry-routing-13">
+  <meta name="escudo-fit-build" content="web-v43-weight-chart-14">
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-entry-routing-13">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-weight-chart-14">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -484,7 +484,11 @@
             <button id="addWeight" class="quick-access-button gold">SALVAR NOVO PESO</button>
           </article>
           <article class="screen-card">
-            <div class="section-title cyan"><span>📈</span><b>HISTÓRICO DE PESO</b></div>
+            <div class="section-title cyan"><span>📈</span><b>EVOLUÇÃO DO PESO</b></div>
+            <div id="weightChartFull" class="weight-chart" aria-live="polite"></div>
+          </article>
+          <article class="screen-card">
+            <div class="section-title cyan"><span>🗓️</span><b>HISTÓRICO DE PESO</b></div>
             <div id="weightHistory" class="history"></div>
           </article>
           <button class="quick-access-button" data-view-link="profile">VOLTAR AO PERFIL</button>
@@ -526,8 +530,8 @@
           </article>
 
           <article class="screen-card">
-            <div class="section-title cyan"><b>EVOLUÇÃO DO PESO</b></div>
-            <p class="muted">Seu histórico e as variações de peso estão disponíveis na seção Peso.</p>
+            <div class="section-title cyan"><span>📈</span><b>EVOLUÇÃO DO PESO</b></div>
+            <div id="weightChartProfile" class="weight-chart" aria-live="polite"></div>
             <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
           </article>
 
@@ -594,9 +598,9 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-entry-routing-13" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-entry-routing-13" defer></script>
-  <script src="./body-map.js?v=web-v43-entry-routing-13" defer></script>
-  <script src="./app.js?v=web-v43-entry-routing-13" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-weight-chart-14" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-weight-chart-14" defer></script>
+  <script src="./body-map.js?v=web-v43-weight-chart-14" defer></script>
+  <script src="./app.js?v=web-v43-weight-chart-14" defer></script>
 </body>
 </html>
