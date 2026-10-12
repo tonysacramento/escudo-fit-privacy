@@ -240,6 +240,57 @@ test('visible Web imports delayed Android movement, nutrition and water without 
   }finally{h.dom.window.close()}
 });
 
+test('weight evolution reads eight synced daily weights in Profile and Weight without losing history',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const days=[
+      ['2026-08-26',106.7],['2026-09-04',104.5],['2026-09-17',101.6],
+      ['2026-09-25',101.6],['2026-10-01',100.7],['2026-10-04',100.7],
+      ['2026-10-07',100.7],['2026-10-08',100.7]
+    ];
+    const weight=(day,kg,hour=12)=>({
+      id:'weight-'+day+'-'+hour,
+      weightKg:kg,
+      timestampMs:Date.parse(day+'T'+String(hour).padStart(2,'0')+':00:00Z'),
+      origin:'PROFILE'
+    });
+    h.setRemote({weights:[
+      ...days.map(([day,kg])=>weight(day,kg)),
+      weight('2026-10-08',150,8), // Earlier same-day reading must not distort chart.
+      weight('2026-09-04',499) // Out-of-range reading must not enter chart.
+    ]});
+    w.document.getElementById('refreshHistoryButton').click();
+    await pause();
+    for(const id of ['weightChartFull','weightChartProfile']){
+      const root=w.document.getElementById(id);
+      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,8,id+' one latest reading per day');
+      assert.match(root.textContent,/100,7 kg/);
+      assert.match(root.textContent,/-6,0 kg/);
+      assert.match(root.querySelector('svg').getAttribute('aria-label'),/Evolução do peso de 106,7 kg/);
+    }
+    assert.match(w.document.getElementById('weightHistory').textContent,/106,7/,'all daily history visible');
+    assert.equal(w.document.getElementById('lastWeight').textContent,'100,7 kg');
+    w.document.getElementById('weightInput').value='99.3';
+    w.document.getElementById('addWeight').click();
+    await pause();
+    assert.match(w.document.getElementById('weightChartProfile').textContent,/99,3 kg/,'new weight refreshes chart');
+  } finally {h.dom.window.close()}
+});
+
+test('weight chart shows an empty state and single-point state without inventing data',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const root=w.document.getElementById('weightChartFull');
+    assert.match(root.textContent,/Ainda não há registros/);
+    assert.equal(root.querySelectorAll('circle').length,0);
+    w.eval("state.weights=[{id:'single',value:82.6,at:'2026-10-08T12:00:00Z'}];renderApp()");
+    assert.equal(root.querySelectorAll('circle.weight-chart-point').length,1);
+    assert.match(root.textContent,/82,6 kg/);
+    assert.match(root.textContent,/Registre outro dia/);
+    assert.doesNotMatch(root.innerHTML,/NaN|Infinity/);
+  } finally {h.dom.window.close()}
+});
+
 for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('installation follows '+mode+' account and requires signed-in session',async()=>{
   const h=await liveSession({mode});const {w}=h;
   try{
