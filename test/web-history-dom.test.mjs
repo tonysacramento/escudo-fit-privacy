@@ -287,6 +287,7 @@ test('weight chart shows an empty state and single-point state without inventing
       weights:[{id:'single',value:82.6,at:'2026-10-08T12:00:00Z'}]
     }));
     w.eval('showApp()');
+    await pause(); // Wait for the second account-history hydration before tearing down JSDOM.
     assert.equal(root.querySelectorAll('circle.weight-chart-point').length,1);
     assert.match(root.textContent,/82,6 kg/);
     assert.match(root.textContent,/Registre outro dia/);
