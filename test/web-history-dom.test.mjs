@@ -257,7 +257,7 @@ test('weight evolution reads eight synced daily weights in Profile and Weight wi
     h.setRemote({weights:[
       ...days.map(([day,kg])=>weight(day,kg)),
       weight('2026-10-08',150,8), // Earlier same-day reading must not distort chart.
-      weight('2026-09-04',499) // Out-of-range reading must not enter chart.
+      {...weight('2026-09-04',499),id:'invalid-weight'} // Out-of-range reading must not enter chart.
     ]});
     w.document.getElementById('refreshHistoryButton').click();
     await pause();
@@ -283,7 +283,10 @@ test('weight chart shows an empty state and single-point state without inventing
     const root=w.document.getElementById('weightChartFull');
     assert.match(root.textContent,/Ainda não há registros/);
     assert.equal(root.querySelectorAll('circle').length,0);
-    w.eval("state.weights=[{id:'single',value:82.6,at:'2026-10-08T12:00:00Z'}];renderApp()");
+    w.localStorage.setItem('escudofit_web_user_v2_live-user',JSON.stringify({
+      weights:[{id:'single',value:82.6,at:'2026-10-08T12:00:00Z'}]
+    }));
+    w.eval('showApp()');
     assert.equal(root.querySelectorAll('circle.weight-chart-point').length,1);
     assert.match(root.textContent,/82,6 kg/);
     assert.match(root.textContent,/Registre outro dia/);
