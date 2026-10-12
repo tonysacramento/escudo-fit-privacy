@@ -484,7 +484,11 @@
             <button id="addWeight" class="quick-access-button gold">SALVAR NOVO PESO</button>
           </article>
           <article class="screen-card">
-            <div class="section-title cyan"><span>📈</span><b>HISTÓRICO DE PESO</b></div>
+            <div class="section-title cyan"><span>📈</span><b>EVOLUÇÃO DO PESO</b></div>
+            <div id="weightChartFull" class="weight-chart" aria-live="polite"></div>
+          </article>
+          <article class="screen-card">
+            <div class="section-title cyan"><span>🗓️</span><b>HISTÓRICO DE PESO</b></div>
             <div id="weightHistory" class="history"></div>
           </article>
           <button class="quick-access-button" data-view-link="profile">VOLTAR AO PERFIL</button>
@@ -526,8 +530,8 @@
           </article>
 
           <article class="screen-card">
-            <div class="section-title cyan"><b>EVOLUÇÃO DO PESO</b></div>
-            <p class="muted">Seu histórico e as variações de peso estão disponíveis na seção Peso.</p>
+            <div class="section-title cyan"><span>📈</span><b>EVOLUÇÃO DO PESO</b></div>
+            <div id="weightChartProfile" class="weight-chart" aria-live="polite"></div>
             <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
           </article>
 
