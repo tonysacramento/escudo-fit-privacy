@@ -947,10 +947,10 @@ body.pwa-login-mode #loginSection .login-box{
 
 /* Real account weight evolution — no synthetic values or external chart code. */
 .weight-chart{margin-top:13px;min-width:0}
-.weight-chart-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.weight-chart-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .weight-chart-summary>div{display:grid;gap:5px;padding:11px 12px;background:#08262B;border:1px solid var(--app-border);border-radius:13px;min-width:0}
 .weight-chart-summary small{color:var(--app-muted);font-size:12px;line-height:1.4}
-.weight-chart-summary strong{color:var(--app-text);font-size:19px;line-height:1.3;font-weight:850;font-variant-numeric:tabular-nums}
+.weight-chart-summary strong{overflow-wrap:anywhere;color:var(--app-text);font-size:19px;line-height:1.3;font-weight:850;font-variant-numeric:tabular-nums}
 .weight-chart-summary .weight-chart-delta{color:var(--app-cyan)}
 .weight-chart-svg{display:block;width:100%;height:auto;max-width:520px;margin:12px auto 0;overflow:visible}
 .weight-chart-area{fill:rgba(53,211,221,.10)}
@@ -962,3 +962,7 @@ body.pwa-login-mode #loginSection .login-box{
 .weight-chart-caption{font-size:12px;color:var(--app-muted);text-align:center;line-height:1.6;margin:0}
 .weight-chart-empty{font-size:14px;line-height:1.5;color:var(--app-muted);padding:14px;border-radius:13px;border:1px dashed var(--app-border);margin:0}
 @media(max-width:380px){.weight-chart-summary strong{font-size:17px}.weight-chart-summary>div{padding:9px}}
+
+.weight-chart-point.first{fill:var(--app-gold);stroke:#08262B;stroke-width:2}
+.weight-value-label{fill:var(--app-text);font-size:12px;font-weight:800;font-family:inherit;font-variant-numeric:tabular-nums}
+@media(max-width:440px){.weight-chart-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.weight-chart-summary>div:last-child{grid-column:1/-1}}
