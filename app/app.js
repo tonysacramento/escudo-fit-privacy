@@ -252,9 +252,9 @@ function activateView(target){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// Weight evolution uses only account-bound history already loaded by the Web.
-// Keep one latest reading per local calendar day, as in the Android weight view.
-function weightChartSeries(records,limit=12){
+// The first real recorded weight is the journey baseline, never merely the
+// first point in a recent-only window. No inferred onboarding weights.
+function weightChartSeries(records){
   const days=new Map();
   for(const record of Array.isArray(records)?records:[]){
     const kg=Number(record?.value);
@@ -264,7 +264,7 @@ function weightChartSeries(records,limit=12){
     const current=days.get(day);
     if(!current||time>current.time)days.set(day,{day,time,kg});
   }
-  return [...days.values()].sort((a,b)=>a.time-b.time).slice(-limit);
+  return [...days.values()].sort((a,b)=>a.time-b.time);
 }
 
 function renderWeightChart(containerId){
@@ -280,48 +280,54 @@ function renderWeightChart(containerId){
   const earliest=series[0],latest=series[series.length-1];
   const change=latest.kg-earliest.kg;
   const delta=series.length>1?(change>0?'+':'')+fmt(change)+' kg':'—';
-  const chartWidth=360, left=43, right=344, top=18, bottom=149;
-  const low=Math.min(...series.map(p=>p.kg)), high=Math.max(...series.map(p=>p.kg));
+  const chartWidth=360,left=43,right=344,top=24,bottom=149;
+  const low=Math.min(...series.map(p=>p.kg)),high=Math.max(...series.map(p=>p.kg));
   const padding=Math.max(0.7,(high-low)*0.16);
   const min=low-padding,max=high+padding;
+  const start=earliest.time,end=latest.time;
+  const pos=n=>Number(n.toFixed(2));
   const points=series.map((point,i)=>({
     ...point,
-    x:series.length===1?(left+right)/2:left+(right-left)*i/(series.length-1),
+    x:series.length===1?(left+right)/2:left+(right-left)*(point.time-start)/(end-start),
     y:bottom-(point.kg-min)/(max-min)*(bottom-top)
   }));
-  const position=value=>Number(value.toFixed(2));
-  const line=points.map(point=>position(point.x)+','+position(point.y)).join(' ');
-  const area='M '+position(points[0].x)+' '+bottom+' L '+
-    points.map(point=>position(point.x)+' '+position(point.y)).join(' L ')+
-    ' L '+position(points.at(-1).x)+' '+bottom+' Z';
+  const line=points.map(p=>pos(p.x)+','+pos(p.y)).join(' ');
+  const area='M '+pos(points[0].x)+' '+bottom+' L '+
+    points.map(p=>pos(p.x)+' '+pos(p.y)).join(' L ')+
+    ' L '+pos(points.at(-1).x)+' '+bottom+' Z';
   const ticks=[min,(min+max)/2,max].map(v=>{
-    const y=position(bottom-(v-min)/(max-min)*(bottom-top));
+    const y=pos(bottom-(v-min)/(max-min)*(bottom-top));
     return '<line x1="'+left+'" x2="'+right+'" y1="'+y+'" y2="'+y+'" class="weight-grid-line"/>'+
       '<text x="37" y="'+(y+4)+'" text-anchor="end" class="weight-axis-label">'+fmt(v)+'</text>';
   }).join('');
-  const dots=points.map((point,i)=>
-    '<circle class="weight-chart-point'+(i===points.length-1?' latest':'')+'" cx="'+position(point.x)+
-      '" cy="'+position(point.y)+'" r="'+(i===points.length-1?5:3.5)+'">'+
-      '<title>'+displayDay(point.day)+': '+fmt(point.kg)+' kg</title></circle>'
-  ).join('');
-  const lastLabel=series.length===1?'Primeiro registro':'Último registro';
+  // Dense history preserves every line point while keeping the dots legible.
+  const markerStep=Math.max(1,Math.ceil(points.length/25));
+  const dots=points.map((p,i)=>{
+    if(i!==0 && i!==points.length-1 && i%markerStep!==0)return '';
+    const first=i===0,last=i===points.length-1;
+    return '<circle class="weight-chart-point'+(first?' first':'')+(last?' latest':'')+
+      '" cx="'+pos(p.x)+'" cy="'+pos(p.y)+'" r="'+(first||last?4.5:3)+'">'+
+      '<title>'+displayDay(p.day)+': '+fmt(p.kg)+' kg</title></circle>';
+  }).join('');
+  const captions='<text x="'+left+'" y="175" text-anchor="start" class="weight-axis-label">'+displayDay(earliest.day)+'</text>'+
+    '<text x="'+right+'" y="175" text-anchor="end" class="weight-axis-label">'+displayDay(latest.day)+'</text>';
+  const pointValues=points.length>1
+    ? '<text x="'+(left+5)+'" y="'+Math.max(12,pos(points[0].y)-10)+'" class="weight-value-label" text-anchor="start">'+fmt(earliest.kg)+' kg</text>'+
+      '<text x="'+(right-5)+'" y="'+Math.max(12,pos(points.at(-1).y)-10)+'" class="weight-value-label" text-anchor="end">'+fmt(latest.kg)+' kg</text>'
+    : '<text x="'+pos(points[0].x)+'" y="'+Math.max(12,pos(points[0].y)-10)+'" class="weight-value-label" text-anchor="middle">'+fmt(latest.kg)+' kg</text>';
   const aria='Evolução do peso de '+fmt(earliest.kg)+' kg em '+displayDay(earliest.day)+
-    ' para '+fmt(latest.kg)+' kg em '+displayDay(latest.day)+
-    '. '+series.length+' dias com registros.';
+    ' para '+fmt(latest.kg)+' kg em '+displayDay(latest.day)+'. '+series.length+' dias com registros.';
   root.innerHTML='<div class="weight-chart-summary">'+
-    '<div><small>'+lastLabel+'</small><strong>'+fmt(latest.kg)+' kg</strong></div>'+
-    '<div><small>Variação no período</small><strong class="weight-chart-delta">'+delta+'</strong></div></div>'+
+    '<div><small>Início da jornada</small><strong>'+fmt(earliest.kg)+' kg</strong><small>'+displayDay(earliest.day)+'</small></div>'+
+    '<div><small>Peso atual registrado</small><strong>'+fmt(latest.kg)+' kg</strong><small>'+displayDay(latest.day)+'</small></div>'+
+    '<div><small>Variação total</small><strong class="weight-chart-delta">'+delta+'</strong></div></div>'+
     '<svg class="weight-chart-svg" viewBox="0 0 '+chartWidth+' 190" role="img" aria-label="'+aria+'">'+
-    '<g>'+ticks+'</g>'+
-    '<path class="weight-chart-area" d="'+area+'"/>'+
+    '<g>'+ticks+'</g><path class="weight-chart-area" d="'+area+'"/>'+
     (points.length>1?'<polyline class="weight-chart-line" points="'+line+'"/>':'')+
-    dots+
-    '<text x="'+left+'" y="175" text-anchor="start" class="weight-axis-label">'+displayDay(earliest.day)+'</text>'+
-    '<text x="'+right+'" y="175" text-anchor="end" class="weight-axis-label">'+displayDay(latest.day)+'</text>'+
-    '</svg>'+
-    '<p class="weight-chart-caption">'+series.length+' '+(series.length===1?'dia registrado':'dias registrados')+
-    ' • últimos '+Math.min(12,series.length)+' registros diários'+
-    (series.length===1?' • Registre outro dia para acompanhar a tendência.':'')+'</p>';
+    dots+pointValues+captions+'</svg>'+
+    '<p class="weight-chart-caption">Histórico completo • '+series.length+
+    (series.length===1?' dia com registro':' dias com registros')+
+    (series.length===1?' • Registre outro dia para acompanhar a tendência.':' • Do primeiro ao último peso registrado.')+'</p>';
 }
 
 function renderApp(){
@@ -454,7 +460,7 @@ function renderApp(){
 
   setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
   setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
-  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).slice(-12).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   renderWeightChart('weightChartFull');
   renderWeightChart('weightChartProfile');
   const m=state.measurements||{};

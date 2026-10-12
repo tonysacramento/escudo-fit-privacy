@@ -295,6 +295,36 @@ test('weight chart shows an empty state and single-point state without inventing
   } finally {h.dom.window.close()}
 });
 
+test('weight chart includes earliest lifetime reading even when more than twelve dates exist',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const weights=Array.from({length:18},(_,i)=>{
+      const date='2026-09-'+String(i+1).padStart(2,'0');
+      return {id:'journey-'+i,weightKg:110-i*0.5,
+        timestampMs:Date.parse(date+'T12:00:00Z'),origin:'PROFILE'};
+    });
+    h.setRemote({weights});
+    w.document.getElementById('refreshHistoryButton').click();
+    await pause();
+    for(const id of ['weightChartFull','weightChartProfile']){
+      const root=w.document.getElementById(id);
+      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,18);
+      assert.match(root.textContent,/Início da jornada/);
+      assert.match(root.textContent,/110,0 kg/);
+      assert.match(root.textContent,/101,5 kg/);
+      assert.match(root.textContent,/-8,5 kg/);
+      assert.match(root.textContent,/Histórico completo/);
+      const svg=root.querySelector('svg');
+      assert.match(svg.getAttribute('aria-label'),/Evolução do peso de 110,0 kg em 01\/09/);
+      assert.match(svg.querySelector('circle.weight-chart-point.first title').textContent,/01\/09: 110,0 kg/);
+      assert.match(svg.querySelector('circle.weight-chart-point.latest title').textContent,/18\/09: 101,5 kg/);
+    }
+    // The detailed list may stay concise, but it must not redefine the
+    // initial lifetime baseline used for the chart and total variation.
+    assert.equal(w.document.querySelectorAll('#weightHistory .history-row').length,12);
+  }finally{h.dom.window.close()}
+});
+
 for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('installation follows '+mode+' account and requires signed-in session',async()=>{
   const h=await liveSession({mode});const {w}=h;
   try{
