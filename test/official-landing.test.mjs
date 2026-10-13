@@ -31,8 +31,12 @@ test('homepage keeps app and Android access, without changing the PWA',()=>{
 });
 
 test('website prices are only displayed; no unsupported checkout or health claim is present',()=>{
-  assert.match(home,/R\$ 2,90/);
-  assert.match(home,/R\$ 29,90/);
+  assert.match(home,/R\$ 4,99/);
+  assert.match(app,/R\$ 4,99/);
+  assert.match(home,/R\$ 49,90/);
+  assert.match(app,/R\$ 49,90/);
+  assert.doesNotMatch(home,/R\$ (?:2,90|29,90)/);
+  assert.doesNotMatch(app,/R\$ (?:2,90|29,90)/);
   assert.match(home,/contratação depende da disponibilidade dos meios de pagamento/);
   assert.doesNotMatch(home,/(?:href|action)="https?:\/\/(?:www\.)?abacatepay\.com/);
   assert.match(home,/não substitui orientação médica/i);
