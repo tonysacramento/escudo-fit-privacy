@@ -192,7 +192,7 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage,validationGat
   const dom=new JSDOM(html,{url:'https://escudofit.example/app/',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;
   w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
-  const session={user:{id:'live-user',email:'live@example.invalid'},access_token:'access',refresh_token:'refresh',entitlement:{mode}};
+  const session={user:{id:'live-user',email:'live@example.invalid'},access_token:'access',refresh_token:'refresh',entitlement:{mode,isActive:true,expiresAt:mode==='TRIAL_14D'?new Date(Date.now()+14*86400000).toISOString():null}};
   w.localStorage.setItem('escudofit_web_auth_v1',savedStorage||JSON.stringify(session));
   const timers=new Map();let next=0;
   w.setInterval=(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id};
@@ -203,7 +203,7 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage,validationGat
     const path=String(url);
     if(failure==='offline')throw Error('offline');
     if(path.endsWith('/auth/refresh')){refreshed++;return failure==='revoked'?response(401):response(200,{access_token:'new-access',refresh_token:'new-refresh'})}
-    if(path.endsWith('/entitlement/me'))return response(200,{mode});
+    if(path.endsWith('/entitlement/me'))return response(200,session.entitlement);
     if(path.endsWith('/me')){
       if(validationGate)await validationGate;
       if(failure==='outage')return response(503);
@@ -236,7 +236,7 @@ test('visible Web imports delayed Android movement, nutrition and water without 
     const count=h.reads();Object.defineProperty(w.document,'visibilityState',{configurable:true,value:'hidden'});await h.tick();assert.equal(h.reads(),count);
     Object.defineProperty(w.document,'visibilityState',{configurable:true,value:'visible'});
     Object.defineProperty(w.navigator,'onLine',{configurable:true,value:false});await h.tick();assert.equal(h.reads(),count);
-    for(let i=0;i<3;i++){w.dispatchEvent(new w.Event('pagehide'));assert.equal(h.timers.size,0);w.dispatchEvent(new w.Event('pageshow'));assert.equal(h.timers.size,1)}
+    for(let i=0;i<3;i++){w.dispatchEvent(new w.Event('pagehide'));assert.equal(h.timers.size,0);w.dispatchEvent(new w.Event('pageshow'));assert.equal(h.timers.size,2)}
   }finally{h.dom.window.close()}
 });
 
@@ -325,14 +325,23 @@ test('weight chart includes earliest lifetime reading even when more than twelve
   }finally{h.dom.window.close()}
 });
 
-for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('installation follows '+mode+' account and requires signed-in session',async()=>{
+for(const mode of ['VIP_LIFETIME','PREMIUM','TRIAL_14D','FREE'])test('installation follows '+mode+' account and requires signed-in session',async()=>{
   const h=await liveSession({mode});const {w}=h;
   try{
+    if(mode==='FREE'){
+      assert.equal(w.document.getElementById('webAccessGate').classList.contains('hidden'),false);
+      assert.equal(w.document.getElementById('appExperience').classList.contains('hidden'),true);
+      assert.equal(w.eval('canInstallFullPwa()'),false);
+      w.document.getElementById('webAccessLogout').click();await pause();
+      assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);
+      return;
+    }
     let prompted=0;const event=new w.Event('beforeinstallprompt',{cancelable:true});
     event.prompt=async()=>{prompted++};event.userChoice=Promise.resolve({outcome:'accepted'});w.dispatchEvent(event);
     const button=w.document.getElementById('installButtonFloating');assert.equal(button.classList.contains('hidden'),false);assert.equal(event.defaultPrevented,true);
-    if(mode==='FREE'){assert.match(button.textContent,/Google Play/);assert.equal(w.eval('canInstallFullPwa()'),false)}
-    else{assert.match(button.textContent,/^Instalar Escudo Fit Web$/);button.click();await pause();assert.equal(prompted,1);assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':'VIP VITALÍCIO'))}
+    assert.match(button.textContent,/^Instalar Escudo Fit Web$/);button.click();await pause();assert.equal(prompted,1);
+    assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':mode==='VIP_LIFETIME'?'VIP VITALÍCIO':'TRIAL'));
+    if(mode==='TRIAL_14D')assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),true);
     w.document.getElementById('logoutButton').click();await pause();assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);assert.equal(button.classList.contains('hidden'),true);
   }finally{w.close()}
 });
@@ -342,7 +351,8 @@ for(const failure of ['offline','outage','expired','revoked'])test('PWA reopen s
   try{
     const retained=failure!=='revoked';
     assert.equal(!!h.w.localStorage.getItem('escudofit_web_auth_v1'),retained);
-    assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),!retained);
+    assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),failure==='offline'||failure==='outage'||failure==='revoked');
+    if(failure==='offline'||failure==='outage')assert.equal(h.w.document.getElementById('webAccessGate').classList.contains('hidden'),false);
     if(failure==='expired'){assert.equal(h.refreshed(),1);assert.equal(JSON.parse(h.w.localStorage.getItem('escudofit_web_auth_v1')).access_token,'new-access')}
   }finally{h.w.close()}
 });
