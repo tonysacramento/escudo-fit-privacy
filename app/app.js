@@ -8,6 +8,10 @@ const DATA_PREFIX='escudofit_web_user_v2_';
 const $=id=>document.getElementById(id);
 const defaults={water:0,waterUpdatedAtMs:0,waterGoal:2000,steps:0,stepsDateKey:'',stepsHistory:[],stepsGoal:8000,protein:0,proteinGoal:100,nutritionUpdatedAtMs:0,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],waterHistory:[],nutritionHistory:[],treatment:null,profile:{name:''},updatedAt:null};
 let auth=loadAuth();
+// Verified only by the server in this page session. Cached entitlement never
+// unlocks the Web on a fresh PWA launch or when verification fails.
+let entitlementVerified=false;
+let entitlementCheckFlight=null;
 let accountUiReady=false;
 let state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
 let installPrompt=null;
@@ -88,10 +92,55 @@ function planLabel(mode){
   return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
 }
 
+function webAccessDecision(entitlement,nowMs=Date.now()){
+  const mode=String(entitlement?.mode||'FREE').toUpperCase();
+  if(entitlement?.isActive===false)return {allowed:false,reason:'EXPIRED'};
+  const expires=typeof entitlement?.expiresAt==='string'&&entitlement.expiresAt.trim()
+    ? Date.parse(entitlement.expiresAt):null;
+  const hasInvalidExpiry=expires!==null&&!Number.isFinite(expires);
+  if(mode==='PREMIUM'||mode==='VIP_LIFETIME'){
+    return expires===null||(!hasInvalidExpiry&&expires>nowMs)
+      ? {allowed:true,reason:'PAID'}:{allowed:false,reason:'EXPIRED'};
+  }
+  // Trial duration comes from the authenticated server expiry, not a browser
+  // clock reset or a promo query string. VIP_TEMPORARY covers admin-granted
+  // short-term access such as an approved 30-day promotion.
+  if(['TRIAL_14D','TRIAL_30D','VIP_TEMPORARY'].includes(mode)){
+    return !hasInvalidExpiry&&expires!==null&&expires>nowMs
+      ? {allowed:true,reason:'TRIAL',expiresAt:expires}
+      : {allowed:false,reason:'EXPIRED'};
+  }
+  return {allowed:false,reason:mode==='FREE'?'FREE':'EXPIRED'};
+}
+
+function webAccessAllowed(){
+  return Boolean(auth?.user&&entitlementVerified&&webAccessDecision(auth.entitlement).allowed);
+}
+
+function showWebAccessGate(reason){
+  const message=reason==='VERIFY'
+    ? 'Não foi possível confirmar seu plano agora. Conecte-se à internet e verifique novamente. Seu histórico permanece preservado.'
+    : reason==='FREE'
+      ? 'O acesso completo à Web é exclusivo para Premium, Vitalício ou período de teste válido. Solicite o Premium para continuar. Seu histórico permanece preservado.'
+      : 'Seu período de teste ou acesso temporário terminou. Para continuar no Escudo Fit Web, assine o Premium. Seu histórico permanece preservado.';
+  setText('webAccessTitle',reason==='VERIFY'?'Verificando seu acesso':reason==='FREE'?'Escudo Fit Web Premium':'Seu período de acesso terminou');
+  setText('webAccessMessage',message);
+  $('sessionLoading').classList.add('hidden');
+  $('marketingExperience').classList.add('hidden');
+  $('appExperience').classList.add('hidden');
+  $('webAccessGate').classList.remove('hidden');
+  document.body.classList.remove('is-app','pwa-login-mode');
+  document.documentElement.dataset.entry='restricted';
+  accountUiReady=false;
+}
+
+function ensureWebAccess(){
+  if(webAccessAllowed())return true;
+  showWebAccessGate(entitlementVerified?webAccessDecision(auth?.entitlement).reason:'VERIFY');
+  return false;
+}
+
 function experienceForEntitlement(_mode){
-  // The Web surface is the Escudo Fit FULL experience. Android distribution
-  // (for example, a physically installed Wellness build) must not downgrade
-  // what is rendered in the browser for the same Google account.
   return 'FULL';
 }
 
@@ -210,6 +259,7 @@ function showMarketing(){
   accountUiReady=false;
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
+  $('webAccessGate').classList.add('hidden');
   document.body.classList.remove('is-app');
   delete document.body.dataset.experience;
   renderInstallAction();
@@ -217,6 +267,8 @@ function showMarketing(){
 }
 
 function showApp(){
+  if(!ensureWebAccess())return;
+  $('webAccessGate').classList.add('hidden');
   document.documentElement.dataset.entry='app';
   document.body.classList.remove('pwa-login-mode');
   $('sessionLoading').classList.add('hidden');
@@ -244,6 +296,7 @@ function setText(id,value){
 }
 
 function activateView(target){
+  if(!ensureWebAccess())return;
   const experience=experienceForEntitlement(auth?.entitlement?.mode||'FREE');
   const requested=document.querySelector('.app-view[data-view="'+target+'"]');
   if(experience==='WELLNESS'&&requested?.hasAttribute('data-full-only'))target='home';
@@ -332,7 +385,7 @@ function renderWeightChart(containerId){
 
 function renderApp(){
   historyDraftFields.clear();
-  if(!auth?.user)return;
+  if(!webAccessAllowed()){ensureWebAccess();return;}
   reconcileWebLocalDay();
   const experience=applyExperience();
   const today=localDayKey();
@@ -537,6 +590,7 @@ function renderApp(){
 }
 
 async function apiFetch(path,options={}){
+  if(path.startsWith('/history')&&!webAccessAllowed())throw new Error('WEB_ACCESS_RESTRICTED');
   const headers={...(options.headers||{})};
   if(auth?.access_token)headers.Authorization='Bearer '+auth.access_token;
   return fetch(API+path,{...options,headers});
@@ -645,10 +699,11 @@ function loadHistoryOutbox(){
 }
 function storeHistoryOutbox(entries){localStorage.setItem(historyOutboxKey(),JSON.stringify(entries))}
 async function flushPendingHistory(){
-  if(!auth?.access_token||!auth?.user)return false;
+  if(!webAccessAllowed()||!auth?.access_token||!auth?.user)return false;
   const owner=auth.user.id;
   const entries=loadHistoryOutbox();
   for(const entry of entries){
+    if(!webAccessAllowed())return false;
     try{
       let payload=entry.payload;
       let expectedNutritionIds=null;
@@ -668,7 +723,7 @@ async function flushPendingHistory(){
         expectedNutritionIds=new Set(rebased.flatMap(day=>day.meals.map(meal=>meal.id)));
         payload={...payload,nutrition:rebased};
       }
-      if(auth?.user?.id!==owner)return false;
+      if(auth?.user?.id!==owner||!webAccessAllowed())return false;
       const res=await authenticatedFetch('/history/sync',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -693,7 +748,7 @@ async function flushPendingHistory(){
 }
 
 async function syncHistoryPatch(payload){
-  if(!auth?.user)return false;
+  if(!webAccessAllowed())return false;
   const pending=historyPatchChain.then(async()=>{
     const entries=loadHistoryOutbox();
     if(entries.length>=200){
@@ -706,7 +761,7 @@ async function syncHistoryPatch(payload){
       createdAtMs:Date.now()
     });
     storeHistoryOutbox(entries);
-    return flushPendingHistory();
+    return webAccessAllowed()?flushPendingHistory():false;
   }).catch(()=>false);
   historyPatchChain=pending.then(()=>undefined);
   return pending;
@@ -736,7 +791,7 @@ function renderHistoryUpdate(silent){
 }
 
 async function hydrateAccountHistoryOnce({silent=false}={}){
-  if(!auth?.user)return false;
+  if(!webAccessAllowed())return false;
   const accountId=auth.user.id;
   if(!silent)setText('historySyncStatus','Consultando histórico da API e backup da sua Conta Google…');
   try{
@@ -749,7 +804,7 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
     const primary=structured.ok?await structured.json():null;
     const backupRes=await authenticatedFetch('/history/backup');
     const backupResponse=backupRes.ok?await backupRes.json():null;
-    if(auth?.user?.id!==accountId)return false;
+    if(auth?.user?.id!==accountId||!webAccessAllowed())return false;
     const backup=backupBridge.unpackBackup(backupResponse);
     if(!primary&&!backupResponse){
       setText('historySyncStatus',
@@ -892,6 +947,7 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
       });
     }
 
+    if(!webAccessAllowed()||auth?.user?.id!==accountId)return false;
     saveState();
     renderHistoryUpdate(silent);
     const total=Object.values(counts).reduce((sum,value)=>sum+value,0);
@@ -912,7 +968,7 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
 }
 
 async function loadAccountHistory(){
-  if(!auth?.access_token)return false;
+  if(!webAccessAllowed()||!auth?.access_token)return false;
   try{
     let res=await apiFetch('/history');
     if(res.status===401&&await refreshSession())res=await apiFetch('/history');
@@ -975,7 +1031,7 @@ async function loadAccountHistory(){
 }
 
 async function syncAccountHistory(payload){
-  if(!auth?.access_token)return false;
+  if(!webAccessAllowed()||!auth?.access_token)return false;
   try{
     let res=await apiFetch('/history/sync',{
       method:'POST',
@@ -1018,6 +1074,7 @@ function refreshSession(){
 }
 
 async function validateStoredSession(){
+  entitlementVerified=false;
   if(!auth?.user||!auth?.refresh_token)return false;
   const accountId=auth.user.id;
   sessionRejected=false;
@@ -1040,6 +1097,7 @@ async function validateStoredSession(){
     if(auth?.user?.id!==accountId)return false;
     if(!entitlement?.mode)return true;
     saveAuth({...auth,user:me.user,entitlement});
+    entitlementVerified=true;
     return true;
   }catch{
     return !sessionRejected&&auth?.user?.id===accountId;
@@ -1055,6 +1113,7 @@ async function handleGoogleCredential(response){
     const data=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     saveAuth(data);
+    entitlementVerified=Boolean(data?.entitlement?.mode);
     state=loadState();
     setLoginStatus('');
     showApp();
@@ -1108,7 +1167,7 @@ function initGoogle(){
 
 async function resetGoogleSession(message){
   const logoutRequest=auth?.access_token?apiFetch('/auth/logout',{method:'POST'}).catch(()=>{}):Promise.resolve();
-  saveAuth(null);auth=null;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
+  saveAuth(null);auth=null;entitlementVerified=false;state={...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}};
   googleReady=false;
   try{window.google?.accounts?.id?.disableAutoSelect()}catch{}
   showMarketing();
@@ -1379,7 +1438,8 @@ $('logoutButtonBottom').addEventListener('click',logout);
 $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 
 const PLAY_STORE_URL='https://play.google.com/store/apps/details?id=com.escudofit.app';
-function canInstallFullPwa(){return ['VIP_LIFETIME','PREMIUM'].includes(auth?.entitlement?.mode)}
+function canInstallFullPwa(){return webAccessAllowed()}
+function canDownloadAndroidFull(){return webAccessAllowed()&&['VIP_LIFETIME','PREMIUM'].includes(auth?.entitlement?.mode)}
 function renderInstallAction(){
   const button=$('installButtonFloating');
   const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -1387,8 +1447,8 @@ function renderInstallAction(){
   const hidden=!auth?.user||(installed&&canInstallFullPwa());
   button.classList.toggle('hidden',hidden);
   $('installDescription').classList.toggle('hidden',!auth?.user);
-  $('downloadAndroidFull').classList.toggle('hidden',!auth?.user||!canInstallFullPwa());
-  $('androidFullDescription').classList.toggle('hidden',!auth?.user||!canInstallFullPwa());
+  $('downloadAndroidFull').classList.toggle('hidden',!canDownloadAndroidFull());
+  $('androidFullDescription').classList.toggle('hidden',!canDownloadAndroidFull());
   setText('installDescription',canInstallFullPwa()
     ? installed?'Seu Escudo Fit Web já está instalado. Todos os seus escudos estão disponíveis aqui.'
       : installHelpRequested?'No menu ⋮ do Chrome, toque em Instalar e criar atalho. Se aparecer que o app já está instalado, escolha abrir o app. Em outros navegadores, procure Instalar aplicativo ou Adicionar à tela inicial.'
@@ -1414,19 +1474,74 @@ window.addEventListener('appinstalled',()=>{
 // Android can finish uploading after the Web's initial read. Keep a visible
 // signed-in page current without requiring navigation or a manual button.
 function refreshVisibleAccountHistory(){
-  if(!accountUiReady||!auth?.user||document.visibilityState!=='visible'||navigator.onLine===false)return;
+  if(!accountUiReady||!webAccessAllowed()||document.visibilityState!=='visible'||navigator.onLine===false)return;
   void hydrateAccountHistory({silent:true});
 }
 window.addEventListener('focus',refreshVisibleAccountHistory);
 window.addEventListener('online',refreshVisibleAccountHistory);
 document.addEventListener('visibilitychange',refreshVisibleAccountHistory);
 let accountHistoryPoll=null;
+let entitlementPoll=null;
 function startAccountHistoryPoll(){
   if(accountHistoryPoll===null)accountHistoryPoll=setInterval(refreshVisibleAccountHistory,30_000);
 }
 startAccountHistoryPoll();
-window.addEventListener('pagehide',()=>{clearInterval(accountHistoryPoll);accountHistoryPoll=null});
-window.addEventListener('pageshow',()=>{startAccountHistoryPoll();refreshVisibleAccountHistory()});
+window.addEventListener('pagehide',()=>{clearInterval(accountHistoryPoll);accountHistoryPoll=null;clearInterval(entitlementPoll);entitlementPoll=null});
+window.addEventListener('pageshow',()=>{startAccountHistoryPoll();startEntitlementPoll();void refreshWebEntitlement();refreshVisibleAccountHistory()});
+
+function refreshWebEntitlement(){
+  if(!auth?.user)return Promise.resolve(false);
+  if(entitlementCheckFlight)return entitlementCheckFlight;
+  const accountId=auth.user.id;
+  const task=(async()=>{
+    try{
+      const res=await authenticatedFetch('/entitlement/me');
+      if(auth?.user?.id!==accountId)return false;
+      if(!res.ok)throw new Error('ENTITLEMENT_UNAVAILABLE');
+      const data=await res.json();
+      if(!data?.mode)throw new Error('ENTITLEMENT_INVALID');
+      if(auth?.user?.id!==accountId)return false;
+      saveAuth({...auth,entitlement:data});
+      entitlementVerified=true;
+      if(webAccessDecision(data).allowed){
+        if(!accountUiReady)showApp();else applyExperience(); // Never overwrite unsaved form drafts on plan revalidation.
+        return true;
+      }
+      showWebAccessGate(webAccessDecision(data).reason);
+      return false;
+    }catch{
+      if(auth?.user?.id!==accountId)return false;
+      entitlementVerified=false;
+      showWebAccessGate('VERIFY');
+      return false;
+    }
+  })();
+  entitlementCheckFlight=task;
+  void task.finally(()=>{if(entitlementCheckFlight===task)entitlementCheckFlight=null});
+  return task;
+}
+
+function startEntitlementPoll(){
+  if(entitlementPoll!==null)return;
+  entitlementPoll=setInterval(()=>{
+    if(!auth?.user)return;
+    // A trial must lock immediately when it expires, even with no network.
+    if(entitlementVerified&&!webAccessDecision(auth.entitlement).allowed){
+      showWebAccessGate('EXPIRED');
+    }
+    if(document.visibilityState==='visible'&&navigator.onLine!==false){
+      void refreshWebEntitlement();
+    }
+  },60_000);
+}
+startEntitlementPoll();
+window.addEventListener('focus',()=>{if(auth?.user)void refreshWebEntitlement()});
+window.addEventListener('online',()=>{if(auth?.user)void refreshWebEntitlement()});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&auth?.user)void refreshWebEntitlement();
+});
+$('webAccessRetry').addEventListener('click',()=>{void refreshWebEntitlement()});
+$('webAccessLogout').addEventListener('click',()=>{void switchGoogleAccount()});
 
 if('serviceWorker'in navigator){
   let reloadingForWorker=false;

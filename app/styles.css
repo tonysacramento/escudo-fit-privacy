@@ -966,3 +966,21 @@ body.pwa-login-mode #loginSection .login-box{
 .weight-chart-point.first{fill:var(--app-gold);stroke:#08262B;stroke-width:2}
 .weight-value-label{fill:var(--app-text);font-size:12px;font-weight:800;font-family:inherit;font-variant-numeric:tabular-nums}
 @media(max-width:440px){.weight-chart-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.weight-chart-summary>div:last-child{grid-column:1/-1}}
+
+/* Signed-in Web gate: no plan / inactive / expired / unverifiable entitlement. */
+.web-access-gate{min-height:100dvh;display:grid;place-items:center;padding:28px 16px 56px;background:radial-gradient(circle at 50% 10%,#164f57,#082229 72%)}
+.web-access-gate.hidden{display:none!important}
+.web-access-panel{width:min(100%,510px);padding:28px 24px;border:1px solid rgba(90,242,247,.23);border-radius:28px;background:#0C2B33;box-shadow:0 20px 60px rgba(0,0,0,.28);text-align:center;display:grid;gap:14px}
+.web-access-logo{width:102px;height:102px;object-fit:contain;margin:0 auto 4px}
+.web-access-panel .eyebrow{margin:0}
+.web-access-panel h1{margin:0;font-size:clamp(24px,5vw,30px);letter-spacing:-.035em;color:#F4FAFB}
+.web-access-panel>p{margin:0;color:#B5CBD0;line-height:1.6;font-size:14px}
+.web-access-plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.web-access-plans div{display:grid;gap:4px;padding:14px 10px;border:1px solid rgba(90,242,247,.16);border-radius:14px;background:rgba(255,255,255,.035)}
+.web-access-plans small{color:#B5CBD0;font-size:11px;font-weight:850;letter-spacing:.04em}
+.web-access-plans strong{color:#F4FAFB;font-size:24px;font-variant-numeric:tabular-nums}
+.web-access-panel .button{width:100%}
+.web-access-panel .web-access-hint{font-size:12px}
+.web-access-panel .web-access-privacy{font-size:12px}
+.web-access-panel .web-access-privacy a{color:#67E1EA}
+@media(max-width:380px){.web-access-panel{padding:24px 16px}.web-access-plans strong{font-size:20px}}
