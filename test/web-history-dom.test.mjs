@@ -237,6 +237,7 @@ test('visible Web imports delayed Android movement, nutrition and water without 
     Object.defineProperty(w.document,'visibilityState',{configurable:true,value:'visible'});
     Object.defineProperty(w.navigator,'onLine',{configurable:true,value:false});await h.tick();assert.equal(h.reads(),count);
     for(let i=0;i<3;i++){w.dispatchEvent(new w.Event('pagehide'));assert.equal(h.timers.size,0);w.dispatchEvent(new w.Event('pageshow'));assert.equal(h.timers.size,2)}
+    await pause(); // Let last simulated PWA resume finish its entitlement/history requests before JSDOM closes.
   }finally{h.dom.window.close()}
 });
 
