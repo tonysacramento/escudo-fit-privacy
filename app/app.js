@@ -296,6 +296,7 @@ function setText(id,value){
 }
 
 function activateView(target){
+  if(!ensureWebAccess())return;
   const experience=experienceForEntitlement(auth?.entitlement?.mode||'FREE');
   const requested=document.querySelector('.app-view[data-view="'+target+'"]');
   if(experience==='WELLNESS'&&requested?.hasAttribute('data-full-only'))target='home';
@@ -384,7 +385,7 @@ function renderWeightChart(containerId){
 
 function renderApp(){
   historyDraftFields.clear();
-  if(!auth?.user)return;
+  if(!webAccessAllowed()){ensureWebAccess();return;}
   reconcileWebLocalDay();
   const experience=applyExperience();
   const today=localDayKey();
@@ -702,6 +703,7 @@ async function flushPendingHistory(){
   const owner=auth.user.id;
   const entries=loadHistoryOutbox();
   for(const entry of entries){
+    if(!webAccessAllowed())return false;
     try{
       let payload=entry.payload;
       let expectedNutritionIds=null;
@@ -721,7 +723,7 @@ async function flushPendingHistory(){
         expectedNutritionIds=new Set(rebased.flatMap(day=>day.meals.map(meal=>meal.id)));
         payload={...payload,nutrition:rebased};
       }
-      if(auth?.user?.id!==owner)return false;
+      if(auth?.user?.id!==owner||!webAccessAllowed())return false;
       const res=await authenticatedFetch('/history/sync',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -759,7 +761,7 @@ async function syncHistoryPatch(payload){
       createdAtMs:Date.now()
     });
     storeHistoryOutbox(entries);
-    return flushPendingHistory();
+    return webAccessAllowed()?flushPendingHistory():false;
   }).catch(()=>false);
   historyPatchChain=pending.then(()=>undefined);
   return pending;
