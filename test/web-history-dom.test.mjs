@@ -387,8 +387,16 @@ test('installation guidance persists and installed PWA explains its state',async
 for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('plan '+mode+' selects Application navigation and Android distribution without treatment',async()=>{
   const h=await liveSession({mode});const {w}=h;
   try{
-    const full=mode!=='FREE';
-    assert.equal(w.document.getElementById('navMedication').classList.contains('hidden'),!full);
+    if(mode==='FREE'){
+      assert.equal(w.document.getElementById('webAccessGate').classList.contains('hidden'),false);
+      assert.equal(w.document.getElementById('appExperience').classList.contains('hidden'),true);
+      assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),true);
+      w.document.getElementById('webAccessLogout').click();await pause();
+      assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);
+      return;
+    }
+    const full=true;
+    assert.equal(w.document.getElementById('navMedication').classList.contains('hidden'),false);
     assert.equal(w.document.getElementById('medicationDashboardCard').classList.contains('hidden'),!full);
     assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),!full);
     if(full){
