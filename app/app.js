@@ -1504,7 +1504,7 @@ function refreshWebEntitlement(){
       saveAuth({...auth,entitlement:data});
       entitlementVerified=true;
       if(webAccessDecision(data).allowed){
-        if(!accountUiReady)showApp();else renderApp();
+        if(!accountUiReady)showApp();else applyExperience(); // Never overwrite unsaved form drafts on plan revalidation.
         return true;
       }
       showWebAccessGate(webAccessDecision(data).reason);
