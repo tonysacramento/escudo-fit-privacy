@@ -1,0 +1,55 @@
+name: Escudo Fit Legacy Web Rollback HTTP Smoke
+
+on:
+  push:
+    branches:
+      - qa/legacy-pages-rollback-check-20261013
+    paths:
+      - '.github/workflows/legacy-pages-rollback-smoke.yml'
+
+permissions:
+  contents: read
+  pages: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check legacy URL and current Pages settings (read-only)
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request,urllib.error
+          repo=os.environ['GITHUB_REPOSITORY']
+          api=urllib.request.Request('https://api.github.com/repos/'+repo+'/pages',headers={
+              'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+              'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(api,timeout=25) as r: obj=json.load(r)
+          print('PAGES_CURRENT_URL='+str(obj.get('html_url')))
+          print('PAGES_CURRENT_CNAME='+str(obj.get('cname')))
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self,request,fp,code,msg,headers,newurl):return None
+          op=urllib.request.build_opener(NoRedirect())
+          for label,path in (
+            ('OLD_HOME','https://tonysacramento.github.io/escudo-fit-privacy/'),
+            ('OLD_APP','https://tonysacramento.github.io/escudo-fit-privacy/app/'),
+            ('OLD_PRIVACY','https://tonysacramento.github.io/escudo-fit-privacy/privacy.html'),
+          ):
+            try:
+              with op.open(urllib.request.Request(path,headers={'User-Agent':'EscudoFitLegacySmoke/1.0'}),timeout=25) as r:
+                body=r.read(150000).decode('utf-8','replace')
+                print(label+'_HTTP='+str(r.status))
+                print(label+'_HTML='+str('<html' in body.lower()))
+                print(label+'_CUSTOM_DOMAIN_REDIRECT=False')
+            except urllib.error.HTTPError as e:
+              print(label+'_HTTP='+str(e.code))
+              print(label+'_LOCATION='+str(e.headers.get('Location')))
+              print(label+'_CUSTOM_DOMAIN_REDIRECT='+str('escudofit.com.br' in str(e.headers.get('Location'))))
+            except Exception as e:
+              print(label+'_ERROR='+type(e).__name__)
+          print('READ_ONLY_TEST_COMPLETED=True')
+          PY
