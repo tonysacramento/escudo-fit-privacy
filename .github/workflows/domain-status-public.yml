@@ -1,0 +1,79 @@
+name: Escudo Fit Public Domain Status (Read Only)
+
+on:
+  push:
+    branches: [qa/domain-public-readiness-20261013]
+    paths: ['.github/workflows/domain-status-public.yml']
+
+permissions:
+  contents: read
+  pages: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect DNS, HTTPS, old Web and Pages config
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, socket, ssl, urllib.request, urllib.error, urllib.parse
+          headers={'User-Agent':'EscudoFitDomainStatus/2026-10-13'}
+          repo=os.environ['GITHUB_REPOSITORY']
+          try:
+            req=urllib.request.Request(f'https://api.github.com/repos/{repo}/pages',headers={
+              **headers, 'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+              'Accept':'application/vnd.github+json'})
+            with urllib.request.urlopen(req,timeout=15) as r: pages=json.load(r)
+            print('PAGES_URL='+str(pages.get('html_url')))
+            print('PAGES_CNAME='+str(pages.get('cname')))
+            print('PAGES_HTTPS_ENFORCED='+str(pages.get('https_enforced')))
+            print('PAGES_CERT_STATE='+str((pages.get('https_certificate') or {}).get('state','UNKNOWN')))
+          except Exception as e:print('PAGES_SETTINGS_ERROR='+type(e).__name__)
+          for name,typ in [('escudofit.com.br','A'),('www.escudofit.com.br','CNAME')]:
+            for resolver in ['dns.google','cloudflare-dns.com']:
+              try:
+                query=urllib.parse.urlencode({'name':name,'type':typ})
+                base=('https://dns.google/resolve?' if resolver=='dns.google'
+                  else 'https://cloudflare-dns.com/dns-query?')+query
+                req=urllib.request.Request(base,headers={**headers,'Accept':'application/dns-json'})
+                with urllib.request.urlopen(req,timeout=12) as r:d=json.load(r)
+                ans=','.join(str(a.get('data')) for a in d.get('Answer',[]) if a.get('type')=={'A':1,'CNAME':5}[typ])
+                print('DNS_'+resolver+'_'+name+'_'+typ+'_STATUS='+str(d.get('Status')))
+                print('DNS_'+resolver+'_'+name+'_'+typ+'_ANSWER='+(ans or 'EMPTY'))
+              except Exception as e:print('DNS_'+resolver+'_'+name+'_ERROR='+type(e).__name__)
+          try:
+            names=sorted({p[4][0] for p in socket.getaddrinfo('escudofit.com.br',443,type=socket.SOCK_STREAM)})
+            print('OS_RESOLVER_APEX='+','.join(names))
+          except Exception as e:print('OS_RESOLVER_APEX=PENDING_'+type(e).__name__)
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self,req,fp,code,msg,headers,newurl):return None
+          op=urllib.request.build_opener(NoRedirect())
+          urls=[
+            ('LEGACY_HOME','https://tonysacramento.github.io/escudo-fit-privacy/'),
+            ('LEGACY_WEB','https://tonysacramento.github.io/escudo-fit-privacy/app/'),
+            ('CUSTOM_HOME','https://escudofit.com.br/'),
+            ('CUSTOM_WEB','https://escudofit.com.br/app/'),
+            ('CUSTOM_WWW','https://www.escudofit.com.br/'),
+          ]
+          for label,url in urls:
+            try:
+              req=urllib.request.Request(url,headers=headers)
+              with op.open(req,timeout=12) as r:
+                body=r.read(150000).decode('utf-8','replace')
+                print(label+'_HTTP='+str(r.status))
+                if label=='LEGACY_HOME':
+                  print('LIVE_MONTHLY_4_99='+str('R$ 4,99' in body))
+                  print('LIVE_ANNUAL_49_90='+str('R$ 49,90' in body))
+                if label=='LEGACY_WEB':print('WEB_PAYWALL_PRESENT='+str('webAccessGate' in body))
+                if label=='CUSTOM_HOME':print('NEW_HOME_BRAND='+str('Sua rotina.' in body))
+            except urllib.error.HTTPError as e:
+              print(label+'_HTTP='+str(e.code))
+              print(label+'_REDIRECT='+str(e.headers.get('Location','NONE')))
+            except Exception as e:print(label+'_HTTP=PENDING_'+type(e).__name__)
+          print('CHECK_MODE=READ_ONLY')
+          PY
