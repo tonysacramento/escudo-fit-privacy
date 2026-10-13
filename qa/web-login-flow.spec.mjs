@@ -310,7 +310,7 @@ test('revoked cached session requires a new login', async ({ page }) => {
 });
 
 
-test('FREE account opens Web Full and hydrates complete account history', async ({ page }) => {
+test('valid 14-day trial opens Web Full and hydrates complete account history', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.route('https://accounts.google.com/gsi/client', async route => {
@@ -341,7 +341,7 @@ test('FREE account opens Web Full and hydrates complete account history', async 
       headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify({
         user: { id:'qa-free', email:'qa.free@example.com', name:'QA Wellness' },
-        entitlement: { mode:'FREE', source:'SYSTEM_DEFAULT', isActive:true, expiresAt:null, revalidateAfter:null },
+        entitlement: { mode:'TRIAL_14D', source:'WEB_QUICK_TRIAL', isActive:true, expiresAt:new Date(Date.now()+14*86400000).toISOString(), revalidateAfter:null },
         access_token:'qa-free-access',
         refresh_token:'qa-free-refresh'
       })
@@ -408,8 +408,8 @@ test('FREE account opens Web Full and hydrates complete account history', async 
 
   await expect(page.locator('#appExperience')).toBeVisible();
   await expect(page.locator('#experienceLabel')).toHaveText('FULL');
-  await expect(page.locator('#planBadge')).toHaveText('FREE');
-  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • FREE');
+  await expect(page.locator('#planBadge')).toHaveText('TRIAL');
+  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • TRIAL');
   await expect(page.locator('.app-view[data-view="measurements"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('.app-view[data-view="activities"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('.app-view[data-view="applications"]')).not.toHaveClass(/entitlement-hidden/);
