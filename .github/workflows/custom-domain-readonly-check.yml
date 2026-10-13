@@ -1,0 +1,62 @@
+name: Escudo Fit Custom Domain Read-only Verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/custom-domain-readonly-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+jobs:
+  verify-domain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Pages domain, authoritative DNS records and public TLS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,os,socket,urllib.request,urllib.error,ssl
+          repo=os.environ['GITHUB_REPOSITORY']
+          api=f'https://api.github.com/repos/{repo}/pages'
+          req=urllib.request.Request(api,headers={
+            'Authorization':'Bearer '+os.environ['GITHUB_TOKEN'],
+            'Accept':'application/vnd.github+json',
+            'X-GitHub-Api-Version':'2022-11-28'})
+          try:
+            with urllib.request.urlopen(req,timeout=20) as res:
+              data=json.load(res)
+            domain=data.get('cname')
+            cert=data.get('https_certificate') or {}
+            print('PAGES_CUSTOM_DOMAIN='+str(domain))
+            print('PAGES_DOMAIN_MATCH='+str(domain=='escudofit.com.br'))
+            print('PAGES_HTTPS_ENFORCED='+str(data.get('https_enforced')))
+            print('PAGES_CERT_STATE='+str(cert.get('state','UNKNOWN')))
+          except Exception as exc:
+            print('PAGES_SETTINGS_READ='+type(exc).__name__)
+          try:
+            addrs=sorted({row[4][0] for row in socket.getaddrinfo('escudofit.com.br',443,type=socket.SOCK_STREAM)})
+            expected={'185.199.108.153','185.199.109.153','185.199.110.153','185.199.111.153'}
+            print('APEX_DNS_A=',','.join(addr for addr in addrs if ':' not in addr),sep='')
+            print('APEX_A_MATCH_GITHUB='+str(set(a for a in addrs if ':' not in a).issubset(expected) and bool(addrs)))
+          except Exception as exc:
+            print('APEX_DNS_STATUS=PENDING_'+type(exc).__name__)
+          for host in ('escudofit.com.br','www.escudofit.com.br'):
+            try:
+              req=urllib.request.Request('https://'+host+'/',headers={'User-Agent':'EscudoFitDomainQA/1.0'})
+              with urllib.request.urlopen(req,timeout=20,context=ssl.create_default_context()) as res:
+                print('HTTPS_'+host+'=HTTP_'+str(res.status))
+                print('FINAL_URL_'+host+'='+res.geturl())
+            except urllib.error.HTTPError as exc:
+              print('HTTPS_'+host+'=HTTP_'+str(exc.code))
+            except Exception as exc:
+              print('HTTPS_'+host+'=PENDING_'+type(exc).__name__)
+          print('DOMAIN_CHECK=READ_ONLY')
+          PY
