@@ -432,6 +432,121 @@ test('valid 14-day trial opens Web Full and hydrates complete account history', 
   await expect(page.locator('#treatmentHistoryList')).toContainText('Ozempic');
 });
 
+// Access rules use trusted /entitlement/me responses. No production account data.
+for(const scenario of [
+  {name:'FREE',mode:'FREE',expiry:null,allowed:false},
+  {name:'expired 14-day trial',mode:'TRIAL_14D',expiry:-1,allowed:false},
+  {name:'valid 14-day trial',mode:'TRIAL_14D',expiry:14,allowed:true},
+  {name:'valid 30-day trial',mode:'TRIAL_30D',expiry:30,allowed:true},
+  {name:'approved temporary 30-day grant',mode:'VIP_TEMPORARY',expiry:30,allowed:true},
+  {name:'expired temporary 30-day grant',mode:'VIP_TEMPORARY',expiry:-1,allowed:false},
+  {name:'Premium',mode:'PREMIUM',expiry:null,allowed:true},
+  {name:'VIP Vitalício',mode:'VIP_LIFETIME',expiry:null,allowed:true},
+  {name:'inactive Premium',mode:'PREMIUM',expiry:null,allowed:false,inactive:true},
+]){
+  test('Web account access: '+scenario.name,async({page})=>{
+    const expiry=scenario.expiry===null?null:new Date(Date.now()+scenario.expiry*86400000).toISOString();
+    const entitlement={
+      mode:scenario.mode,source:'QA_SYNTHETIC',isActive:!scenario.inactive,
+      expiresAt:expiry,revalidateAfter:expiry,
+    };
+    await page.addInitScript(() => {
+      localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({
+        user:{id:'qa-web-gate',email:'gate@example.invalid'},
+        access_token:'qa-access',refresh_token:'qa-refresh',
+        entitlement:{mode:'FREE'},
+      }));
+    });
+    await page.route('**/api/v38/me',route=>route.fulfill({
+      status:200,contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify({user:{id:'qa-web-gate',email:'gate@example.invalid'}}),
+    }));
+    await page.route('**/api/v38/entitlement/me',route=>route.fulfill({
+      status:200,contentType:'application/json',
+      headers:{'access-control-allow-origin':'*'},
+      body:JSON.stringify(entitlement),
+    }));
+    let historyReads=0;
+    await page.route('**/api/v38/history*',route=>{
+      historyReads++;
+      return route.fulfill({status:200,contentType:'application/json',
+        headers:{'access-control-allow-origin':'*'},
+        body:JSON.stringify({weights:[],measurements:[],applications:[],movement:[],nutrition:[],water:[]})});
+    });
+    await page.goto('http://127.0.0.1:4173/app/',{waitUntil:'networkidle'});
+    if(scenario.allowed){
+      await expect(page.locator('#appExperience')).toBeVisible();
+      await expect(page.locator('#webAccessGate')).toBeHidden();
+      await expect(page.locator('#experienceLabel')).toHaveText('FULL');
+      await expect.poll(()=>historyReads).toBeGreaterThan(0);
+    }else{
+      await expect(page.locator('#webAccessGate')).toBeVisible();
+      await expect(page.locator('#appExperience')).toBeHidden();
+      await expect(page.locator('#webPremiumPurchase')).toHaveAttribute('href',/mailto:escudofit@gmail.com/);
+      expect(historyReads).toBe(0);
+      await expect(page.locator('#webAccessMessage')).toContainText('histórico permanece preservado');
+    }
+  });
+}
+
+test('trial expiring while Web is open locks dashboard without erasing cached records',async({page})=>{
+  let expiresAt=new Date(Date.now()+30*86400000).toISOString();
+  const account={id:'qa-expire-mid-session',email:'expire@example.invalid'};
+  await page.addInitScript(({account})=>{
+    localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({
+      user:account,access_token:'access',refresh_token:'refresh',
+      entitlement:{mode:'TRIAL_14D',isActive:true,expiresAt:new Date(Date.now()+86400000).toISOString()},
+    }));
+    localStorage.setItem('escudofit_web_user_v2_'+account.id,JSON.stringify({
+      weights:[{id:'local-safe',value:86.5,at:new Date().toISOString()}]
+    }));
+  },{account});
+  await page.route('**/api/v38/me',route=>route.fulfill({
+    status:200,contentType:'application/json',body:JSON.stringify({user:account})}));
+  await page.route('**/api/v38/entitlement/me',route=>route.fulfill({
+    status:200,contentType:'application/json',
+    body:JSON.stringify({mode:'TRIAL_14D',source:'QA',isActive:true,expiresAt})}));
+  await page.route('**/api/v38/history*',route=>route.fulfill({
+    status:200,contentType:'application/json',body:JSON.stringify({weights:[],water:[]})}));
+  await page.goto('http://127.0.0.1:4173/app/',{waitUntil:'networkidle'});
+  await expect(page.locator('#appExperience')).toBeVisible();
+  expiresAt=new Date(Date.now()-1000).toISOString();
+  await page.evaluate(()=>window.refreshWebEntitlement());
+  await expect(page.locator('#appExperience')).toBeHidden();
+  await expect(page.locator('#webAccessGate')).toBeVisible();
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('escudofit_web_user_v2_qa-expire-mid-session')));
+  expect(saved.weights[0].value).toBe(86.5);
+  expect(await page.evaluate(()=>window.webAccessAllowed())).toBe(false);
+});
+
+test('PWA offline or entitlement server outage does not unlock saved subscription',async({page})=>{
+  await page.addInitScript(()=>{
+    Object.defineProperty(navigator,'standalone',{configurable:true,value:true});
+    localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({
+      user:{id:'qa-verification',email:'verify@example.invalid'},
+      access_token:'access',refresh_token:'refresh',
+      entitlement:{mode:'VIP_LIFETIME',isActive:true,expiresAt:null},
+    }));
+  });
+  await page.route('**/api/v38/me',route=>route.fulfill({
+    status:200,contentType:'application/json',
+    body:JSON.stringify({user:{id:'qa-verification',email:'verify@example.invalid'}})}));
+  await page.route('**/api/v38/entitlement/me',route=>route.fulfill({
+    status:503,contentType:'application/json',body:'{}'}));
+  let historyReads=0;
+  await page.route('**/api/v38/history*',route=>{
+    historyReads++;
+    return route.fulfill({status:200,contentType:'application/json',body:'{}'});
+  });
+  await page.goto('http://127.0.0.1:4173/app/',{waitUntil:'networkidle'});
+  await expect(page.locator('#webAccessGate')).toBeVisible();
+  await expect(page.locator('#webAccessTitle')).toContainText('Verificando');
+  await expect(page.locator('#appExperience')).toBeHidden();
+  expect(historyReads).toBe(0);
+  expect(await page.evaluate(()=>localStorage.getItem('escudofit_web_auth_v1'))).toBeTruthy();
+});
+
 test('quick trial signup reserves access before Google login', async ({ page }) => {
   await page.route('https://accounts.google.com/gsi/client', async route => {
     const mock = `
