@@ -404,6 +404,9 @@ function renderApp(){
   const pp=pct(todayMeals.length,5); // Android shield: 5 meals, not 100 g protein
   const mealProtein=todayMeals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
   const medicationConfigured=!!(state.treatment?.medication&&state.treatment.medication!=='NONE');
+  setText('applicationTreatmentLabel',medicationConfigured
+    ? (medicationLabels[state.treatment.medication]||state.treatment.medication)
+    : 'Não informado');
   const todayApplications=(Array.isArray(state.applications)?state.applications:[])
     .filter(item=>(item.scheduledDateIso||localDayKey(item.at))===today);
   const applicationConfirmed=todayApplications.length>0;
