@@ -227,7 +227,7 @@ async function registerQuickTrial(event){
     sessionStorage.setItem('escudofit_trial_email',email);
     const accessChannel=data.accessChannel||(/@(gmail|googlemail)\.com$/i.test(email)?'GOOGLE_PLAY':'WEB_ONLY');
     const promoPending=data.pendingApproval===true;
-    const campaignAccepted=ACTIVE_PROMO&&data.campaignAccepted===true&&data.promoCode===ACTIVE_PROMO.code&&Number(data.trialDays)===30;
+    const campaignAccepted=ACTIVE_PROMO&&data.existing!==true&&data.campaignAccepted===true&&data.promoCode===ACTIVE_PROMO.code&&Number(data.trialDays)===30;
     if(promoPending){
       setTrialStatus('Sua solicitação foi registrada e ainda está pendente de aprovação. Não é possível ativar este acesso agora.');
       $('trialLoginButton')?.classList.add('hidden');
