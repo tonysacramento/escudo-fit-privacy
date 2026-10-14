@@ -41,5 +41,7 @@ test('Web page contains explicit measurement routes, reminders and no false back
   assert.match(html,/navegador fechado/);
   assert.match(appJs,/EscudoFitWebReminders/);
   assert.match(sw,/web-reminders\.js/);
-  assert.match(html,/web-v43-medications-19/);
+  const currentBuild=/<meta name="escudo-fit-build" content="([^"]+)"/.exec(html)?.[1];
+  assert.match(currentBuild||'',/^web-v43-/);
+  assert.ok(sw.includes(currentBuild),'PWA must cache the same Web build');
 });

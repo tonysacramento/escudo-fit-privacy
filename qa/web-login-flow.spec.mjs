@@ -998,6 +998,40 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
 });
 
 
+// Campaign links request review, not an automatic Premium/30-day entitlement.
+for (const promoCode of ['Requinte30','Tamires30']) {
+  test(promoCode+' shows manual 30-day benefit request and sends canonical attribution', async ({ page }) => {
+    let requestBody=null;
+    await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register',async route=>{
+      requestBody=route.request().postDataJSON();
+      await route.fulfill({
+        status:200,contentType:'application/json',
+        headers:{'access-control-allow-origin':'*'},
+        body:JSON.stringify({registered:true,pendingGoogleLogin:true,accessChannel:'WEB_ONLY'})
+      });
+    });
+    await page.goto('http://127.0.0.1:4173/app/?promo='+promoCode.toLowerCase(),{waitUntil:'networkidle'});
+    await expect(page.locator('#trialTitle')).toHaveText('30 dias grátis de Escudo Fit');
+    await expect(page.locator('#trialEyebrow')).toContainText(promoCode);
+    await expect(page.locator('#campaignSupportLink')).toHaveAttribute('href',new RegExp(
+      'wa\\.me/5511985237017\\?text=.*'+promoCode));
+    await expect(page.locator('#trialEmail')).toHaveValue('');
+    await page.locator('#trialName').fill('Participante de QA');
+    await page.locator('#trialEmail').fill('qa-campaign@example.invalid');
+    await page.locator('#trialLgpd').check();
+    await page.locator('#trialForm').evaluate(form=>form.requestSubmit());
+    await expect(page.locator('#trialStatus')).toContainText('depende de aprovação manual');
+    await expect(page.locator('#trialLoginButton')).toBeHidden();
+    expect(requestBody.promoCode).toBe(promoCode);
+    expect(requestBody.email).toBe('qa-campaign@example.invalid');
+  });
+}
+test('unknown promo code does not turn ordinary 14-day signup into 30 days',async({page})=>{
+  await page.goto('http://127.0.0.1:4173/app/?promo=Invalido30',{waitUntil:'networkidle'});
+  await expect(page.locator('#trialTitle')).toContainText('14 dias');
+  await expect(page.locator('#campaignSupportLink')).toBeHidden();
+});
+
 test('web application registration syncs to account history', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('escudofit_web_auth_v1', JSON.stringify({
