@@ -833,7 +833,7 @@ body.is-app .app-field input{
 }
 body.is-app .screen-card .section-title+.history{margin-top:12px}
 body.is-app .screen-card .history+.section-title{margin-top:18px}
-body.is-app .profile-weight-card{display:grid;gap:10px}
+body.is-app .profile-weight-card,body.is-app .profile-measurement-card{display:grid;gap:10px}
 body.is-app .profile-weight-card .quick-access-button{font-size:13px}
 body.is-app .app-like-bottom-nav{
   position:fixed;left:50%;bottom:0;transform:translateX(-50%);
