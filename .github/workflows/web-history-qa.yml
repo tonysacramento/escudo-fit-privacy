@@ -41,6 +41,8 @@ jobs:
         run: node --test test/history-sync-contract.test.mjs test/history-backup-bridge.test.mjs
       - name: Install DOM smoke test dependency
         run: npm install --no-save --package-lock=false jsdom@26.1.0
+      - name: Campaign quick-registration UI and 30-day coupon tests
+        run: node --test test/web-campaigns.test.mjs
       - name: Authenticated Web history UI and write smoke (synthetic data only)
         run: node --test test/web-history-dom.test.mjs
       - name: Public API availability (no credentials, no personal data)
