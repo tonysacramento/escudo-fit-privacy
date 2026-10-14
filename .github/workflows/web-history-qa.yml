@@ -35,6 +35,8 @@ jobs:
           node --check app/sw.js
       - name: Web reminder scheduling and UI contract tests
         run: node --test test/web-reminders.test.mjs
+      - name: New medication catalog and private Web Push receiver contracts
+        run: node --test test/medication-catalog-push.test.mjs
       - name: Seven-category history contract tests
         run: node --test test/history-sync-contract.test.mjs test/history-backup-bridge.test.mjs
       - name: Install DOM smoke test dependency
