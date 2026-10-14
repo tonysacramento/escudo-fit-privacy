@@ -22,9 +22,10 @@ document.addEventListener('input',event=>{if(event.target.matches('input,textare
 document.addEventListener('change',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
 let googleReady=false;
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
-const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
-  ? {code:'Monise30',trialDays:30,requiresManualApproval:true}
-  : null;
+const CAMPAIGN_CODES={monise30:'Monise30',requinte30:'Requinte30',tamires30:'Tamires30'};
+const PROMO_CANONICAL=CAMPAIGN_CODES[PROMO_CODE.trim().toLowerCase()]||null;
+const ACTIVE_PROMO=PROMO_CANONICAL?{code:PROMO_CANONICAL,trialDays:30,requiresManualApproval:false}:null;
+const UNKNOWN_PROMO=Boolean(PROMO_CODE&&!ACTIVE_PROMO);
 
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
@@ -174,17 +175,23 @@ function setTrialStatus(message,isError=false){
 }
 
 function applyPromoLanding(){
+  if(UNKNOWN_PROMO){
+    setTrialStatus('Cupom não reconhecido. Confirme o código com a pessoa que compartilhou o convite.',true);
+    const btn=$('trialSubmit');if(btn)btn.disabled=true;
+    return;
+  }
   if(!ACTIVE_PROMO)return;
   setText('trialEyebrow','BENEFÍCIO EXCLUSIVO');
   setText('trialTitle','30 dias grátis de Escudo Fit');
-  setText('trialIntro','Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.');
+  setText('trialIntro','Cadastre-se e entre pela primeira vez usando a mesma Conta Google. Seus 30 dias começarão automaticamente após a verificação do acesso.');
   const button=$('trialSubmit');
-  if(button)button.textContent='Solicitar 30 dias grátis';
+  if(button)button.textContent='Cadastrar e ativar 30 dias com Google';
 }
 applyPromoLanding();
 
 async function registerQuickTrial(event){
   event?.preventDefault?.();
+  if(UNKNOWN_PROMO)return setTrialStatus('Cupom inválido. Não foi criado nenhum cadastro.',true);
   const name=$('trialName')?.value.trim()||'';
   const email=$('trialEmail')?.value.trim().toLowerCase()||'';
   const company=$('trialCompany')?.value||'';
@@ -219,10 +226,19 @@ async function registerQuickTrial(event){
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     sessionStorage.setItem('escudofit_trial_email',email);
     const accessChannel=data.accessChannel||(/@(gmail|googlemail)\.com$/i.test(email)?'GOOGLE_PLAY':'WEB_ONLY');
-    const promoPending=data.pendingApproval===true||ACTIVE_PROMO?.requiresManualApproval===true;
+    const promoPending=data.pendingApproval===true;
+    const campaignAccepted=ACTIVE_PROMO&&data.campaignAccepted===true&&data.promoCode===ACTIVE_PROMO.code&&Number(data.trialDays)===30;
     if(promoPending){
-      setTrialStatus('Solicitação recebida. Seu benefício de 30 dias grátis está em análise e será liberado em até 24 horas. Você receberá a confirmação após a aprovação.');
+      setTrialStatus('Sua solicitação foi registrada e ainda está pendente de aprovação. Não é possível ativar este acesso agora.');
       $('trialLoginButton')?.classList.add('hidden');
+      $('trialAndroidButton')?.classList.add('hidden');
+    }else if(ACTIVE_PROMO&&campaignAccepted){
+      setTrialStatus('Cadastro recebido. Entre com a mesma Conta Google para ativar automaticamente os 30 dias. O benefício não será iniciado antes da verificação da sua conta.');
+      $('trialLoginButton')?.classList.remove('hidden');
+      $('trialAndroidButton')?.classList.remove('hidden');
+    }else if(ACTIVE_PROMO){
+      setTrialStatus('Este e-mail já possui cadastro ou benefício anterior. O cupom não renova nem substitui o acesso existente. Entre para conferir seu plano.');
+      $('trialLoginButton')?.classList.remove('hidden');
       $('trialAndroidButton')?.classList.add('hidden');
     }else if(accessChannel==='GOOGLE_PLAY'){
       setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis e acessar o Android.');
@@ -242,7 +258,7 @@ async function registerQuickTrial(event){
         : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
       true
     );
-    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Solicitar 30 dias grátis':'Começar 14 dias grátis'}
+    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Cadastrar e ativar 30 dias com Google':'Começar 14 dias grátis'}
   }
 }
 
