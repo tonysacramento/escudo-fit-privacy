@@ -1,13 +1,13 @@
-const CACHE='escudo-fit-web-v27-reminders';
+const CACHE='escudo-fit-web-v28-medications';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-reminders-18',
-  './history-sync-contract.js?v=web-v43-reminders-18',
-  './history-backup-bridge.js?v=web-v43-reminders-18',
-  './web-reminders.js?v=web-v43-reminders-18',
-  './app.js?v=web-v43-reminders-18',
-  './body-map.js?v=web-v43-reminders-18',
+  './styles.css?v=web-v43-medications-19',
+  './history-sync-contract.js?v=web-v43-medications-19',
+  './history-backup-bridge.js?v=web-v43-medications-19',
+  './web-reminders.js?v=web-v43-medications-19',
+  './app.js?v=web-v43-medications-19',
+  './body-map.js?v=web-v43-medications-19',
   './android-icon.svg',
   './icon-approved-v43.png',
   './splash-approved-v43.png',
