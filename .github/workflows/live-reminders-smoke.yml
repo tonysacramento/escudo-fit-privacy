@@ -1,0 +1,49 @@
+name: Escudo Fit Live Measurements and Reminder Smoke
+
+on:
+  push:
+    branches: [qa/web-reminders-live-smoke-20261013]
+    paths: ['.github/workflows/live-reminders-smoke.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify official domain serves Web measures and both reminder settings over HTTPS
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,ssl
+          root='https://escudofit.com.br/app/'
+          ctx=ssl.create_default_context()
+          expected={
+            'index.html':[
+              'web-v43-reminders-18','profileMeasurementSummary','measurementHistoryList',
+              'data-view="measurements"','webHydrationEnabled','webHydrationSave',
+              'webApplicationEnabled','webApplicationSave','webApplicationFrequency'
+            ],
+            'app.js?v=web-v43-reminders-18':[
+              'EscudoFitWebReminders','profileMeasurementSummary','hydrateAccountHistory',
+              'webAccessAllowed'
+            ],
+            'web-reminders.js?v=web-v43-reminders-18':[
+              'dueHydration','dueApplication','serviceWorker','webHydrationSave',
+              'webApplicationSave','escudofit_web_reminder_prefs_v1_'
+            ],
+            'sw.js':['escudo-fit-web-v27-reminders','web-reminders.js?v=web-v43-reminders-18']
+          }
+          for path,markers in expected.items():
+            req=urllib.request.Request(root+path,headers={'User-Agent':'EscudoFitLiveRemindersQA/1.0'})
+            with urllib.request.urlopen(req,timeout=25,context=ctx) as resp:
+              assert resp.status==200,(path,resp.status)
+              body=resp.read(300000).decode('utf-8','replace')
+              for marker in markers:
+                assert marker in body,(path,'MISSING',marker)
+              print(path.split('?')[0]+'_HTTPS_200_AND_MARKERS=PASS')
+          print('LIVE_MEASURES_AND_REMINDERS=PASS')
+          print('INTERACTIVE_NOTIFICATIONS_REQUIRE_USER_PERMISSION=True')
+          PY
