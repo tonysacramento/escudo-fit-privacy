@@ -1495,6 +1495,7 @@ const webReminderUI=window.EscudoFitWebReminders?.mount({
 // signed-in page current without requiring navigation or a manual button.
 function refreshVisibleAccountHistory(){
   if(!accountUiReady||!webAccessAllowed()||document.visibilityState!=='visible')return;
+  reconcileWebLocalDay(); // A new day must not inherit yesterday's completed water goal.
   webReminderUI?.tick();
   if(navigator.onLine===false)return;
   void hydrateAccountHistory({silent:true});
