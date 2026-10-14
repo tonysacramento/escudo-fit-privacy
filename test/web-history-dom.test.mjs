@@ -9,6 +9,7 @@ const html=readFileSync('app/index.html','utf8');
 const js=readFileSync('app/app.js','utf8');
 const contract=readFileSync('app/history-sync-contract.js','utf8');
 const bridge=readFileSync('app/history-backup-bridge.js','utf8');
+const reminders=readFileSync('app/web-reminders.js','utf8');
 const pause=()=>new Promise(resolve=>setTimeout(resolve,55));
 
 test('synthetic authenticated Web session renders all categories and posts two-way compatible records',async()=>{
@@ -63,6 +64,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   };
   window.eval(contract);
   window.eval(bridge);
+  window.eval(reminders);
   window.eval(js);
   await pause();
   const get=id=>window.document.getElementById(id);
@@ -79,6 +81,28 @@ test('synthetic authenticated Web session renders all categories and posts two-w
   assert.match(get('historySyncStatus').textContent,/Nutrição recebida: API 1, backup 0/);
   assert.match(get('historySyncStatus').textContent,/1 tratamento/);
   assert.match(get('measurementHistoryList').textContent,/95/);
+  assert.match(get('profileMeasurementSummary').textContent,/Cintura: 90 cm/);
+  assert.match(get('profileMeasurementSummary').textContent,/Quadril: 95 cm/);
+  assert.ok(window.document.querySelector('.quick-access [data-view-link="measurements"]'));
+  assert.ok(window.document.querySelector('.profile-weight-card [data-view-link="measurements"]'));
+  window.document.querySelector('.quick-access [data-view-link="measurements"]').click();
+  assert.ok(window.document.querySelector('.app-view[data-view="measurements"].active'),
+    'a página de Medidas deve estar acessível pelos atalhos');
+  get('webHydrationEnabled').checked=true;
+  get('webHydrationInterval').value='2';
+  get('webHydrationStart').value='07:00';
+  get('webHydrationEnd').value='22:00';
+  get('webHydrationSave').click();
+  await pause();
+  assert.equal(JSON.parse(window.localStorage.getItem('escudofit_web_reminder_prefs_v1_qa-user')).hydration.enabled,true);
+  get('webApplicationEnabled').checked=true;
+  get('webApplicationFrequency').value='WEEKLY';
+  get('webApplicationWeekday').value='2';
+  get('webApplicationAnchor').value='2026-10-13';
+  get('webApplicationTime').value='09:00';
+  get('webApplicationSave').click();
+  await pause();
+  assert.equal(JSON.parse(window.localStorage.getItem('escudofit_web_reminder_prefs_v1_qa-user')).application.weekday,2);
   assert.match(get('movementHistoryList').textContent,/Caminhada/);
   assert.match(get('nutritionHistoryList').textContent,/22/);
   assert.match(get('treatmentHistoryList').textContent,/Mounjaro/);
@@ -214,7 +238,7 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage,validationGat
     if(path.endsWith('/history/backup'))return response(200,{revision:0,entries:[]});
     return response(200);
   };
-  w.eval(contract);w.eval(bridge);w.eval(js);onBoot?.(w);await pause();
+  w.eval(contract);w.eval(bridge);w.eval(reminders);w.eval(js);onBoot?.(w);await pause();
   return {dom,w,timers,session,reads:()=>reads,refreshed:()=>refreshed,setRemote:value=>remote=value,block:value=>block=value,
     tick:async()=>{for(const t of timers.values())if(t.ms===30000)t.fn();await pause()}};
 }

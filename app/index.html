@@ -20,11 +20,11 @@
   <meta name="apple-mobile-web-app-title" content="Escudo Fit Web">
   <link rel="apple-touch-icon" href="./icon-approved-v43.png">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-pricing-17">
+  <meta name="escudo-fit-build" content="web-v43-reminders-18">
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-pricing-17">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-reminders-18">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -279,6 +279,7 @@
             <button class="quick-access-button gold" data-view-link="nutrition"><span>🍽️</span>REGISTRAR REFEIÇÃO</button>
             <button class="quick-access-button green-action" data-view-link="activities"><span>🏃</span>REGISTRAR MOVIMENTO</button>
             <button class="quick-access-button gold" data-view-link="applications"><span>💉</span>AJUSTAR MEDICAÇÃO / DOSE</button>
+            <button class="quick-access-button" data-view-link="measurements"><span>📏</span>MEDIDAS CORPORAIS</button>
           </div>
           <p class="app-medical-note">Metas são orientativas. O Escudo Fit não prescreve, recomenda dose ou determina conduta médica.</p>
         </section>
@@ -472,6 +473,37 @@
             <div class="section-title gold"><span>📖</span><b>HISTÓRICO WEB</b></div>
             <div id="applicationHistory" class="history"></div>
           </article>
+          <article class="screen-card reminder-card" data-full-only>
+            <div class="section-title cyan"><span>🔔</span><b>LEMBRETE DA PRÓXIMA APLICAÇÃO — WEB</b></div>
+            <p class="muted">Configure um aviso de consulta ao seu cronograma. Os alertas funcionam enquanto esta página estiver aberta; não alteram o calendário nem as notificações do Android.</p>
+            <label class="reminder-switch"><input id="webApplicationEnabled" type="checkbox"> Ativar lembrete neste navegador</label>
+            <div class="reminder-fields">
+              <label class="app-field">Frequência
+                <select id="webApplicationFrequency">
+                  <option value="DAILY">Diária</option>
+                  <option value="WEEKLY">Semanal</option>
+                  <option value="OTHER">A cada N dias</option>
+                </select>
+              </label>
+              <label class="app-field" id="webApplicationWeekly">Dia da semana
+                <select id="webApplicationWeekday">
+                  <option value="0">Domingo</option><option value="1">Segunda-feira</option><option value="2">Terça-feira</option>
+                  <option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option>
+                </select>
+              </label>
+              <label class="app-field" id="webApplicationEvery" hidden>Intervalo (2 a 30 dias)
+                <input id="webApplicationEveryDays" type="number" min="2" max="30" step="1" value="7">
+              </label>
+              <label class="app-field">Data de referência
+                <input id="webApplicationAnchor" type="date">
+              </label>
+              <label class="app-field">Horário do alerta
+                <input id="webApplicationTime" type="time" value="09:00">
+              </label>
+            </div>
+            <button id="webApplicationSave" class="quick-access-button gold" type="button">SALVAR LEMBRETE DE APLICAÇÃO</button>
+            <p id="webApplicationStatus" class="saved" role="status" aria-live="polite">Alerta Web desativado.</p>
+          </article>
         </section>
 
         <section class="app-view" data-view="measurements" data-full-only>
@@ -539,6 +571,11 @@
             <button id="saveProfile" class="quick-access-button">SALVAR PERFIL</button>
           </article>
 
+          <article class="screen-card profile-measurement-card" data-full-only>
+            <div class="section-title cyan"><span>📏</span><b>MEDIDAS CORPORAIS</b></div>
+            <p class="muted" id="profileMeasurementSummary">Carregando suas medidas registradas…</p>
+            <button class="quick-access-button" data-view-link="measurements">VER / REGISTRAR MEDIDAS E HISTÓRICO</button>
+          </article>
           <article class="screen-card profile-weight-card">
             <div class="section-title gold"><b>PESO E APLICAÇÃO</b></div>
             <p class="muted">Peso atual: <strong id="profileCurrentWeight">não registrado</strong></p>
@@ -553,9 +590,21 @@
             <button class="quick-access-button" data-view-link="weight">VER HISTÓRICO DE PESO</button>
           </article>
 
-          <article class="screen-card">
-            <div class="section-title cyan"><b>LEMBRETES DE HIDRATAÇÃO</b></div>
-            <p class="muted">Os alarmes locais são configurados pelo aplicativo Android. O navegador não programa as notificações nativas do aparelho.</p>
+          <article class="screen-card reminder-card" data-full-only>
+            <div class="section-title cyan"><span>🔔</span><b>LEMBRETES DE HIDRATAÇÃO — WEB</b></div>
+            <p class="muted">Avisos enquanto esta página estiver aberta. Ao atingir sua meta diária, os avisos de água param até o dia seguinte. Não substitui os alarmes do Android ou notificações push com o navegador fechado.</p>
+            <label class="reminder-switch"><input id="webHydrationEnabled" type="checkbox"> Ativar lembretes neste navegador</label>
+            <div class="reminder-fields">
+              <label class="app-field">Repetir a cada
+                <select id="webHydrationInterval">
+                  <option value="1">1 hora</option><option value="2" selected>2 horas</option><option value="3">3 horas</option>
+                </select>
+              </label>
+              <label class="app-field">Início dos alertas <input type="time" id="webHydrationStart" value="07:00"></label>
+              <label class="app-field">Fim dos alertas <input type="time" id="webHydrationEnd" value="22:00"></label>
+            </div>
+            <button id="webHydrationSave" class="quick-access-button" type="button">SALVAR LEMBRETES DE ÁGUA</button>
+            <p id="webHydrationStatus" class="saved" role="status" aria-live="polite">Lembretes Web desativados.</p>
           </article>
 
           <div class="screen-card" data-full-only>
@@ -616,9 +665,10 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-pricing-17" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-pricing-17" defer></script>
-  <script src="./body-map.js?v=web-v43-pricing-17" defer></script>
-  <script src="./app.js?v=web-v43-pricing-17" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-reminders-18" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-reminders-18" defer></script>
+  <script src="./body-map.js?v=web-v43-reminders-18" defer></script>
+  <script src="./web-reminders.js?v=web-v43-reminders-18" defer></script>
+  <script src="./app.js?v=web-v43-reminders-18" defer></script>
 </body>
 </html>

@@ -279,6 +279,7 @@ function showApp(){
   accountUiReady=true;
   reconcileWebLocalDay();
   renderApp();
+  webReminderUI?.refresh();
   activateView('home');
   // One authoritative hydration path prevents a slower duplicate request from
   // overwriting local records that have not synchronized yet.
@@ -517,6 +518,13 @@ function renderApp(){
   renderWeightChart('weightChartFull');
   renderWeightChart('weightChartProfile');
   const m=state.measurements||{};
+  const latestMeasurement=(Array.isArray(state.measurementHistory)?state.measurementHistory:[])[0];
+  const measurementSummary=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']]
+    .filter(([key])=>m[key]!=null&&Number.isFinite(Number(m[key]))&&Number(m[key])>0)
+    .map(([key,label])=>label+': '+Number(m[key]).toLocaleString('pt-BR')+' cm');
+  setText('profileMeasurementSummary',measurementSummary.length
+    ? measurementSummary.join(' • ')+(latestMeasurement?.date?' • Último registro: '+new Date(latestMeasurement.date+'T12:00:00').toLocaleDateString('pt-BR'):'')
+    : 'Nenhuma medida encontrada nesta conta. Toque abaixo para registrar ou consultar o histórico.');
   [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
   if($('measurementHistoryList')){
     const fields=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']];
@@ -1471,10 +1479,25 @@ window.addEventListener('appinstalled',()=>{
   installPrompt=null;pwaInstalledThisSession=true;renderInstallAction();toast('Escudo Fit Web instalado');
 });
 
+// Browser reminders share the existing visible-page refresh timer. They have
+// their own per-account local preferences and never schedule Android alarms.
+const webReminderUI=window.EscudoFitWebReminders?.mount({
+  getContext:()=>({
+    authenticated:webAccessAllowed(),
+    userId:auth?.user?.id||'',
+    water:Number(state.water)||0,
+    waterGoal:Number(state.waterGoal)||0,
+    applications:state.applications
+  }),
+  onToast:toast,
+});
 // Android can finish uploading after the Web's initial read. Keep a visible
 // signed-in page current without requiring navigation or a manual button.
 function refreshVisibleAccountHistory(){
-  if(!accountUiReady||!webAccessAllowed()||document.visibilityState!=='visible'||navigator.onLine===false)return;
+  if(!accountUiReady||!webAccessAllowed()||document.visibilityState!=='visible')return;
+  reconcileWebLocalDay(); // A new day must not inherit yesterday's completed water goal.
+  webReminderUI?.tick();
+  if(navigator.onLine===false)return;
   void hydrateAccountHistory({silent:true});
 }
 window.addEventListener('focus',refreshVisibleAccountHistory);

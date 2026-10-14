@@ -31,7 +31,10 @@ jobs:
           node --check app/history-sync-contract.js
           node --check app/history-backup-bridge.js
           node --check app/app.js
+          node --check app/web-reminders.js
           node --check app/sw.js
+      - name: Web reminder scheduling and UI contract tests
+        run: node --test test/web-reminders.test.mjs
       - name: Seven-category history contract tests
         run: node --test test/history-sync-contract.test.mjs test/history-backup-bridge.test.mjs
       - name: Install DOM smoke test dependency
