@@ -20,11 +20,11 @@
   <meta name="apple-mobile-web-app-title" content="Escudo Fit Web">
   <link rel="apple-touch-icon" href="./icon-approved-v43.png">
   <meta name="description" content="Escudo Fit Full — acompanhe hidratação, movimento, nutrição, peso, medidas corporais e sua evolução.">
-  <meta name="escudo-fit-build" content="web-v43-reminders-18">
+  <meta name="escudo-fit-build" content="web-v43-medications-19">
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-reminders-18">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-medications-19">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -473,6 +473,12 @@
             <div class="section-title gold"><span>📖</span><b>HISTÓRICO WEB</b></div>
             <div id="applicationHistory" class="history"></div>
           </article>
+          <article class="screen-card" data-full-only>
+            <div class="section-title gold"><span>💉</span><b>MEDICAMENTO DO ACOMPANHAMENTO</b></div>
+            <p class="muted">Tratamento registrado: <strong id="applicationTreatmentLabel">Não informado</strong></p>
+            <button class="quick-access-button gold" type="button" data-focus-view="profile" data-focus-target="treatmentMedication">SELECIONAR / ALTERAR MEDICAMENTO</button>
+            <p class="muted">Este registro não substitui sua prescrição e não modifica automaticamente a frequência dos lembretes.</p>
+          </article>
           <article class="screen-card reminder-card" data-full-only>
             <div class="section-title cyan"><span>🔔</span><b>LEMBRETE DA PRÓXIMA APLICAÇÃO — WEB</b></div>
             <p class="muted">Configure um aviso de consulta ao seu cronograma. Os alertas funcionam enquanto esta página estiver aberta; não alteram o calendário nem as notificações do Android.</p>
@@ -624,13 +630,28 @@
               <label class="app-field">Medicação do acompanhamento
                 <select id="treatmentMedication">
                   <option value="NONE">Nenhuma</option>
-                  <option value="OZEMPIC">Ozempic</option>
-                  <option value="WEGOVY">Wegovy</option>
-                  <option value="MOUNJARO">Mounjaro</option>
-                  <option value="SAXENDA">Saxenda</option>
-                  <option value="OTHER">Outro</option>
+                  <optgroup label="Semaglutida">
+                    <option value="OZEMPIC">Ozempic</option>
+                    <option value="WEGOVY">Wegovy</option>
+                    <option value="OZIVY">Ozivy</option>
+                    <option value="SEMAVY">Semavy</option>
+                    <option value="OWOZY">Owozy</option>
+                    <option value="SEEMASUN">Seemasun</option>
+                    <option value="ZEMPNEO">Zempneo</option>
+                    <option value="ORSEMA">Orsema</option>
+                    <option value="SEMACLIQUE">Semaclique</option>
+                    <option value="SEMAGLUTIDE_GENERIC">Semaglutida (genérico)</option>
+                  </optgroup>
+                  <optgroup label="Tirzepatida">
+                    <option value="MOUNJARO">Mounjaro</option>
+                  </optgroup>
+                  <optgroup label="Liraglutida">
+                    <option value="SAXENDA">Saxenda</option>
+                  </optgroup>
+                  <option value="OTHER">Outro medicamento</option>
                 </select>
               </label>
+              <p class="muted">Selecione somente o medicamento utilizado conforme sua prescrição. A lista não constitui indicação, recomendação de dose ou orientação para trocar de medicamento.</p>
               <label class="app-field">Dose informada pelo usuário<input id="treatmentDose" type="text" maxlength="80" placeholder="Opcional"></label>
               <label class="app-field">Data de início<input id="treatmentStart" type="date"></label>
               <button id="saveTreatment" class="button button-outline full-width">Atualizar histórico de tratamento</button>
@@ -665,10 +686,10 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="./history-sync-contract.js?v=web-v43-reminders-18" defer></script>
-  <script src="./history-backup-bridge.js?v=web-v43-reminders-18" defer></script>
-  <script src="./body-map.js?v=web-v43-reminders-18" defer></script>
-  <script src="./web-reminders.js?v=web-v43-reminders-18" defer></script>
-  <script src="./app.js?v=web-v43-reminders-18" defer></script>
+  <script src="./history-sync-contract.js?v=web-v43-medications-19" defer></script>
+  <script src="./history-backup-bridge.js?v=web-v43-medications-19" defer></script>
+  <script src="./body-map.js?v=web-v43-medications-19" defer></script>
+  <script src="./web-reminders.js?v=web-v43-medications-19" defer></script>
+  <script src="./app.js?v=web-v43-medications-19" defer></script>
 </body>
 </html>
