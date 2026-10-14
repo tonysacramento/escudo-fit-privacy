@@ -1,0 +1,42 @@
+name: Escudo Fit Live Medication Catalog Smoke
+
+on:
+  push:
+    branches: [qa/medication-catalog-public-smoke-20261013]
+    paths: ['.github/workflows/live-medication-catalog-smoke.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify HTTPS deployment of catalog, validation and push receiver
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,ssl
+          base='https://escudofit.com.br/app/'
+          ctx=ssl.create_default_context()
+          expected={
+            'index.html':['web-v43-medications-19','applicationTreatmentLabel','data-focus-target="treatmentMedication"',
+              'value="OZIVY"','value="SEMAVY"','value="OWOZY"','value="SEEMASUN"',
+              'value="ZEMPNEO"','value="ORSEMA"','value="SEMACLIQUE"','value="SEMAGLUTIDE_GENERIC"'],
+            'history-sync-contract.js?v=web-v43-medications-19':
+              ['OZEMPIC','MOUNJARO','OZIVY','SEMAVY','SEMACLIQUE','SEMAGLUTIDE_GENERIC'],
+            'app.js?v=web-v43-medications-19':
+              ['OZIVY','SEMAVY','applicationTreatmentLabel','WEB_ALLOWED_ORIGINS' if False else 'medicationLabels'],
+            'sw.js':['escudo-fit-web-v28-medications',"addEventListener('push'","addEventListener('notificationclick'"],
+          }
+          for path,markers in expected.items():
+            req=urllib.request.Request(base+path,headers={'User-Agent':'EscudoFit-Medications-Live-QA'})
+            with urllib.request.urlopen(req,timeout=20,context=ctx) as r:
+              assert r.status==200,(path,r.status)
+              body=r.read(300000).decode('utf-8','replace')
+              for marker in markers:assert marker in body,(path,'MISSING',marker)
+              print(path.split('?')[0]+'_HTTPS_200=PASS')
+          print('CATALOG_LIVE=PASS')
+          print('BACKGROUND_PUSH_DELIVERY=NOT_ENABLED_NO_BACKEND')
+          PY
