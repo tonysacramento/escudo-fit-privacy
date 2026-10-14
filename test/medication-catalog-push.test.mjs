@@ -39,7 +39,7 @@ test('new and old medication codes are accepted in history contract, unknown cod
 
 test('PWA cache tracks the current Web revision and preload of core code',()=>{
   const version=/<meta name="escudo-fit-build" content="([^"]+)"/.exec(html)?.[1];
-  assert.equal(version,'web-v43-medications-19');
+  assert.equal(version,'web-v43-campaigns-20');
   assert.match(sw,/escudo-fit-web-v28-medications/);
   for(const asset of ['history-sync-contract.js','app.js','sw.js']){
     assert.ok(asset==='sw.js'||html.includes(asset+'?v='+version));
