@@ -79,7 +79,7 @@ function reconcileWebLocalDay(){
 
 const activityLabels={WALKING:'Caminhada',STRENGTH:'Musculação',RUNNING:'Corrida',FUNCTIONAL:'Funcional',CYCLING:'Bicicleta',OTHER:'Outro'};
 const mealLabels={BREAKFAST:'Café da manhã',LUNCH:'Almoço',DINNER:'Jantar',SNACK:'Lanche'};
-const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro',NONE:'Nenhum'};
+const medicationLabels={OZEMPIC:'Ozempic',WEGOVY:'Wegovy',OZIVY:'Ozivy',SEMAVY:'Semavy',OWOZY:'Owozy',SEEMASUN:'Seemasun',ZEMPNEO:'Zempneo',ORSEMA:'Orsema',SEMACLIQUE:'Semaclique',SEMAGLUTIDE_GENERIC:'Semaglutida (genérico)',MOUNJARO:'Mounjaro',SAXENDA:'Saxenda',OTHER:'Outro medicamento',NONE:'Nenhum'};
 const applicationSiteLabels={
   ABDOMEN:'Abdômen',ABDOMEN_LEFT:'Abdômen esquerdo',ABDOMEN_RIGHT:'Abdômen direito',
   THIGH_LEFT:'Coxa esquerda',THIGH_RIGHT:'Coxa direita',ARM_LEFT:'Braço esquerdo',
