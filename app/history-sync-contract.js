@@ -2,7 +2,7 @@
   'use strict';
   const DATE=/^\d{4}-\d{2}-\d{2}$/;
   const MEALS=new Set(['BREAKFAST','LUNCH','DINNER','SNACK']);
-  const MEDICATIONS=new Set(['OZEMPIC','WEGOVY','MOUNJARO','SAXENDA','OTHER','NONE']);
+  const MEDICATIONS=new Set(['OZEMPIC','WEGOVY','OZIVY','SEMAVY','OWOZY','SEEMASUN','ZEMPNEO','ORSEMA','SEMACLIQUE','SEMAGLUTIDE_GENERIC','MOUNJARO','SAXENDA','OTHER','NONE']);
 
   function countHistory(data){
     const arr=key=>Array.isArray(data?.[key])?data[key]:[];
