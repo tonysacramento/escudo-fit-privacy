@@ -12,7 +12,7 @@
 - Inclusão de `qrcode.min.js` com licença MIT preservada; sem dependência de CDN.
 
 ## Bloqueios de publicação
-1. **Revalidar na conta PicPay os dois códigos:** embora os payloads tenham CRC correto, isso não prova que a cobrança permaneça ativa ou permita *reutilização*. Pix com TXID de cobrança deve ser tratado como potencialmente de uso único; não divulgar múltiplas vendas com um mesmo QR sem confirmação do recebedor/provedor.
+1. **Reutilização estática esclarecida — validação real ainda pendente:** os dois payloads são BR Codes estáticos (tag 26 com chave Pix, sem URL dinâmica, valores em tag 54, txid em 62.05). O Banco Central documenta QR estático fixo com valor definido para vários pagamentos; o txid repetido exige conciliação pelo recebedor. Uma captura de resposta do PicPay AI corrobora a finalidade, mas não substitui teste de pagamento real em instituição pagadora e confirmação de crédito na conta PicPay. Fonte: https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacaodoPix.pdf (seções 5.3.2 e 6.1.2).
 2. Conferir valores e favorecido mostrado **pelo aplicativo bancário real**, não apenas por decodificação do QR.
 3. Executar teste físico Pix no navegador móvel, copiar texto e abrir QR para os planos mensal e anual.
 4. Validar o processo administrativo de conciliação por valor, horário, remetente e e-mail no atendimento. **Mensagem do Pix não é comprovante suficiente**.
