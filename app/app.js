@@ -188,6 +188,12 @@ async function registerQuickTrial(event){
   const name=$('trialName')?.value.trim()||'';
   const email=$('trialEmail')?.value.trim().toLowerCase()||'';
   const company=$('trialCompany')?.value||'';
+  const enteredPromoCode=$('trialPromoCode')?.value.trim()||'';
+  const promoCode=enteredPromoCode||ACTIVE_PROMO?.code||'';
+  if(promoCode&&!/^[A-Za-z0-9_-]{3,40}$/.test(promoCode)){
+    $('trialPromoCode')?.focus();
+    return setTrialStatus('Confira o formato do cupom informado.',true);
+  }
   const consentAccepted=$('trialLgpd')?.checked===true;
   const consentVersion='LGPD-2026-10-07-v1';
   if(name.length<2){
@@ -212,7 +218,7 @@ async function registerQuickTrial(event){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         name,email,company,consentAccepted,consentVersion,
-        ...(ACTIVE_PROMO?{promoCode:ACTIVE_PROMO.code}:{})
+        ...(promoCode?{promoCode}:{})
       })
     });
     const data=await res.json().catch(()=>({}));
