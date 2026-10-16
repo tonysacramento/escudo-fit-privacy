@@ -42,6 +42,19 @@ export function isSandboxOrder(data) {
     (data.providerOrderId == null || /^ORD[A-Z0-9]{12,60}$/i.test(String(data.providerOrderId)))
   );
 }
+// This response can never be treated as a real subscription or entitlement.
+export function isSandboxDemoEntitlement(data, expectedOrderId) {
+  if (!data || data.environment !== 'sandbox' || data.source !== 'MP_SANDBOX_ONLY' ||
+      data.premiumActivated !== false || data.realAccessChanged !== false ||
+      normalizeSandboxReference(data.orderId) !== expectedOrderId ||
+      !Object.hasOwn(PLAN_PRICES, data.planKey) ||
+      !['FREE_DEMO','PREMIUM_DEMO','EXPIRED_DEMO'].includes(data.mode) ||
+      typeof data.isActive !== 'boolean' ||
+      data.isActive !== (data.mode === 'PREMIUM_DEMO')) return false;
+  if (data.mode === 'FREE_DEMO') return data.expiresAt === null;
+  return typeof data.expiresAt === 'string' && !Number.isNaN(Date.parse(data.expiresAt));
+}
+
 // Differentiate creation from a read-only GET; never claim payment approval.
 export function sandboxOrderFeedback(data, action) {
   if (!isSandboxOrder(data)) throw new Error('SANDBOX_RESPONSE_INVALID');
@@ -88,6 +101,7 @@ if (typeof document !== 'undefined') {
   let orderId = null;
   let busy = false;
   let googleInitialized = false;
+  let backgroundRefreshBusy = false;
 
   function setStatus(node, message, kind = '') {
     node.textContent = message;
@@ -119,6 +133,10 @@ if (typeof document !== 'undefined') {
     el('paymentStatus').textContent = 'Aguardando';
     el('environment').textContent = 'sandbox';
     el('premium').textContent = 'Não — bloqueado no QA';
+    el('demoMode').textContent = 'Aguardando pedido';
+    el('demoExpiry').textContent = '—';
+    el('demoRealAccess').textContent = 'Não alterado';
+    setStatus(el('demoState'), 'Recupere o pedido para verificar o acesso de demonstração.');
   }
   function clearSession(message) {
     session = null;
@@ -154,6 +172,42 @@ if (typeof document !== 'undefined') {
     el('environment').textContent = 'sandbox — R$ 50,00 fictícios';
     el('premium').textContent = 'Não — acesso Premium não é liberado em testes';
     setStatus(orderState, sandboxOrderFeedback(data, action), 'success');
+  }
+  function showDemoEntitlement(data, reference) {
+    if (!isSandboxDemoEntitlement(data, reference)) throw new Error('SANDBOX_DEMO_RESPONSE_INVALID');
+    el('demoMode').textContent = data.mode;
+    el('demoExpiry').textContent = data.expiresAt
+      ? new Date(data.expiresAt).toLocaleString('pt-BR') : '—';
+    el('demoRealAccess').textContent = 'Não alterado — Premium de teste apenas';
+    const detail = data.isActive
+      ? 'PREMIUM_DEMO ativo somente nesta demonstração. O plano real permanece igual.'
+      : 'Nenhuma ativação fictícia vigente. O plano real permanece igual.';
+    setStatus(el('demoState'), detail, data.isActive ? 'success' : '');
+  }
+  async function fetchDemoEntitlement(reference) {
+    try {
+      const data = await apiFetch('/orders/' + encodeURIComponent(reference) + '/demo-entitlement', 'GET');
+      if (orderId === reference && validSession()) showDemoEntitlement(data, reference);
+    } catch {
+      if (orderId === reference && validSession()) {
+        setStatus(el('demoState'), 'Consulta de demonstração indisponível. Nenhum plano real foi alterado.', 'error');
+      }
+    }
+  }
+  async function refreshCurrentOrderSilently() {
+    if (busy || backgroundRefreshBusy || !orderId || document.visibilityState === 'hidden' || !validSession()) return;
+    const reference = orderId;
+    backgroundRefreshBusy = true;
+    try {
+      const result = await apiFetch('/orders/' + encodeURIComponent(reference), 'GET');
+      if (orderId !== reference || !validSession() || result.orderId !== reference || !isSandboxOrder(result)) return;
+      if (el('paymentStatus').textContent !== result.status) showOrder(result, 'checked');
+      await fetchDemoEntitlement(reference);
+    } catch {
+      if (orderId === reference && validSession()) {
+        setStatus(el('demoState'), 'Falha temporária na atualização automática. Tentaremos novamente.', 'error');
+      }
+    } finally { backgroundRefreshBusy = false; }
   }
   function readableError(err) {
     const code = String(err?.code || err?.message || 'UNEXPECTED_ERROR');
@@ -278,6 +332,7 @@ if (typeof document !== 'undefined') {
     setStatus(orderState, 'Criando pedido somente no sandbox do Mercado Pago…');
     const result = await apiFetch('/orders', 'POST', makeSandboxOrderRequest(selectedPlan, requestKey));
     showOrder(result, 'created');
+    await fetchDemoEntitlement(result.orderId);
   }));
   recoverReference.addEventListener('input', controls);
   recoverReference.addEventListener('keydown', event => {
@@ -296,6 +351,7 @@ if (typeof document !== 'undefined') {
       throw new Error('SANDBOX_RESPONSE_INVALID');
     }
     showOrder(result, 'recovered');
+    await fetchDemoEntitlement(result.orderId);
   }));
   checkOrder.addEventListener('click', () => run(async () => {
     if (!orderId) return;
@@ -303,8 +359,13 @@ if (typeof document !== 'undefined') {
     const result = await apiFetch('/orders/' + encodeURIComponent(orderId), 'GET');
     if (result.orderId !== orderId) throw new Error('SANDBOX_RESPONSE_INVALID');
     showOrder(result, 'checked');
+    await fetchDemoEntitlement(result.orderId);
   }));
   // Drop short-lived credentials from memory on tab closure; do not persist.
   window.addEventListener('pagehide', () => { session = null; });
+  // Background reads only. No payment creation, no entitlement writes or user interaction.
+  window.addEventListener('focus', () => { void refreshCurrentOrderSilently(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void refreshCurrentOrderSilently(); });
+  setInterval(() => { void refreshCurrentOrderSilently(); }, 15_000);
   setInterval(() => { if (session) controls(); }, 30_000);
 }
