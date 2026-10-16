@@ -102,7 +102,7 @@ test('recovery UI is login-gated, read-only, and never saves ID tokens or orders
   assert.match(src, /const requestedReference = normalizeSandboxReference\(recoverReference\.value\)/);
   assert.match(src, /apiFetch\('\/orders\/' \+ encodeURIComponent\(requestedReference\), 'GET'\)/);
   assert.match(src, /normalizeSandboxReference\(result\?\.orderId\) !== requestedReference/);
-  assert.match(src, /showOrder\(result\)/);
+  assert.match(src, /showOrder\(result, 'recovered'\)/);
   assert.doesNotMatch(src, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(src, /premium\/activate|entitlement\/|access\/grant/);
   assert.match(css, /\.recovery-controls/);
