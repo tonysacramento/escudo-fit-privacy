@@ -68,6 +68,16 @@
           <button id="checkOrder" type="button" class="button outline" disabled>Consultar status no sandbox</button>
           <button id="newOrder" type="button" class="button muted" disabled>Novo cenário</button>
         </div>
+        <div class="recovery" aria-labelledby="recover-title">
+          <h3 id="recover-title">Recuperar pedido existente</h3>
+          <p>Recarregou a página e perdeu o número do pedido? Entre novamente com a Conta Google autorizada e informe a <strong>referência interna EF-…</strong> do pedido anterior. Esta operação apenas consulta o registro existente; não cria novo Pix.</p>
+          <label for="recoverReference">Referência interna do pedido</label>
+          <div class="recovery-controls">
+            <input id="recoverReference" type="text" maxlength="39" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="EF-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" aria-describedby="recoverNote" disabled>
+            <button type="button" id="recoverOrder" class="button outline" disabled>Recuperar e consultar pedido</button>
+          </div>
+          <p id="recoverNote" class="footnote">Use a referência que começa com EF-, não o identificador ORDTST do Mercado Pago. Sua Conta Google deve ser a mesma que criou o pedido. Não armazenamos tokens ou histórico no navegador.</p>
+        </div>
         <div id="orderState" class="status" role="status" aria-live="polite">Faça login com o usuário de teste para continuar.</div>
       </section>
 
