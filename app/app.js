@@ -606,11 +606,20 @@ function renderApp(){
 
 }
 
+async function fetchJsonWithDeadline(url,options={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),30_000);
+  try{
+    const response=await fetch(url,{...options,signal:controller.signal});
+    const data=await response.json();
+    return {ok:response.ok,status:response.status,json:async()=>data};
+  }finally{clearTimeout(timer)}
+}
 async function apiFetch(path,options={}){
   if(path.startsWith('/history')&&!webAccessAllowed())throw new Error('WEB_ACCESS_RESTRICTED');
   const headers={...(options.headers||{})};
   if(auth?.access_token)headers.Authorization='Bearer '+auth.access_token;
-  return fetch(API+path,{...options,headers});
+  return fetchJsonWithDeadline(API+path,{...options,headers});
 }
 
 function localWeightKey(weight){
@@ -700,8 +709,14 @@ function normalizeRemoteTreatment(raw){
 }
 
 async function authenticatedFetch(path,options={}){
+  const owner=auth?.user?.id;
   let res=await apiFetch(path,options);
-  if(res.status===401&&await refreshSession())res=await apiFetch(path,options);
+  if(auth?.user?.id!==owner)throw new Error('HISTORY_SESSION_CHANGED');
+  if(res.status===401&&await refreshSession()){
+    if(auth?.user?.id!==owner)throw new Error('HISTORY_SESSION_CHANGED');
+    res=await apiFetch(path,options);
+  }
+  if(auth?.user?.id!==owner)throw new Error('HISTORY_SESSION_CHANGED');
   return res;
 }
 
@@ -715,12 +730,24 @@ function loadHistoryOutbox(){
   catch{return[]}
 }
 function storeHistoryOutbox(entries){localStorage.setItem(historyOutboxKey(),JSON.stringify(entries))}
-async function flushPendingHistory(){
+let historyFlushFlight=null;
+function flushPendingHistory(){
+  const owner=auth?.user?.id;
+  if(historyFlushFlight?.owner===owner)return historyFlushFlight.task;
+  const task=flushPendingHistoryOnce();
+  historyFlushFlight={owner,task};
+  void task.finally(()=>{if(historyFlushFlight?.task===task)historyFlushFlight=null});
+  return task;
+}
+async function flushPendingHistoryOnce(){
   if(!webAccessAllowed()||!auth?.access_token||!auth?.user)return false;
   const owner=auth.user.id;
   const entries=loadHistoryOutbox();
+  const blocked=new Set();
   for(const entry of entries){
-    if(!webAccessAllowed())return false;
+    const categories=Object.keys(entry.payload||{});
+    if(categories.some(category=>blocked.has(category)))continue;
+    if(auth?.user?.id!==owner||!webAccessAllowed())return false;
     try{
       let payload=entry.payload;
       let expectedNutritionIds=null;
@@ -730,9 +757,9 @@ async function flushPendingHistory(){
         // Fetch and merge by meal ID immediately before sending any dated
         // nutrition update; a stale local day must not replace remote meals.
         const latest=await authenticatedFetch('/history');
-        if(!latest.ok||auth?.user?.id!==owner)return false;
+        if(!latest.ok||auth?.user?.id!==owner)throw new Error('HISTORY_SYNC_PENDING');
         const history=await latest.json();
-        if(!Array.isArray(history?.nutrition))return false;
+        if(!Array.isArray(history?.nutrition))throw new Error('HISTORY_SYNC_PENDING');
         const combined=historyContract.mergeNutritionDays(nutritionPatches,history.nutrition);
         const affected=new Set(nutritionPatches.map(day=>day.date));
         const rebased=combined.filter(day=>affected.has(day.date))
@@ -740,45 +767,53 @@ async function flushPendingHistory(){
         expectedNutritionIds=new Set(rebased.flatMap(day=>day.meals.map(meal=>meal.id)));
         payload={...payload,nutrition:rebased};
       }
-      if(auth?.user?.id!==owner||!webAccessAllowed())return false;
+      if(auth?.user?.id!==owner||!webAccessAllowed())throw new Error('HISTORY_SYNC_PENDING');
       const res=await authenticatedFetch('/history/sync',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload)
       });
-      if(!res.ok)return false;
+      if(!res.ok||auth?.user?.id!==owner)throw new Error('HISTORY_SYNC_PENDING');
       if(expectedNutritionIds){
         // POST 200 alone cannot prove the database retained concurrent edits.
         const verified=await authenticatedFetch('/history');
-        if(!verified.ok||auth?.user?.id!==owner)return false;
+        if(!verified.ok||auth?.user?.id!==owner)throw new Error('HISTORY_SYNC_PENDING');
         const history=await verified.json();
         const observed=new Set((Array.isArray(history?.nutrition)?history.nutrition:[])
           .flatMap(day=>Array.isArray(day?.meals)?day.meals:[])
           .map(meal=>String(meal.id||'')));
-        if([...expectedNutritionIds].some(id=>!observed.has(id)))return false;
+        if([...expectedNutritionIds].some(id=>!observed.has(id)))throw new Error('HISTORY_SYNC_PENDING');
       }
+      if(auth?.user?.id!==owner||!webAccessAllowed())throw new Error('HISTORY_SYNC_PENDING');
       const remaining=loadHistoryOutbox().filter(item=>item.id!==entry.id);
       storeHistoryOutbox(remaining);
-    }catch{return false}
+      if(expectedNutritionIds&&!remaining.some(item=>item.payload?.nutrition?.length)){
+        setText('nutritionSaved','Refeição sincronizada com a Conta Google.');
+      }
+    }catch{
+      if(auth?.user?.id!==owner||!webAccessAllowed())return false;
+      for(const category of categories)blocked.add(category);
+    }
   }
-  return true;
+  return loadHistoryOutbox().length===0;
 }
 
 async function syncHistoryPatch(payload){
   if(!webAccessAllowed())return false;
+  const owner=auth.user.id;
+  // Persist before awaiting any network task; closing the page must not lose edits.
+  const entries=loadHistoryOutbox();
+  if(entries.length>=200){
+    setText('historySyncStatus','Fila de histórico cheia. Não apague os dados locais; conecte-se para sincronizar.');
+    return false;
+  }
+  const id=crypto.randomUUID?crypto.randomUUID():'history-'+Date.now()+'-'+entries.length;
+  entries.push({id,payload,createdAtMs:Date.now()});
+  storeHistoryOutbox(entries);
   const pending=historyPatchChain.then(async()=>{
-    const entries=loadHistoryOutbox();
-    if(entries.length>=200){
-      setText('historySyncStatus','Fila de histórico cheia. Não apague os dados locais; conecte-se para sincronizar.');
-      return false;
-    }
-    entries.push({
-      id:(crypto.randomUUID?crypto.randomUUID():'history-'+Date.now()+'-'+entries.length),
-      payload,
-      createdAtMs:Date.now()
-    });
-    storeHistoryOutbox(entries);
-    return webAccessAllowed()?flushPendingHistory():false;
+    if(auth?.user?.id!==owner||!webAccessAllowed())return false;
+    await flushPendingHistory();
+    return auth?.user?.id===owner&&!loadHistoryOutbox().some(item=>item.id===id);
   }).catch(()=>false);
   historyPatchChain=pending.then(()=>undefined);
   return pending;
@@ -1074,7 +1109,7 @@ function refreshSession(){
   if(refreshFlight?.session===session)return refreshFlight.promise;
   const promise=(async()=>{
     try{
-      const res=await fetch(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+      const res=await fetchJsonWithDeadline(API+'/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
       if(auth!==session)return false;
       if(res.status===401||res.status===403){sessionRejected=true;return false}
       if(!res.ok)return false;

@@ -445,3 +445,91 @@ test('PWA name and startup use approved unmodified V43 artwork',()=>{
   assert.match(html,/splash-approved-v43\.png/);
   assert.match(html,/Instalar Escudo Fit Web/);
 });
+
+test('outbox persists immediately, serializes poll/save and retries pending meals',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const now=Date.now(),date=w.eval('localDayKey()');
+    let remote={nutrition:[]},release,calls=0,offline=true;
+    const original=w.fetch;
+    w.fetch=async(url,options={})=>{
+      if(String(url).endsWith('/history'))return {ok:true,status:200,json:async()=>remote};
+      if(String(url).endsWith('/history/sync')){
+        calls++;
+        if(offline)throw Error('offline');
+        await new Promise(resolve=>release=resolve);
+        remote=JSON.parse(options.body);
+        return {ok:true,status:200,json:async()=>({synced:true})};
+      }
+      return original(url,options);
+    };
+    w.patch={nutrition:[{date,updatedAtMs:now,meals:[{id:'pending-25',mealType:'LUNCH',proteinG:25,timestampMs:now}]}]};
+    const saved=w.eval('syncHistoryPatch(window.patch)');
+    assert.equal(w.eval('loadHistoryOutbox().length'),1);
+    assert.equal(await saved,false);
+    offline=false;calls=0;
+    const first=w.eval('flushPendingHistory()'),second=w.eval('flushPendingHistory()');
+    assert.equal(first,second);
+    await pause();assert.equal(calls,1);release();assert.equal(await first,true);
+    assert.equal(w.eval('loadHistoryOutbox().length'),0);
+    assert.match(w.document.getElementById('nutritionSaved').textContent,/sincronizada/);
+    assert.equal(remote.nutrition[0].meals[0].id,'pending-25');
+  }finally{w.close()}
+});
+
+test('account switch during POST never clears another accounts pending entries',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    let release;const original=w.fetch;
+    w.fetch=async(url,options)=>{
+      if(String(url).endsWith('/history/sync')){
+        await new Promise(resolve=>release=resolve);
+        return {ok:true,status:200,json:async()=>({synced:true})};
+      }
+      return original(url,options);
+    };
+    const attempt=w.eval('syncHistoryPatch({water:[{date:localDayKey(),consumedMl:200,updatedAtMs:Date.now()}]})');
+    await pause();
+    w.eval("saveAuth({user:{id:'other'},access_token:'other-token',entitlement:{mode:'PREMIUM'}});storeHistoryOutbox([{id:'keep',payload:{}}])");
+    release();assert.equal(await attempt,false);
+    assert.equal(w.eval('loadHistoryOutbox()[0].id'),'keep');
+    assert.equal(JSON.parse(w.localStorage.getItem('escudofit_history_outbox_v1_live-user')).length,1);
+  }finally{w.close()}
+});
+
+test('stalled response body is aborted so history polling can recover',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const timers=[];const originalSet=w.setTimeout;
+    w.setTimeout=(fn,ms)=>{if(ms===30000){timers.push(fn);return 999}return originalSet(fn,ms)};
+    w.fetch=async(url,{signal})=>({ok:true,status:200,json:()=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))))});
+    const task=w.eval("apiFetch('/history')"),rejected=assert.rejects(task,/aborted/);
+    await pause();timers[0]();await rejected;
+  }finally{w.close()}
+});
+
+test('a rejected water entry does not block meals, and later water keeps original order',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const now=Date.now(),date=w.eval('localDayKey()');
+    let remote={nutrition:[]},waterPosts=0;
+    const original=w.fetch;
+    w.fetch=async(url,options={})=>{
+      if(String(url).endsWith('/history'))return {ok:true,status:200,json:async()=>remote};
+      if(String(url).endsWith('/history/sync')){
+        const body=JSON.parse(options.body);
+        if(body.water){waterPosts++;return {ok:false,status:400,json:async()=>({code:'HISTORY_WATER_INVALID'})}}
+        remote=body;return {ok:true,status:200,json:async()=>({synced:true})};
+      }
+      return original(url,options);
+    };
+    w.entries=[{id:'water-bad',payload:{water:[{date,consumedMl:-1,updatedAtMs:now}]}},
+      {id:'water-later',payload:{water:[{date,consumedMl:200,updatedAtMs:now+1}]}},
+      {id:'meal-good',payload:{nutrition:[{date,updatedAtMs:now,meals:[{id:'lunch-25',mealType:'LUNCH',proteinG:25,timestampMs:now}]}]}}];
+    w.eval('storeHistoryOutbox(window.entries)');
+    assert.equal(await w.eval('flushPendingHistory()'),false);
+    assert.equal(waterPosts,1);
+    assert.equal(remote.nutrition[0].meals[0].id,'lunch-25');
+    assert.deepEqual(JSON.parse(w.eval('JSON.stringify(loadHistoryOutbox().map(x=>x.id))')),['water-bad','water-later']);
+  }finally{w.close()}
+});
