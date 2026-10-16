@@ -1,0 +1,38 @@
+name: Escudo Fit Pix Status Feedback Live Smoke (READ ONLY)
+on:
+  push:
+    branches:
+      - fix/mp-sandbox-qa-status-feedback-20261016
+    paths:
+      - '.github/workflows/mp-status-feedback-live-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  test-public-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public published JS status messages without any payment requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          import time
+          url='https://escudofit.com.br/qa/mercadopago/qa.mjs'
+          required=["sandboxOrderFeedback(data, action)","showOrder(result, 'checked')","showOrder(result, 'recovered')","Consulta concluída. Status do pedido:"]
+          for n in range(10):
+            try:
+              req=Request(url,headers={'User-Agent':'EscudoFit-PixStatusQA','Cache-Control':'no-cache'})
+              with urlopen(req,timeout=20) as res:
+                body=res.read(240000).decode('utf-8','replace')
+                if res.status==200 and all(t in body for t in required):
+                  assert 'Pedido de simulação registrado.' not in body
+                  print('PUBLISHED_QA_STATUS_FEEDBACK=PASS')
+                  print('NO_PAYMENT_API_REQUESTS=PASS')
+                  break
+            except Exception:
+              pass
+            if n==9: raise RuntimeError('QA_STATUS_FEEDBACK_NOT_YET_PUBLISHED')
+            time.sleep(4)
+          PY
