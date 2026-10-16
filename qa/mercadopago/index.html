@@ -10,9 +10,9 @@
   <title>Escudo Fit · Laboratório Pix (somente testes)</title>
   <meta name="description" content="Painel técnico de validação de Pix simulado. Sem compra, cobrança ou ativação Premium.">
   <link rel="icon" href="../../app/icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./qa.css?v=20261016-3">
+  <link rel="stylesheet" href="./qa.css?v=20261016-4">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script type="module" src="./qa.mjs?v=20261016-3"></script>
+  <script type="module" src="./qa.mjs?v=20261016-4"></script>
 </head>
 <body>
   <div class="shell">
@@ -92,6 +92,19 @@
           <div><dt>Premium ativado?</dt><dd id="premium">Não — bloqueado no QA</dd></div>
         </dl>
         <p class="footnote">Não são apresentados BR Codes nem imagens de QR Code. Se quiser testar notificações, use o simulador do Mercado Pago; a confirmação é processada e verificada no backend.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="demo-title">
+        <span class="step">04 · Demonstração de acesso</span>
+        <h2 id="demo-title">Premium de demonstração — somente sandbox</h2>
+        <p>Depois de recuperar um pedido, a tela consulta automaticamente o estado de teste (a cada 15 segundos e ao retornar à aba). Isto <strong>não altera</strong> o plano no Escudo Fit Web ou Android.</p>
+        <dl class="results">
+          <div><dt>Acesso fictício</dt><dd id="demoMode">Aguardando pedido</dd></div>
+          <div><dt>Validade fictícia</dt><dd id="demoExpiry">—</dd></div>
+          <div><dt>Plano real do usuário</dt><dd id="demoRealAccess">Não alterado</dd></div>
+        </dl>
+        <div id="demoState" class="status" role="status" aria-live="polite">Faça login e recupere o pedido existente para verificar o acesso de demonstração.</div>
+        <p class="footnote">Apenas o pedido do titular autenticado é consultado. Nenhuma assinatura é criada e não há concessão Premium real, Apps Script ou cobrança.</p>
       </section>
     </main>
 
