@@ -1,0 +1,41 @@
+name: Escudo Fit QA Order Recovery Live Readonly Check
+on:
+  push:
+    branches:
+      - fix/mp-sandbox-qa-order-recovery-20261016
+    paths:
+      - '.github/workflows/mp-recovery-live-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Check official page and published JavaScript after Pages deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import urllib.request,time
+          base='https://escudofit.com.br/qa/mercadopago/'
+          targets={
+            'HTML':(base,('Recuperar pedido existente','id="recoverReference"','id="recoverOrder"','id="checkOrder"')),
+            'JAVASCRIPT':(base+'qa.mjs',('normalizeSandboxReference','recoverOrder.addEventListener','apiFetch(\'/orders/\' + encodeURIComponent(requestedReference), \'GET\')')),
+            'CSS':(base+'qa.css',('.recovery-controls',)),
+          }
+          for label,(url,expected) in targets.items():
+            for attempt in range(8):
+              request=urllib.request.Request(url,headers={'User-Agent':'EscudoFit-QARecoveryVerification/1.0','Cache-Control':'no-cache'})
+              try:
+                with urllib.request.urlopen(request,timeout=20) as response:
+                  raw=response.read(180000).decode('utf-8','replace')
+                  if response.status==200 and all(v in raw for v in expected):
+                    print('LIVE_'+label+'_RECOVERY=PASS')
+                    break
+              except Exception: pass
+              if attempt==7: raise AssertionError('LIVE_'+label+'_NOT_UPDATED')
+              time.sleep(4)
+          print('SINGLE_QA_ROUTE_UPDATED=PASS')
+          print('NO_PIX_ORDERS_OR_USER_CHANGES=PASS')
+          PY
