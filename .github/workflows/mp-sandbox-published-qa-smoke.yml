@@ -1,0 +1,59 @@
+name: Escudo Fit MP Published QA Route Smoke (READ ONLY)
+
+on:
+  push:
+    branches:
+      - feat/mp-sandbox-qa-web-20261016
+    paths:
+      - '.github/workflows/mp-sandbox-published-qa-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify QA route and assets over public HTTPS without creating orders
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,time
+          ROOT='https://escudofit.com.br/qa/mercadopago/'
+          requirements={
+            'index.html':('Escudo Fit', 'noindex,nofollow,noarchive', 'googleButton', 'qa.mjs', 'qa.css'),
+            'qa.mjs':('escudofit@gmail.com','escudo-fit-payments-sandbox-835029473980.us-central1.run.app','google.accounts.id.initialize','makeSandboxOrderRequest'),
+            'qa.css':('.plans','.notice','.panel'),
+          }
+          for filename,signals in requirements.items():
+            url=ROOT if filename=='index.html' else ROOT+filename
+            err=None
+            for attempt in range(8):
+              try:
+                req=urllib.request.Request(url,headers={'User-Agent':'EscudoFitPublishQA/1.0','Cache-Control':'no-cache'})
+                with urllib.request.urlopen(req,timeout=18) as resp:
+                  body=resp.read(160000).decode('utf-8','replace')
+                  assert resp.status==200,(filename,resp.status)
+                  assert all(x in body for x in signals),(filename,'EXPECTED_CONTENT_MISSING')
+                  assert resp.geturl().startswith('https://escudofit.com.br/qa/mercadopago/'),(filename,'HOST_CHANGED')
+                  print('PUBLISHED_'+filename.replace('.','_').upper()+'=PASS')
+                  break
+              except Exception as exc:
+                err=type(exc).__name__
+                if attempt==7: raise
+                time.sleep(5)
+          print('QA_PUBLIC_ROUTE=PASS')
+          print('NO_PAYMENT_OPERATIONS_EXECUTED=PASS')
+          PY
+      - name: Check production is still healthy (GET only)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          url='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/health'
+          with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'EscudoFitPublishQA/1.0'}),timeout=20) as r:
+            d=json.load(r)
+            assert r.status==200 and d.get('ready') is True
+          print('API_V38_PRODUCTION_HEALTH=PASS')
+          PY
