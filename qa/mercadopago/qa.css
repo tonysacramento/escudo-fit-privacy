@@ -1,0 +1,24 @@
+:root{color-scheme:dark;--bg:#082630;--panel:#103b46;--muted:#bed3d8;--line:#38606a;--mint:#49d9d7;--white:#f4fbfa;--gold:#efcf85}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 82% 8%,#205a68 0%,transparent 28%),var(--bg);color:var(--white);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+.shell{width:min(980px,calc(100% - 32px));margin:0 auto}
+.masthead{display:flex;gap:16px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:24px 0}
+.identity{display:flex;gap:13px;align-items:center;text-decoration:none;color:inherit}.identity img{object-fit:contain}.identity strong{display:block;font-size:1.4rem;line-height:1}.identity small{display:block;color:var(--mint);letter-spacing:.15em;font-size:.64rem;font-weight:800;margin-top:6px}
+.environment{font-size:.68rem;font-weight:900;color:var(--gold);letter-spacing:.075em;border:1px solid #897956;border-radius:30px;padding:7px 12px;text-align:center}
+.hero{padding:58px 0 24px}.hero h1{font-size:clamp(2.2rem,5vw,4rem);letter-spacing:-.05em;line-height:1.1;margin:11px 0 18px}.hero h1 em{color:var(--mint);font-style:normal}
+.eyebrow,.step{color:var(--mint);text-transform:uppercase;letter-spacing:.11em;font-size:.76rem;font-weight:800}
+p{color:var(--muted);margin:0 0 15px}h2{font-size:1.35rem;letter-spacing:-.025em;margin:8px 0 14px}
+.notice{margin:23px 0 14px;background:#263d3e;border-left:4px solid var(--gold);padding:16px 18px;border-radius:12px;color:#f5efe1}.notice strong{color:var(--gold)}
+.panel{background:linear-gradient(135deg,rgba(19,66,77,.92),rgba(13,49,59,.97));border:1px solid var(--line);border-radius:20px;margin:18px 0;padding:30px}
+.login-toolbar,.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:16px 0 18px}
+.button{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px 18px;font-weight:850;font-size:.93rem;min-height:44px}.button:disabled{opacity:.42;cursor:not-allowed}.button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.button.primary{background:var(--mint);color:#092b32;border:1px solid transparent}.button.outline{background:transparent;color:var(--white)}.button.muted{background:#1c4750;color:#e1f4f6}
+.status{padding:12px 14px;background:#0c323a;border:1px solid #2b5963;border-radius:10px;color:#d2f4f2;min-height:50px;overflow-wrap:anywhere}.status.error{border-color:#bd7f69;color:#ffcfbf}.status.success{border-color:#6cbaa8;color:#a4f2d6}
+fieldset{border:0;padding:0;margin:12px 0 18px}legend{font-size:.86rem;color:var(--muted);padding:0 0 8px}
+.plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.plan{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:17px 15px;cursor:pointer;background:#0c303a}.plan:has(input:checked){border-color:var(--mint);background:#154a54}.plan input{accent-color:var(--mint);width:18px;height:18px}.plan strong{display:block}.plan small{display:block;color:var(--muted);font-size:.79rem}
+.simulated-amount{color:var(--white);margin:10px 0}.simulated-amount strong{color:var(--gold)}
+.consent{display:flex;gap:11px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:12px;color:var(--muted)}.consent input{margin-top:5px;accent-color:var(--mint);width:17px;height:17px}
+.results{margin:14px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.results div{padding:13px;border:1px solid var(--line);border-radius:12px;background:#0d3039;overflow-wrap:anywhere}.results dt{font-size:.76rem;color:var(--muted)}.results dd{font-weight:800;margin:4px 0 0}.footnote{font-size:.8rem}
+.footer{border-top:1px solid var(--line);padding:30px 0 54px;display:flex;justify-content:space-between;gap:12px;font-size:.82rem;color:var(--muted)}.footer a{color:var(--mint)}
+@media(max-width:720px){.masthead,.footer{align-items:flex-start;flex-direction:column}.hero{padding-top:38px}.panel{padding:20px}.plans,.results{grid-template-columns:1fr}.environment{align-self:flex-start}.actions .button{flex-grow:1}}
