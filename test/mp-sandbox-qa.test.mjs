@@ -18,6 +18,12 @@ const baseOrder = {
   status: 'PENDING',
 };
 
+test('QA always requests versioned assets after a status-display update', () => {
+  assert.match(html, /src="\.\/qa\.mjs\?v=20261016-3"/);
+  assert.match(html, /href="\.\/qa\.css\?v=20261016-3"/);
+  assert.doesNotMatch(html, /src="\.\/qa\.mjs"/);
+});
+
 test('QA page is unlinked from public homepage, noindex and scoped to sandbox only', () => {
   const homepage = readFileSync('index.html', 'utf8');
   assert.doesNotMatch(homepage, /qa\/mercadopago/);
