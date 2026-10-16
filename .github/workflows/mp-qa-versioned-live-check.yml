@@ -1,0 +1,37 @@
+name: Escudo Fit MP QA Versioned Assets Live Check
+on:
+  push:
+    branches: [fix/mp-qa-cachebust-20261016]
+    paths: ['.github/workflows/mp-qa-versioned-live-check.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify published QA page points to versioned status script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from urllib.request import urlopen,Request
+          import time
+          base='https://escudofit.com.br/qa/mercadopago/'
+          for n in range(10):
+            try:
+              with urlopen(Request(base,headers={'Cache-Control':'no-cache','User-Agent':'EscudoFit-QA-Cache-Bust-Audit'}),timeout=15) as r:
+                body=r.read().decode('utf-8','replace')
+                if r.status==200 and 'src="./qa.mjs?v=20261016-3"' in body and 'href="./qa.css?v=20261016-3"' in body:break
+            except Exception:pass
+            if n==9: raise RuntimeError('QA_PAGE_VERSIONED_ASSETS_NOT_PUBLISHED')
+            time.sleep(4)
+          with urlopen(Request(base+'qa.mjs?v=20261016-3',headers={'Cache-Control':'no-cache'}),timeout=15) as r:
+            js=r.read().decode('utf-8','replace')
+            assert 'sandboxOrderFeedback(data, action)' in js
+            assert 'Consulta concluída. Status do pedido:' in js
+            assert 'Pedido de simulação registrado.' not in js
+            assert r.status==200
+          print('OFFICIAL_QA_VERSIONED_ASSETS=PASS')
+          print('NEW_ORDER_STATUS_FEEDBACK=PASS')
+          print('READ_ONLY_NO_PIX_OPERATIONS=PASS')
+          PY
