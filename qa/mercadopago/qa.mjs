@@ -46,7 +46,8 @@ export function isSandboxOrder(data) {
 export function isSandboxDemoEntitlement(data, expectedOrderId) {
   if (!data || data.environment !== 'sandbox' || data.source !== 'MP_SANDBOX_ONLY' ||
       data.premiumActivated !== false || data.realAccessChanged !== false ||
-      normalizeSandboxReference(data.orderId) !== expectedOrderId ||
+      typeof data.orderId !== 'string' || !/^EF-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.orderId) ||
+      data.orderId.toLowerCase() !== expectedOrderId.toLowerCase() ||
       !Object.hasOwn(PLAN_PRICES, data.planKey) ||
       !['FREE_DEMO','PREMIUM_DEMO','EXPIRED_DEMO'].includes(data.mode) ||
       typeof data.isActive !== 'boolean' ||
