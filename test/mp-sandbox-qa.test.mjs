@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import {
   QA_EMAIL, isSafeQaOrigin, sandboxPlanKey, makeSandboxOrderRequest,
-  isSandboxOrder, extractGoogleIdentity,
+  isSandboxOrder, extractGoogleIdentity, normalizeSandboxReference,
 } from '../qa/mercadopago/qa.mjs';
 
 const html = readFileSync('qa/mercadopago/index.html', 'utf8');
@@ -80,4 +80,30 @@ test('no QR display, no call to entitlement grant, no real-world payments', () =
   assert.match(src, /credentials: 'omit'/);
   assert.match(src, /redirect: 'error'/);
   assert.match(src, /referrerPolicy: 'no-referrer'/);
+});
+
+test('recovery accepts only canonical EF references, never Mercado Pago order IDs', () => {
+  const existing = 'EF-54b455b2-7856-423f-b7ca-da1dc95fdc86';
+  assert.equal(normalizeSandboxReference(existing), existing);
+  assert.equal(normalizeSandboxReference(' ef-54B455B2-7856-423F-B7CA-DA1DC95FDC86 '), existing);
+  assert.throws(() => normalizeSandboxReference('ORDTST01M519EVWYKRHHZA68YTK09EWV'), /PAYMENT_ORDER_ID_INVALID/);
+  assert.throws(() => normalizeSandboxReference('EF-1234'), /PAYMENT_ORDER_ID_INVALID/);
+  assert.throws(() => normalizeSandboxReference('../auth/google'), /PAYMENT_ORDER_ID_INVALID/);
+  assert.throws(() => normalizeSandboxReference('EF-54b455b2-7856-423f-b7ca-da1dc95fdc86?any=1'), /PAYMENT_ORDER_ID_INVALID/);
+  assert.throws(() => normalizeSandboxReference(''), /PAYMENT_ORDER_ID_INVALID/);
+});
+
+test('recovery UI is login-gated, read-only, and never saves ID tokens or orders in browser', () => {
+  assert.match(html, /id="recoverReference"[^>]*disabled/);
+  assert.match(html, /id="recoverOrder"[^>]*disabled/);
+  assert.match(html, /Recuperar pedido existente/);
+  assert.match(html, /não cria novo Pix/);
+  assert.match(src, /recoverOrder\.disabled = busy \|\| !signed \|\| !validReference/);
+  assert.match(src, /const requestedReference = normalizeSandboxReference\(recoverReference\.value\)/);
+  assert.match(src, /apiFetch\('\/orders\/' \+ encodeURIComponent\(requestedReference\), 'GET'\)/);
+  assert.match(src, /normalizeSandboxReference\(result\?\.orderId\) !== requestedReference/);
+  assert.match(src, /showOrder\(result\)/);
+  assert.doesNotMatch(src, /localStorage|sessionStorage|document\.cookie/);
+  assert.doesNotMatch(src, /premium\/activate|entitlement\/|access\/grant/);
+  assert.match(css, /\.recovery-controls/);
 });
