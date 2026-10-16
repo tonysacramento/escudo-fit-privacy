@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import {
   QA_EMAIL, isSafeQaOrigin, sandboxPlanKey, makeSandboxOrderRequest,
-  isSandboxOrder, extractGoogleIdentity, normalizeSandboxReference, sandboxOrderFeedback,
+  isSandboxOrder, extractGoogleIdentity, normalizeSandboxReference, sandboxOrderFeedback, isSandboxDemoEntitlement,
 } from '../qa/mercadopago/qa.mjs';
 
 const html = readFileSync('qa/mercadopago/index.html', 'utf8');
@@ -19,8 +19,8 @@ const baseOrder = {
 };
 
 test('QA always requests versioned assets after a status-display update', () => {
-  assert.match(html, /src="\.\/qa\.mjs\?v=20261016-3"/);
-  assert.match(html, /href="\.\/qa\.css\?v=20261016-3"/);
+  assert.match(html, /src="\.\/qa\.mjs\?v=20261016-4"/);
+  assert.match(html, /href="\.\/qa\.css\?v=20261016-4"/);
   assert.doesNotMatch(html, /src="\.\/qa\.mjs"/);
 });
 
@@ -134,4 +134,43 @@ test('status messages distinguish creation, read-only consultation, and recovery
   assert.match(src, /showOrder\(result, 'recovered'\)/);
   assert.match(src, /showOrder\(result, 'created'\)/);
   assert.doesNotMatch(src, /Pedido de simulação registrado/);
+});
+
+test('isolated Premium demo validates the order, forbids real plan changes and safely ignores invalid payloads', () => {
+  const ref='EF-54b455b2-7856-423f-b7ca-da1dc95fdc86';
+  const sample={
+    environment:'sandbox',source:'MP_SANDBOX_ONLY',orderId:ref,planKey:'monthly',
+    mode:'PREMIUM_DEMO',isActive:true,expiresAt:'2026-11-15T10:00:00.000Z',
+    premiumActivated:false,realAccessChanged:false,
+  };
+  assert.equal(isSandboxDemoEntitlement(sample,ref),true);
+  assert.equal(isSandboxDemoEntitlement({...sample,mode:'FREE_DEMO',isActive:false,expiresAt:null},ref),true);
+  assert.equal(isSandboxDemoEntitlement({...sample,mode:'EXPIRED_DEMO',isActive:false},ref),true);
+  for (const modified of [
+    {premiumActivated:true},{realAccessChanged:true},{environment:'production'},
+    {source:'LEGACY_ACCESS_CONTROL'},{orderId:'invalid'},{mode:'PREMIUM'},
+    {mode:'PREMIUM_DEMO',isActive:false},{mode:'FREE_DEMO',isActive:true},
+    {expiresAt:'invalid'},{planKey:'VIP'},
+  ]) {
+    assert.equal(isSandboxDemoEntitlement({...sample,...modified},ref),false);
+  }
+  assert.equal(isSandboxDemoEntitlement(sample,'EF-00000000-0000-4000-8000-000000000001'),false);
+});
+
+test('QA demonstration only makes authenticated read-only GETs and automatically refreshes on interval and focus', () => {
+  assert.match(html,/id="demoMode"/);
+  assert.match(html,/id="demoExpiry"/);
+  assert.match(html,/id="demoRealAccess"/);
+  assert.match(html,/somente sandbox/i);
+  assert.match(html,/não altera/);
+  assert.match(src,/function refreshCurrentOrderSilently/);
+  assert.match(src,/function fetchDemoEntitlement/);
+  assert.match(src,/\+ '\/demo-entitlement', 'GET'/);
+  assert.match(src,/addEventListener\('focus'/);
+  assert.match(src,/addEventListener\('visibilitychange'/);
+  assert.match(src,/refreshCurrentOrderSilently\(\); \}, 15_000\)/);
+  assert.match(src,/backgroundRefreshBusy/);
+  assert.doesNotMatch(src,/apiFetch\([^\n]*demo-entitlement[^\n]*'POST'/);
+  assert.doesNotMatch(src,/localStorage|sessionStorage|document\.cookie/);
+  assert.doesNotMatch(src,/premium\/activate|access\/grant/);
 });
