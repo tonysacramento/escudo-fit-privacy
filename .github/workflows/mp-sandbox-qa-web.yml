@@ -1,0 +1,41 @@
+name: Escudo Fit MP Web Sandbox QA (NO PUBLISH)
+
+on:
+  push:
+    branches:
+      - feat/mp-sandbox-qa-web-20261016
+    paths:
+      - 'qa/mercadopago/**'
+      - 'test/mp-sandbox-qa.test.mjs'
+      - '.github/workflows/mp-sandbox-qa-web.yml'
+  pull_request:
+    paths:
+      - 'qa/mercadopago/**'
+      - 'test/mp-sandbox-qa.test.mjs'
+      - '.github/workflows/mp-sandbox-qa-web.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  static-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate static JS and QA contract tests
+        run: |
+          node --check qa/mercadopago/qa.mjs
+          node --test test/mp-sandbox-qa.test.mjs
+      - name: Ensure page does not enter public navigation or include tokens
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e qa/mercadopago/.nojekyll
+          ! grep -REn "TEST-[0-9]{10,}|APP_USR-[0-9]{10,}|BEGIN PRIVATE KEY|MP_ACCESS_TOKEN=" qa/mercadopago
+          ! grep -q 'qa/mercadopago' index.html
+          test -f app/icon-approved-v43.png
+          echo 'QA_UI_STATIC_GATE=PASS'
