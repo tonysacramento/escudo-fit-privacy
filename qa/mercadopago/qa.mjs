@@ -42,6 +42,21 @@ export function isSandboxOrder(data) {
     (data.providerOrderId == null || /^ORD[A-Z0-9]{12,60}$/i.test(String(data.providerOrderId)))
   );
 }
+// Differentiate creation from a read-only GET; never claim payment approval.
+export function sandboxOrderFeedback(data, action) {
+  if (!isSandboxOrder(data)) throw new Error('SANDBOX_RESPONSE_INVALID');
+  const status = String(data.status || 'NÃO INFORMADO').slice(0, 80);
+  if (action === 'created') {
+    return `Pedido de teste criado. Status: ${status}. Nenhum valor real foi cobrado.`;
+  }
+  if (action === 'recovered') {
+    return `Pedido anterior recuperado. Status: ${status}. Nenhum novo Pix foi criado.`;
+  }
+  if (action === 'checked') {
+    return `Consulta concluída. Status do pedido: ${status}. Nenhum novo Pix foi criado.`;
+  }
+  throw new Error('SANDBOX_ACTION_INVALID');
+}
 export function extractGoogleIdentity(idToken) {
   if (typeof idToken !== 'string') return null;
   const p = idToken.split('.');
@@ -126,7 +141,7 @@ if (typeof document !== 'undefined') {
     recoverReference.disabled = true;
     recoverOrder.disabled = true;
   }
-  function showOrder(data) {
+  function showOrder(data, action) {
     if (!isSandboxOrder(data)) throw new Error('SANDBOX_RESPONSE_INVALID');
     orderId = data.orderId;
     // Keep only a non-secret reference in the visible field; never store IDs or tokens.
@@ -138,7 +153,7 @@ if (typeof document !== 'undefined') {
     el('paymentStatus').textContent = String(data.status || 'Não informado').slice(0, 100);
     el('environment').textContent = 'sandbox — R$ 50,00 fictícios';
     el('premium').textContent = 'Não — acesso Premium não é liberado em testes';
-    setStatus(orderState, 'Pedido de simulação registrado. Nenhum valor foi cobrado. Você pode consultar o status.', 'success');
+    setStatus(orderState, sandboxOrderFeedback(data, action), 'success');
   }
   function readableError(err) {
     const code = String(err?.code || err?.message || 'UNEXPECTED_ERROR');
@@ -262,7 +277,7 @@ if (typeof document !== 'undefined') {
     }
     setStatus(orderState, 'Criando pedido somente no sandbox do Mercado Pago…');
     const result = await apiFetch('/orders', 'POST', makeSandboxOrderRequest(selectedPlan, requestKey));
-    showOrder(result);
+    showOrder(result, 'created');
   }));
   recoverReference.addEventListener('input', controls);
   recoverReference.addEventListener('keydown', event => {
@@ -280,15 +295,14 @@ if (typeof document !== 'undefined') {
     if (normalizeSandboxReference(result?.orderId) !== requestedReference) {
       throw new Error('SANDBOX_RESPONSE_INVALID');
     }
-    showOrder(result);
-    setStatus(orderState, 'Pedido anterior recuperado com sucesso no sandbox. Nenhum novo Pix foi criado.', 'success');
+    showOrder(result, 'recovered');
   }));
   checkOrder.addEventListener('click', () => run(async () => {
     if (!orderId) return;
     setStatus(orderState, 'Consultando somente o pedido desta sessão de teste…');
     const result = await apiFetch('/orders/' + encodeURIComponent(orderId), 'GET');
     if (result.orderId !== orderId) throw new Error('SANDBOX_RESPONSE_INVALID');
-    showOrder(result);
+    showOrder(result, 'checked');
   }));
   // Drop short-lived credentials from memory on tab closure; do not persist.
   window.addEventListener('pagehide', () => { session = null; });
