@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import {
   QA_EMAIL, isSafeQaOrigin, sandboxPlanKey, makeSandboxOrderRequest,
-  isSandboxOrder, extractGoogleIdentity, normalizeSandboxReference,
+  isSandboxOrder, extractGoogleIdentity, normalizeSandboxReference, sandboxOrderFeedback,
 } from '../qa/mercadopago/qa.mjs';
 
 const html = readFileSync('qa/mercadopago/index.html', 'utf8');
@@ -106,4 +106,26 @@ test('recovery UI is login-gated, read-only, and never saves ID tokens or orders
   assert.doesNotMatch(src, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(src, /premium\/activate|entitlement\/|access\/grant/);
   assert.match(css, /\.recovery-controls/);
+});
+
+test('status messages distinguish creation, read-only consultation, and recovery', () => {
+  assert.equal(
+    sandboxOrderFeedback(baseOrder, 'created'),
+    'Pedido de teste criado. Status: PENDING. Nenhum valor real foi cobrado.',
+  );
+  assert.equal(
+    sandboxOrderFeedback(baseOrder, 'checked'),
+    'Consulta concluída. Status do pedido: PENDING. Nenhum novo Pix foi criado.',
+  );
+  assert.equal(
+    sandboxOrderFeedback(baseOrder, 'recovered'),
+    'Pedido anterior recuperado. Status: PENDING. Nenhum novo Pix foi criado.',
+  );
+  assert.match(sandboxOrderFeedback({...baseOrder,status:'PAID_VERIFIED_SANDBOX'},'checked'), /PAID_VERIFIED_SANDBOX/);
+  assert.throws(() => sandboxOrderFeedback({...baseOrder,premiumActivated:true},'checked'), /SANDBOX_RESPONSE_INVALID/);
+  assert.throws(() => sandboxOrderFeedback(baseOrder, 'unrecognized'), /SANDBOX_ACTION_INVALID/);
+  assert.match(src, /showOrder\(result, 'checked'\)/);
+  assert.match(src, /showOrder\(result, 'recovered'\)/);
+  assert.match(src, /showOrder\(result, 'created'\)/);
+  assert.doesNotMatch(src, /Pedido de simulação registrado/);
 });
