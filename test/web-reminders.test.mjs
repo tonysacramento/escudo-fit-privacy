@@ -41,5 +41,5 @@ test('Web page contains explicit measurement routes, reminders and no false back
   assert.match(html,/navegador fechado/);
   assert.match(appJs,/EscudoFitWebReminders/);
   assert.match(sw,/web-reminders\.js/);
-  assert.match(html,/web-v43-medications-19/);
+  assert.match(html,/web-v43-sync-recovery-20/);
 });
