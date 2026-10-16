@@ -18,6 +18,14 @@ export function sandboxPlanKey(plan) {
   if (!Object.hasOwn(PLAN_PRICES, plan)) throw new Error('INVALID_PLAN');
   return plan;
 }
+// The reference is not a credential: the backend checks the signed Google
+// identity and ownership of the existing Firestore order before returning it.
+export function normalizeSandboxReference(value) {
+  const ref = String(value ?? '').trim();
+  const match = /^EF-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.exec(ref);
+  if (!match) throw new Error('PAYMENT_ORDER_ID_INVALID');
+  return 'EF-' + match[1].toLowerCase();
+}
 export function makeSandboxOrderRequest(plan, requestKey) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey)) {
     throw new Error('INVALID_REQUEST_KEY');
@@ -57,6 +65,8 @@ if (typeof document !== 'undefined') {
   const createOrder = el('createOrder');
   const checkOrder = el('checkOrder');
   const newOrder = el('newOrder');
+  const recoverReference = el('recoverReference');
+  const recoverOrder = el('recoverOrder');
   let session = null; // Google ID token only in volatile memory. Never log or persist.
   let requestKey = null;
   let selectedPlan = null;
@@ -83,6 +93,10 @@ if (typeof document !== 'undefined') {
     createOrder.disabled = busy || !signed || Boolean(orderId) || (!requestKey && !consent.checked);
     checkOrder.disabled = busy || !signed || !orderId;
     newOrder.disabled = busy || !signed || !(orderId || requestKey);
+    recoverReference.disabled = busy || !signed;
+    let validReference = false;
+    try { normalizeSandboxReference(recoverReference.value); validReference = true; } catch {}
+    recoverOrder.disabled = busy || !signed || !validReference;
   }
   function resetView() {
     el('internalId').textContent = '—';
@@ -109,10 +123,16 @@ if (typeof document !== 'undefined') {
     createOrder.disabled = true;
     checkOrder.disabled = true;
     newOrder.disabled = true;
+    recoverReference.disabled = true;
+    recoverOrder.disabled = true;
   }
   function showOrder(data) {
     if (!isSandboxOrder(data)) throw new Error('SANDBOX_RESPONSE_INVALID');
     orderId = data.orderId;
+    // Keep only a non-secret reference in the visible field; never store IDs or tokens.
+    recoverReference.value = data.orderId;
+    const planInput = document.querySelector('input[name="plan"][value="' + data.planKey + '"]');
+    if (planInput) planInput.checked = true;
     el('internalId').textContent = data.orderId;
     el('providerId').textContent = data.providerOrderId || 'Aguardando provedor';
     el('paymentStatus').textContent = String(data.status || 'Não informado').slice(0, 100);
@@ -131,6 +151,9 @@ if (typeof document !== 'undefined') {
       MP_SANDBOX_ORDER_REJECTED: 'O Mercado Pago não aceitou o pedido de simulação.',
       MP_TEST_SECRET_MISSING: 'Token de testes indisponível no servidor.',
       SANDBOX_RESPONSE_INVALID: 'A resposta não corresponde a um pedido seguro do sandbox.',
+      PAYMENT_ORDER_ID_INVALID: 'Informe uma referência EF- válida do pedido existente.',
+      PAYMENT_ORDER_NOT_FOUND: 'Pedido não encontrado para esta Conta Google de testes. Confira a referência EF-.',
+      HTTP_404: 'Pedido não localizado ou não pertencente à conta conectada.',
     };
     return map[safeCode] || ('Não foi possível concluir a operação de testes (' + safeCode + ').');
   }
@@ -179,7 +202,7 @@ if (typeof document !== 'undefined') {
     session = { token: credential, expiresMs: identity.expiresMs, sinceMs: Date.now() };
     consent.checked = false;
     setStatus(loginState, 'Conta de teste selecionada: ' + identity.email + '. O backend verificará a assinatura Google ao enviar o pedido.', 'success');
-    setStatus(orderState, 'Marque a confirmação para criar um pedido fictício.');
+    setStatus(orderState, 'Para consultar um pedido anterior, informe sua referência EF- no campo de recuperação. Não é preciso criar outro pedido.');
     controls();
   }
   function initializeGoogle() {
@@ -225,6 +248,7 @@ if (typeof document !== 'undefined') {
     requestKey = null;
     selectedPlan = null;
     orderId = null;
+    recoverReference.value = '';
     consent.checked = false;
     resetView();
     setStatus(orderState, 'Novo cenário preparado. Confirme novamente antes de criar o pedido.');
@@ -239,6 +263,25 @@ if (typeof document !== 'undefined') {
     setStatus(orderState, 'Criando pedido somente no sandbox do Mercado Pago…');
     const result = await apiFetch('/orders', 'POST', makeSandboxOrderRequest(selectedPlan, requestKey));
     showOrder(result);
+  }));
+  recoverReference.addEventListener('input', controls);
+  recoverReference.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !recoverOrder.disabled) {
+      event.preventDefault();
+      recoverOrder.click();
+    }
+  });
+  recoverOrder.addEventListener('click', () => run(async () => {
+    if (!validSession()) throw new Error('AUTH_REQUIRED');
+    const requestedReference = normalizeSandboxReference(recoverReference.value);
+    setStatus(orderState, 'Consultando o pedido existente, sem criar outra cobrança…');
+    // Authenticated GET only. The backend also verifies order ownership.
+    const result = await apiFetch('/orders/' + encodeURIComponent(requestedReference), 'GET');
+    if (normalizeSandboxReference(result?.orderId) !== requestedReference) {
+      throw new Error('SANDBOX_RESPONSE_INVALID');
+    }
+    showOrder(result);
+    setStatus(orderState, 'Pedido anterior recuperado com sucesso no sandbox. Nenhum novo Pix foi criado.', 'success');
   }));
   checkOrder.addEventListener('click', () => run(async () => {
     if (!orderId) return;
