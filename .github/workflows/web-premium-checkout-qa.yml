@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
+      - name: Install DOM test dependency
+        run: npm install --no-save --package-lock=false jsdom@26.1.0
       - name: Syntax and all Web contracts
         run: |
           node --check app/app.js
@@ -21,7 +23,7 @@ jobs:
           node --test test/*.test.mjs
       - name: Install browser test dependencies
         run: |
-          npm install --no-save @playwright/test
+          npm install --no-save --package-lock=false @playwright/test jsdom@26.1.0
           npx playwright install --with-deps chromium
       - name: Start isolated fixture site
         run: |

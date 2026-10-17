@@ -93,7 +93,7 @@ test('Web markup, service worker and client share same revision and full history
   assert.ok(version,'Web HTML must declare a build version');
   assert.ok(version.startsWith('web-v43-'),'keep the approved v43 Web identity');
   assert.ok(sw.includes(version),'service worker must cache the same HTML build');
-  for(const asset of ['styles.css','app.js','history-sync-contract.js','history-backup-bridge.js','body-map.js']){
+  for(const asset of ['styles.css','app.js','history-sync-contract.js','history-backup-bridge.js','body-map.js','web-reminders.js','payment-checkout.js']){
     assert.ok(html.includes(asset+'?v='+version),'HTML version for '+asset);
     assert.ok(sw.includes(asset+'?v='+version),'service worker version for '+asset);
   }
