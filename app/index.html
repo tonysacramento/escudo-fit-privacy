@@ -24,7 +24,7 @@
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-20">
+  <link rel="stylesheet" href="./styles.css?v=prepaid-v44-off-1">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -54,10 +54,10 @@
           <h1>Sua rotina. Sua evolução. <em>Um único escudo.</em></h1>
           <p class="lead">Organize hábitos importantes do dia a dia em uma experiência simples, visual e feita para acompanhar você no celular ou no navegador.</p>
           <div class="premium-pricing" aria-label="Valores dos planos Premium" style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 8px;">
-            <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM MENSAL</span><strong style="font-size:1.35rem;">R$ 4,99</strong><span> /mês</span></div>
-            <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM ANUAL</span><strong style="font-size:1.35rem;">R$ 49,90</strong><span> /ano</span></div>
+            <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM 30 DIAS</span><strong style="font-size:1.35rem;">R$ 4,99</strong><p>Pagamento único</p><a class="button button-outline" data-premium-plan="monthly" href="mailto:escudofit@gmail.com?subject=Premium%2030%20dias">Conhecer plano</a></div>
+            <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM 12 MESES</span><strong style="font-size:1.35rem;">R$ 49,90</strong><p>Pagamento único</p><a class="button button-outline" data-premium-plan="yearly" href="mailto:escudofit@gmail.com?subject=Premium%2012%20meses">Conhecer plano</a></div>
           </div>
-          <p style="font-size:.84rem;opacity:.85;margin:0 0 10px;">Experimente por 14 dias grátis. A contratação Premium é separada e depende da confirmação do pagamento.</p>
+          <p style="font-size:.84rem;opacity:.85;margin:0 0 10px;">Experimente por 14 dias grátis. Premium pré-pago, sem renovação nem cobrança automática. A contratação depende da confirmação do pagamento.</p>
           <div class="hero-ctas">
             <button class="button button-primary trial-hero-button" data-scroll-trial>Começar 14 dias grátis</button>
             <button class="button button-outline" data-scroll-login>Já tenho acesso</button>
@@ -201,16 +201,37 @@
       <h1 id="webAccessTitle">Seu período de teste terminou</h1>
       <p id="webAccessMessage">Para continuar utilizando o Escudo Fit Web, escolha o plano Premium. Seu histórico permanece preservado na sua Conta Google.</p>
       <div class="web-access-plans">
-        <div><small>PREMIUM MENSAL</small><strong>R$ 4,99</strong></div>
-        <div><small>PREMIUM ANUAL</small><strong>R$ 49,90</strong></div>
+        <div><small>PREMIUM 30 DIAS</small><strong>R$ 4,99</strong></div>
+        <div><small>PREMIUM 12 MESES</small><strong>R$ 49,90</strong></div>
       </div>
-      <a id="webPremiumPurchase" class="button button-primary full-width" href="mailto:escudofit@gmail.com?subject=Assinatura%20Premium%20Escudo%20Fit&amp;body=Ol%C3%A1%2C%20quero%20contratar%20o%20plano%20Premium%20do%20Escudo%20Fit%20Web.">Solicitar assinatura Premium</a>
-      <p class="web-access-hint">O atendimento confirma a contratação e a liberação do plano. Este botão não realiza cobrança automática.</p>
+      <a id="webPremiumPurchase" data-premium-plan="monthly" class="button button-primary full-width" href="mailto:escudofit@gmail.com?subject=Premium%2030%20dias">Premium por 30 dias</a>
+      <a data-premium-plan="yearly" class="button button-outline full-width" href="mailto:escudofit@gmail.com?subject=Premium%2012%20meses">Premium por 12 meses</a>
+      <p class="web-access-hint">Pagamento único. Sem renovação nem cobrança automática. A compra será confirmada antes da liberação do acesso.</p>
       <button id="webAccessRetry" class="button button-outline full-width" type="button">Verificar meu acesso novamente</button>
       <button id="webAccessLogout" class="button button-ghost full-width" type="button">Trocar Conta Google</button>
       <p class="web-access-privacy">Seus registros não serão excluídos ao encerrar o teste. <a href="../support.html">Suporte</a></p>
     </div>
   </section>
+
+  <dialog id="premiumCheckoutDialog" class="premium-checkout" aria-labelledby="premiumCheckoutTitle">
+    <button id="premiumCheckoutClose" class="button button-ghost" type="button" aria-label="Fechar compra Premium">Fechar</button>
+    <h2 id="premiumCheckoutTitle">Premium pré-pago</h2>
+    <label class="app-field">Plano<select id="premiumCheckoutPlan"><option value="monthly">30 dias — R$ 4,99</option><option value="yearly">12 meses — R$ 49,90</option></select></label>
+    <p>Pagamento único. Não há renovação nem cobrança automática. Uma nova compra será sempre uma escolha sua.</p>
+    <p id="premiumCheckoutMessage" role="status" aria-live="polite"></p>
+    <p id="premiumCheckoutExpiry" class="muted"></p>
+    <label id="premiumCheckoutAccept" class="premium-checkout-accept" hidden><input id="premiumCheckoutTerms" type="checkbox"> Li e aceito o preço e a duração do plano escolhido, os <a href="../terms.html#premium-prepago" target="_blank" rel="noopener">termos da compra</a> e a <a href="../privacy.html" target="_blank" rel="noopener">política de privacidade</a>.</label>
+    <button id="premiumCheckoutCreate" class="button button-primary full-width" type="button" disabled hidden>Gerar ou recuperar o mesmo Pix</button>
+    <button id="premiumCheckoutLogin" class="button button-primary full-width" type="button" hidden>Entrar com Conta Google</button>
+    <section id="premiumCheckoutPayment" hidden>
+      <img id="premiumCheckoutImage" class="premium-checkout-image" alt="QR Code do Pix desta compra" hidden>
+      <label class="app-field">Pix Copia e Cola<textarea id="premiumCheckoutQr" readonly rows="3" autocomplete="off"></textarea></label>
+      <button id="premiumCheckoutCopy" class="button button-primary full-width" type="button">Copiar código Pix</button>
+      <p>Confira o valor e o recebedor no aplicativo do seu banco antes de pagar. Aguarde a confirmação; não pague duas vezes.</p>
+    </section>
+    <button id="premiumCheckoutRefresh" class="button button-outline full-width" type="button" hidden>Consultar confirmação</button>
+    <p class="muted">Precisa de ajuda? <a href="mailto:escudofit@gmail.com?subject=Compra%20Premium%20Escudo%20Fit">Fale com o suporte</a>. Seu histórico permanece preservado.</p>
+  </dialog>
 
   <section id="appExperience" class="app-experience hidden" aria-live="polite">
     <div class="app-shell">
@@ -594,6 +615,7 @@
             <div class="section-title gold"><b>SEU PLANO</b></div>
             <p class="muted">Plano conectado a esta Conta Google:</p>
             <strong id="profilePlan" class="plan-label">FULL</strong>
+            <div class="profile-actions"><a class="button button-outline" data-premium-plan="monthly" href="mailto:escudofit@gmail.com?subject=Premium%2030%20dias">Premium 30 dias</a><a class="button button-outline" data-premium-plan="yearly" href="mailto:escudofit@gmail.com?subject=Premium%2012%20meses">Premium 12 meses</a></div>
             <p id="installDescription" class="muted hidden"></p>
             <button id="installButtonFloating" class="quick-access-button hidden">Instalar Escudo Fit Web</button>
             <p id="androidFullDescription" class="muted hidden">Prefere o aplicativo Android completo? Baixe a versão aprovada. Preserve seus dados: não desinstale o aplicativo atual.</p>
@@ -719,7 +741,8 @@
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./web-reminders.js?v=web-v43-sync-recovery-20" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-20" defer></script>
+  <script src="./payment-checkout.js?v=prepaid-v44-off-1" defer></script>
+  <script src="./app.js?v=prepaid-v44-off-1" defer></script>
 </body>
 </html>
 

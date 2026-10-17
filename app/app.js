@@ -27,7 +27,7 @@ const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
   : null;
 
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
-function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
+function saveAuth(value){const previousOwner=auth?.user?.id;auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY);if(previousOwner!==auth?.user?.id&&typeof window.dispatchEvent==='function'&&typeof Event==='function')window.dispatchEvent(new Event('escudofit:accountChanged'))}
 function dataKey(){return DATA_PREFIX+(auth?.user?.id||'guest')}
 function loadState(){try{return {...defaults,...JSON.parse(localStorage.getItem(dataKey())||'{}')}}catch{return {...defaults,activities:[],applications:[],weights:[],measurements:{},measurementHistory:[],nutritionHistory:[],treatment:null,profile:{name:''}}}}
 function saveState(){state.updatedAt=new Date().toISOString();localStorage.setItem(dataKey(),JSON.stringify(state))}
@@ -1169,6 +1169,11 @@ async function handleGoogleCredential(response){
     state=loadState();
     setLoginStatus('');
     showApp();
+    let selectedPremium=null;
+    try{selectedPremium=sessionStorage.getItem('escudofit_premium_selection');sessionStorage.removeItem('escudofit_premium_selection');}catch(_){}
+    if(['monthly','yearly'].includes(selectedPremium)){
+      void premiumCheckout?.open(selectedPremium);
+    }
     const reservedTrialEmail=sessionStorage.getItem('escudofit_trial_email');
     const trialActivated=data?.entitlement?.mode==='TRIAL_14D' &&
       reservedTrialEmail &&
@@ -1623,6 +1628,15 @@ if('serviceWorker'in navigator){
       .catch(()=>{});
   });
 }
+
+const premiumCheckout=window.EscudoFitPayments?.mount({
+  request:(path,options)=>authenticatedFetch(path,options),
+  getOwner:()=>auth?.user?.id||null,getEntitlement:()=>auth?.entitlement||null,
+  refreshEntitlement:async()=>await refreshWebEntitlement()?auth?.entitlement:null,
+  storage:{getItem:key=>{try{return sessionStorage.getItem(key);}catch(_){return null;}},
+    setItem:(key,value)=>{try{sessionStorage.setItem(key,value);}catch(_){}}},
+  showLogin:planKey=>{try{sessionStorage.setItem('escudofit_premium_selection',planKey);}catch(_){}showMarketing();$('loginSection')?.scrollIntoView({behavior:'smooth'});},
+});
 
 (async function boot(){
   if(auth&&await validateStoredSession())showApp();

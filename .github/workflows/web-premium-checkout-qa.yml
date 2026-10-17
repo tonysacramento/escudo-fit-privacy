@@ -1,0 +1,35 @@
+name: Escudo Fit Prepaid Checkout QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['app/**','index.html','terms.html','privacy.html','test/**','qa/web-premium-checkout.spec.mjs','.github/workflows/web-premium-checkout-qa.yml']
+permissions:
+  contents: read
+jobs:
+  prepaid-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Syntax and all Web contracts
+        run: |
+          node --check app/app.js
+          node --check app/payment-checkout.js
+          node --test test/*.test.mjs
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Start isolated fixture site
+        run: |
+          python3 -m http.server 4173 --directory . > /tmp/escudofit-checkout.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/app/ >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Test checkout with mocked API and payment data
+        run: npx playwright test qa/web-premium-checkout.spec.mjs --reporter=line
