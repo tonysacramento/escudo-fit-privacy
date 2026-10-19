@@ -1,0 +1,36 @@
+name: Escudo Fit Pilot Proposal Preview OFF QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['app/pilot-pix/**','app/sw.js','privacy.html','test/**','qa/web-pilot-preview.spec.mjs','.github/workflows/web-pilot-preview-qa.yml']
+permissions:
+  contents: read
+jobs:
+  preview-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and contracts; no real login, signing or payment
+        run: |
+          npm install --no-save --package-lock=false jsdom@26.1.0 @playwright/test@1.58.2
+          node --check app/pilot-pix/preview.mjs
+          node --check app/sw.js
+          node --test test/*.test.mjs
+      - name: Browser dependency
+        run: npx playwright install --with-deps chromium
+      - name: Serve fixture
+        run: |
+          python3 -m http.server 4173 --directory . > /tmp/escudo-preview-fixture.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/app/pilot-pix/ >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Mobile preview with explicit Google/API mocks and all other external traffic blocked
+        run: npx playwright test qa/web-pilot-preview.spec.mjs --reporter=line
