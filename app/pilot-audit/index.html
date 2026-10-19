@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="theme-color" content="#092d31">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' https://accounts.google.com; img-src 'self' data: https://*.googleusercontent.com; frame-src https://accounts.google.com; connect-src https://accounts.google.com https://escudo-fit-api-v38-835029473980.us-central1.run.app; object-src 'none'; base-uri 'none'; form-action 'none';">
+  <title>Verificação do piloto · Escudo Fit</title>
+  <link rel="stylesheet" href="./audit.css?v=identity-v1">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script type="module" src="./audit.mjs?v=identity-v1"></script>
+</head>
+<body>
+  <main>
+    <a class="brand" href="../../">Escudo Fit</a>
+    <p class="label">AUDITORIA RESTRITA</p>
+    <h1>Verificar as duas contas</h1>
+    <p class="intro">Esta etapa confirma a identidade do comprador e da pessoa responsável pela auditoria do piloto.</p>
+    <div class="notice"><strong>Somente verificação de identidade.</strong> Esta tela não gera cobrança nem libera Premium.</div>
+    <section class="card" aria-labelledby="step-title">
+      <p id="step-count" class="label">PREPARAÇÃO</p>
+      <h2 id="step-title">Tudo pronto para começar</h2>
+      <p id="step-description">Você vai escolher as contas selecionadas usando o botão oficial do Google. Primeiro entre com a conta de auditoria.</p>
+      <button id="start" type="button" disabled>Carregando Google…</button>
+      <div id="google-slot" aria-label="Entrar com Google"></div>
+      <p id="status" role="status" aria-live="polite">Carregando autenticação…</p>
+      <button id="cancel" type="button" class="secondary" hidden>Cancelar e limpar</button>
+    </section>
+    <details>
+      <summary>Como os dados são usados nesta etapa</summary>
+      <p>O Google fornece credenciais novas das contas escolhidas. Elas são enviadas à API do Escudo Fit e ao serviço privado de auditoria para verificar assinatura, identidade e validade. Não acessamos seus registros de saúde nesta etapa.</p>
+      <p>As credenciais ficam apenas na memória desta página e são descartadas ao terminar, cancelar, expirar ou sair. O serviço privado mantém somente desafios temporários e identificadores por hash; o resultado não muda cadastros ou planos.</p>
+      <p>O resultado vale apenas para esta verificação. Uma futura compra exige autorização própria e nova autenticação. <a href="../../privacy.html">Política de privacidade</a>.</p>
+    </details>
+    <p class="footer">Use as contas já selecionadas para o piloto. Não envie senhas ou credenciais pelo chat.</p>
+  </main>
+</body>
+</html>
