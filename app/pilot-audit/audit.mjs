@@ -1,4 +1,5 @@
-export const AUDIT_API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/pilot-audit/identity';
+// Fixed future audit tag on the existing V38 service. Default traffic is preserved.
+export const AUDIT_API='https://pilot-audit---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app/api/v38/pilot-audit/identity';
 export const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 const PURPOSE='ESCUDO_FIT_NONFINANCIAL_IDENTITY_V1';
 const token=value=>typeof value==='string'&&value.length<=16384&&/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value);
