@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v29-sync-recovery';
+const CACHE='escudo-fit-web-v29-sync-recovery-audit-identity-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -36,6 +36,9 @@ self.addEventListener('fetch',event=>{
   const request=event.request;
   const url=new URL(request.url);
   if(url.origin!==self.location.origin)return;
+  // Audit credentials/results use POST and memory only. Its page also needs a
+  // fresh network response; never replace it with a cached product/login page.
+  if(url.pathname.startsWith(new URL('./pilot-audit/',self.location.href).pathname))return;
 
   const networkFirst=
     request.mode==='navigate' ||

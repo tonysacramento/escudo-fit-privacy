@@ -1,0 +1,36 @@
+name: Escudo Fit Mobile Pilot Identity QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['app/pilot-audit/**','app/sw.js','privacy.html','test/pilot-audit.test.mjs','qa/web-pilot-audit.spec.mjs','.github/workflows/web-pilot-audit-qa.yml']
+permissions:
+  contents: read
+jobs:
+  identity-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and Web contracts (synthetic identities only)
+        run: |
+          npm install --no-save --package-lock=false jsdom@26.1.0 @playwright/test@1.58.2
+          node --check app/pilot-audit/audit.mjs
+          node --check app/sw.js
+          node --test test/*.test.mjs
+      - name: Browser dependency
+        run: npx playwright install --with-deps chromium
+      - name: Serve fixture
+        run: |
+          python3 -m http.server 4173 --directory . > /tmp/escudo-audit-fixture.log 2>&1 &
+          for i in {1..20}; do
+            curl -fsS http://127.0.0.1:4173/app/pilot-audit/ >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Mobile audit UI; mocked Google and API, no real login/payment
+        run: npx playwright test qa/web-pilot-audit.spec.mjs --reporter=line
