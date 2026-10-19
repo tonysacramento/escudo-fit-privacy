@@ -10,6 +10,13 @@ import { test, expect } from '@playwright/test';
  * after this fixture. Do not use the actual production backend in this suite.
  */
 test.beforeEach(async ({ page }) => {
+  // Individual scenarios register their API/Google mocks after this fallback.
+  // Unmocked external resources must fail locally instead of hanging startup
+  // or sending synthetic account traffic to a live service.
+  await page.route('**/*', async route => {
+    if (new URL(route.request().url()).origin === 'http://127.0.0.1:4173') return route.continue();
+    return route.abort('blockedbyclient');
+  });
   await page.route('**/api/v38/history/backup', async route => {
     await route.fulfill({
       status: 200,
