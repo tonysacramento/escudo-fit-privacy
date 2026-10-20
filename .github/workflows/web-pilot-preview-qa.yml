@@ -2,7 +2,7 @@ name: Escudo Fit Pilot Proposal Preview OFF QA
 on:
   pull_request:
     branches: [main]
-    paths: ['app/pilot-pix/**','app/sw.js','privacy.html','test/**','qa/web-pilot-preview.spec.mjs','.github/workflows/web-pilot-preview-qa.yml']
+    paths: ['app/pilot-pix/**','app/sw.js','privacy.html','test/**','qa/web-pilot-preview.spec.mjs','qa/web-pilot-approval.spec.mjs','.github/workflows/web-pilot-preview-qa.yml']
 permissions:
   contents: read
 jobs:
@@ -20,6 +20,7 @@ jobs:
         run: |
           npm install --no-save --package-lock=false jsdom@26.1.0 @playwright/test@1.58.2
           node --check app/pilot-pix/preview.mjs
+          node --check app/pilot-pix/approval/approval.mjs
           node --check app/sw.js
           node --test test/*.test.mjs
       - name: Browser dependency
@@ -33,4 +34,4 @@ jobs:
           done
           exit 1
       - name: Mobile preview with explicit Google/API mocks and all other external traffic blocked
-        run: npx playwright test qa/web-pilot-preview.spec.mjs --reporter=line
+        run: npx playwright test qa/web-pilot-preview.spec.mjs qa/web-pilot-approval.spec.mjs --reporter=line

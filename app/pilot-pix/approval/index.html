@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://accounts.google.com/gsi/ https://pilot-approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Aprovação do piloto Pix · Escudo Fit</title>
+  <link rel="stylesheet" href="../preview.css?v=proposal-preview-v1">
+  <link rel="stylesheet" href="approval.css?v=signed-approval-v1">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script type="module" src="approval.mjs?v=signed-approval-v1"></script>
+</head>
+<body>
+  <header><a href="/">Escudo Fit</a></header>
+  <main>
+    <p class="eyebrow">AUDITORIA RESTRITA</p>
+    <h1>Registrar a aprovação do piloto</h1>
+    <p>Carregue a aprovação assinada e confirme as duas contas selecionadas para registrar a autorização do teste.</p>
+    <aside><strong>Registro da aprovação. Nenhuma ordem Pix nesta etapa.</strong><p>Esta etapa confere a assinatura e registra a aprovação. Ela não assina arquivos, não cria cobrança e não libera Premium.</p></aside>
+    <section class="offer" aria-label="Escopo proposto">
+      <div><span>Escopo da aprovação</span><strong>R$ 4,99 <small>por 30 dias</small></strong></div>
+      <p>No máximo uma ordem Pix, sem renovação automática. O pagamento será feito manualmente pelo titular em uma etapa posterior.</p>
+    </section>
+    <section class="card" aria-labelledby="step-title">
+      <p id="step-count" class="eyebrow">ARQUIVO</p>
+      <h2 id="step-title">Carregue a aprovação assinada</h2>
+      <p id="step-description">Selecione o arquivo JSON produzido pela conta de auditoria.</p>
+      <div id="file-area"><label for="signed-file">Arquivo da aprovação assinada (JSON, até 8 KB)</label><input id="signed-file" type="file" accept=".json,application/json"></div>
+      <div id="google-slot"></div>
+      <div class="actions">
+        <button id="start" type="button" disabled>Conferir e registrar aprovação</button>
+        <button id="cancel" class="secondary" type="button" hidden>Cancelar e limpar</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Aguarde o carregamento do login Google.</p>
+    </section>
+    <details><summary>Como os dados são usados nesta etapa</summary>
+      <p>O Google verifica as contas, e o servidor consulta o vínculo e o plano do comprador. Não são consultados registros de saúde.</p>
+      <p>As credenciais ficam somente na memória e são descartadas ao concluir, cancelar, expirar ou sair. O resultado não mantém você conectado ao aplicativo.</p>
+      <p>O arquivo contém identificadores por hash, escopo, prazo e assinatura pública verificável. Esses dados são pseudônimos. A aprovação aceita fica registrada para auditoria e controle de uma única ordem. Esta página não consulta registros de saúde e não pede chave privada, senha ou token por escrito.</p>
+      <p>A hospedagem pode registrar IP, horário, rota e estado HTTP. Leia a <a href="/privacy.html#autorizacao-piloto-pix" target="_blank" rel="noopener noreferrer">política de privacidade</a>.</p>
+    </details>
+    <footer>Use as contas já selecionadas para o piloto. Não envie senhas ou credenciais pelo chat.</footer>
+  </main>
+</body>
+</html>
