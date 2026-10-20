@@ -1,4 +1,4 @@
-// Presentation only: no fetch, Google SDK, payment state, secret or storage access.
+// Presentation only: no HTTP calls, Google SDK, payment state, secret or storage access.
 const details=document.getElementById('details');
 const content=document.getElementById('detail-text');
 if(details&&content)details.addEventListener('click',()=>{
