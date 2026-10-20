@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://accounts.google.com/gsi/ https://pilot-pix---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Prévia do piloto Pix · Escudo Fit</title>
+  <link rel="stylesheet" href="preview.css?v=proposal-preview-v1">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script type="module" src="preview.mjs?v=proposal-preview-v1"></script>
+</head>
+<body>
+  <header><a href="/">Escudo Fit</a></header>
+  <main>
+    <p class="eyebrow">AUDITORIA RESTRITA</p>
+    <h1>Preparar a proposta do piloto</h1>
+    <p>Confirme as duas contas selecionadas para gerar um arquivo sem assinatura com o escopo do teste.</p>
+    <aside><strong>Somente prévia. Nenhuma cobrança.</strong><p>Esta etapa não assina nem registra uma aprovação e não libera Premium.</p></aside>
+    <section class="offer" aria-label="Escopo proposto">
+      <div><span>Compra avulsa proposta</span><strong>R$ 4,99 <small>por 30 dias</small></strong></div>
+      <p>Uma única ordem Pix. Sem renovação automática. A cobrança depende de autorização própria em uma etapa posterior.</p>
+    </section>
+    <section class="card" aria-labelledby="step-title">
+      <p id="step-count" class="eyebrow">PREPARAÇÃO</p>
+      <h2 id="step-title">Tudo pronto para preparar</h2>
+      <p id="step-description">Primeiro entre com a conta selecionada para auditoria.</p>
+      <div id="google-slot"></div>
+      <div class="actions">
+        <button id="start" type="button" disabled>Carregando login…</button>
+        <button id="download" type="button" hidden disabled>Baixar proposta sem assinatura</button>
+        <button id="cancel" class="secondary" type="button" hidden>Cancelar e limpar</button>
+      </div>
+      <p id="status" role="status" aria-live="polite">Aguarde o carregamento do login Google.</p>
+    </section>
+    <details><summary>Como os dados são usados nesta etapa</summary>
+      <p>O Google verifica as contas, e o servidor consulta o vínculo e o plano do comprador. Não são consultados registros de saúde.</p>
+      <p>As credenciais ficam somente na memória e são descartadas ao concluir, cancelar, expirar ou sair. O resultado não mantém você conectado ao aplicativo.</p>
+      <p>O arquivo contém identificadores por hash, valor, prazo e uma referência da proposta. Ele vale por até 30 minutos e permanece no seu dispositivo até você excluí-lo. Esses dados são pseudônimos. O arquivo não contém senha, credencial Google ou chave privada.</p>
+      <p>A hospedagem pode registrar IP, horário, rota e estado HTTP. Leia a <a href="/privacy.html#previa-piloto-pix" target="_blank" rel="noopener noreferrer">política de privacidade</a>.</p>
+    </details>
+    <footer>Use as contas já selecionadas para o piloto. Não envie senhas ou credenciais pelo chat.</footer>
+  </main>
+</body>
+</html>
