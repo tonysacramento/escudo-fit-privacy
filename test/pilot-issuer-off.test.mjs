@@ -15,6 +15,7 @@ test('pilot issuer page is disconnected from network, forms, and credential scri
  assert.doesNotMatch(html,/https?:\/\/[^"'\s]+\.run\.app/i);
  assert.doesNotMatch(js,/\b(fetch|XMLHttpRequest|WebSocket|EventSource|localStorage|sessionStorage|indexedDB)\b/);
  assert.doesNotMatch(js,/location\s*=|\.submit\(/);
+ assert.match(html,/src="\.\.\/\.\.\/icon-approved-v43\.png"/);
  assert.match(html,/Emissão desabilitada/);
  assert.match(html,/Nenhuma cobrança pode ser feita aqui/);
 });
