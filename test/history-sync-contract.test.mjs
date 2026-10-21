@@ -85,7 +85,7 @@ test('treatment patch supports medication timeline with no dose recommendation',
   assert.throws(()=>c.treatmentPatch({...source,treatmentStartDateIso:'2026-14-81'}),/INVALID_TREATMENT_DATE/);
 });
 
-test('Web markup, service worker and client share same revision and full history entry points',()=>{
+test('Web markup and cache share the approved build family and each asset revision, preserving full history entry points',()=>{
   const html=fs.readFileSync('app/index.html','utf8');
   const js=fs.readFileSync('app/app.js','utf8');
   const sw=fs.readFileSync('app/sw.js','utf8');
@@ -93,9 +93,14 @@ test('Web markup, service worker and client share same revision and full history
   assert.ok(version,'Web HTML must declare a build version');
   assert.ok(version.startsWith('web-v43-'),'keep the approved v43 Web identity');
   assert.ok(sw.includes(version),'service worker must cache the same HTML build');
+  const assets=Array.from(html.matchAll(/(?:src|href)="([^"]+)"/g),m=>m[1]);
+  const family=version.replace(/-[0-9]+$/,'-');
   for(const asset of ['styles.css','app.js','history-sync-contract.js','history-backup-bridge.js','body-map.js']){
-    assert.ok(html.includes(asset+'?v='+version),'HTML version for '+asset);
-    assert.ok(sw.includes(asset+'?v='+version),'service worker version for '+asset);
+    const src=assets.find(value=>value.startsWith('./'+asset+'?v='));
+    assert.ok(src,'versioned HTML reference for '+asset);
+    const revision=new URL(src,'https://escudofit.com.br/app/').searchParams.get('v');
+    assert.ok(revision.startsWith(family),'approved build family for '+asset);
+    assert.ok(sw.includes(src),'service worker preloads actual HTML revision for '+asset);
   }
   assert.match(html,/data-view="nutrition"/);
   assert.match(html,/data-view="weight"/);

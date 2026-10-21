@@ -1,49 +1,30 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow,noarchive">
-<meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; frame-src 'none'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests">
-<title>Piloto Pix · Emissão restrita — Escudo Fit</title>
-<link rel="stylesheet" href="./issue.css">
-<script type="module" src="./issue.mjs"></script>
-</head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://accounts.google.com/gsi/ https://escudo-fit-pilot-h3b-gateway-olb3tmj35q-uc.a.run.app; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://*.googleusercontent.com https://accounts.google.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>Emitir o Pix do piloto · Escudo Fit</title><link rel="stylesheet" href="issue.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script><script type="module" src="issue.mjs"></script></head>
 <body>
-<header class="top"><a href="/" aria-label="Voltar ao Escudo Fit"><img class="mark" src="../../icon-approved-v43.png" alt=""><span>Escudo Fit</span></a><span class="security"><span class="dot"></span> Ambiente restrito</span></header>
-<main>
-<section class="hero"><div class="eyebrow">PILOTO · ETAPA FINANCEIRA</div>
-<h1>Emissão restrita do Pix</h1>
-<p>Área de acompanhamento da primeira cobrança controlada do Escudo Fit. A emissão só será possível depois da validação independente da aprovação, das contas e da infraestrutura de pagamentos.</p>
-<div class="status" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 3.5 6v5.7c0 5.5 3.4 8.6 8.5 10.1 5.1-1.5 8.5-4.6 8.5-10.1V6z"/><path d="M12 7v6m0 3h.01"/></svg><div><strong>Emissão desabilitada</strong><span>Esta página está em preparação. Nenhuma cobrança pode ser feita aqui.</span></div></div>
+<header class="top"><a href="/" aria-label="Voltar ao Escudo Fit"><img class="mark" src="../../icon-approved-v43.png" alt=""><span>Escudo Fit</span></a><span class="security">Piloto restrito</span></header>
+<main><section class="hero"><p class="eyebrow" id="role-label">PÁGINA DA AUDITORIA</p><h1>Um Pix. Duas confirmações.</h1>
+<p>A conta de auditoria inicia a sessão. O comprador confirma no próprio dispositivo ou perfil. A auditoria volta para enviar a única tentativa autorizada.</p>
 </section>
-<div class="columns">
-<section class="panel" aria-label="Escopo do piloto">
-<div class="eyebrow">ESCOPO CONTROLADO</div>
-<div class="price">R$ 4,99 <small>/ 30 dias</small></div>
-<p class="muted">Compra avulsa · sem renovação automática</p>
-<hr>
-<dl><div><dt>Quantidade máxima</dt><dd>Uma ordem Pix</dd></div><div><dt>Pagamento</dt><dd>Manual pelo titular</dd></div><div><dt>Disponibilidade</dt><dd>Bloqueada nesta prévia</dd></div><div><dt>Premium</dt><dd>Apenas após conciliação real</dd></div></dl>
+<div class="columns"><section class="panel" aria-labelledby="scope-title"><p class="eyebrow">ESCOPO AUTORIZADO</p><h2 id="scope-title">Compra avulsa</h2>
+<div class="price">R$ 4,99 <small>/ 30 dias</small></div><p class="muted">Uma ordem Pix · sem renovação automática</p><hr>
+<dl><div><dt>Comprador</dt><dd>tonysacramento@gmail.com</dd></div><div><dt>Auditoria</dt><dd>escudofit.revisao@gmail.com</dd></div><div><dt>Pagamento</dt><dd>Manual pelo titular</dd></div><div><dt>Premium</dt><dd>Após pagamento e conciliação</dd></div></dl>
+<p class="muted">A emissão exige aprovação assinada válida, registrada e ainda não utilizada. O servidor confere o escopo e reserva uma única ordem.</p>
 </section>
-<section class="panel">
-<div class="eyebrow">CONTROLES DE APROVAÇÃO</div>
-<h2>Próximas verificações</h2>
-<ol class="steps">
-<li><span class="num">1</span><div><strong>Aprovação KMS válida</strong><small>Uma nova assinatura será necessária; a aprovação anterior expirou.</small></div><span class="state">Pendente</span></li>
-<li><span class="num">2</span><div><strong>Identidades Google independentes</strong><small>Comprador e conta de auditoria serão verificados novamente.</small></div><span class="state">Pendente</span></li>
-<li><span class="num">3</span><div><strong>Reserva única e emissão</strong><small>O banco deverá confirmar que não há ordem anterior.</small></div><span class="state">Bloqueado</span></li>
-<li><span class="num">4</span><div><strong>Conciliação e liberação</strong><small>Somente após pagamento confirmado pelo provedor.</small></div><span class="state">Bloqueado</span></li>
-</ol>
-</section>
-</div>
-<section class="actions panel">
-<h2>O que você pode fazer agora?</h2>
-<p>Esta versão é apenas uma prévia visual. Ela não pede login, arquivos de assinatura, chaves, documentos bancários ou dados pessoais.</p>
-<div class="buttons"><a class="primary" href="../approval/">Consultar etapa de aprovação</a><button id="details" type="button" aria-expanded="false" aria-controls="detail-text">Ver controles de segurança</button></div>
-<div id="detail-text" hidden><p><strong>Proteções previstas:</strong> validação de assinatura digital e prazo, autenticação de duas contas, desafio de uso único, reserva atômica de uma ordem, proibição de repetição automática após timeout e entrega Premium somente depois de conciliação.</p><p>Esses controles ainda precisam passar pelos testes e pela homologação LIVE antes de serem habilitados aqui.</p></div>
-</section>
-<footer>Escudo Fit · página de preparação do piloto financeiro. Nenhum pedido de pagamento é enviado por este endereço.</footer>
-</main>
-</body>
-</html>
+<section class="panel" aria-labelledby="step-title"><p class="eyebrow">CONFIRMAÇÃO INDEPENDENTE</p><h2 id="step-title">Preparar a emissão</h2>
+<div id="file-area"><label for="signed-file">Aprovação assinada já registrada</label><input id="signed-file" type="file" accept=".json,application/json"><p class="muted">Use o mesmo arquivo JSON da <a href="../approval/">etapa de aprovação</a>. Ele será conferido neste navegador; o conteúdo não é enviado por esta página.</p></div>
+<label class="terms"><input id="terms" type="checkbox"><span>Confirmo o escopo: um Pix de R$ 4,99, por 30 dias, sem renovação automática e com pagamento manual.</span></label>
+<div id="google-slot"></div><div class="buttons"><button id="start" type="button" disabled>Iniciar confirmação</button><button id="continue" type="button" hidden>Comprador confirmou · continuar</button><button id="cancel" type="button" hidden>Cancelar e limpar</button></div>
+<div id="share-box" hidden><label for="buyer-link">Link temporário do comprador</label><textarea id="buyer-link" readonly rows="4" spellcheck="false"></textarea><button id="copy-link" type="button">Copiar link do comprador</button><p class="muted">Abra em outro dispositivo ou perfil com tonysacramento@gmail.com. Depois volte à auditoria. A sessão dura até dois minutos.</p></div>
+<div id="result-box" hidden><p>Referência da ordem:</p><code id="order-id"></code><a id="payment-link" class="primary" hidden target="_blank" rel="noopener noreferrer">Abrir pagamento como comprador</a><button id="download" type="button">Baixar resultado da tentativa</button></div>
+<p id="status" role="status" aria-live="polite">Selecione a aprovação assinada e confirme o escopo.</p>
+</section></div>
+<section class="panel actions"><details><summary>Como funciona e quais dados são usados</summary>
+<p>As contas Google recebem nonces diferentes. A credencial do comprador vai diretamente ao servidor e não chega à página da auditoria. As credenciais transitórias ficam em memória; a sessão vale por até dois minutos.</p>
+<p>O arquivo assinado é conferido localmente quanto a formato, escopo e prazo. O servidor verifica a assinatura e o registro, a situação atual do comprador e a reserva única antes de emitir.</p>
+<p>Após o envio, esta página não repete a emissão. Se a resposta não chegar ou exigir revisão, a próxima ação é consultar a ordem e o provedor. Criar a ordem não confirma pagamento nem libera Premium.</p>
+<p>Leia a <a href="/privacy.html#emissao-pix-restrita" target="_blank" rel="noopener noreferrer">política de privacidade</a>.</p>
+</details></section><footer>Escudo Fit · piloto financeiro restrito. Não envie senhas ou credenciais pelo chat.</footer></main></body></html>
