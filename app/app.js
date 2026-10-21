@@ -121,7 +121,7 @@ function showWebAccessGate(reason){
   const message=reason==='VERIFY'
     ? 'Não foi possível confirmar seu plano agora. Conecte-se à internet e verifique novamente. Seu histórico permanece preservado.'
     : reason==='FREE'
-      ? 'O acesso completo à Web é exclusivo para Premium, Vitalício ou período de teste válido. Solicite o Premium para continuar. Seu histórico permanece preservado.'
+      ? 'O acesso completo ao Escudo Fit Web é exclusivo para o plano Premium ou período de teste válido. Assine o Premium para continuar. Seu histórico permanece preservado.'
       : 'Seu período de teste ou acesso temporário terminou. Para continuar no Escudo Fit Web, assine o Premium. Seu histórico permanece preservado.';
   setText('webAccessTitle',reason==='VERIFY'?'Verificando seu acesso':reason==='FREE'?'Escudo Fit Web Premium':'Seu período de acesso terminou');
   setText('webAccessMessage',message);
