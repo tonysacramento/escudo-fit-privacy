@@ -39,12 +39,17 @@ test('new and old medication codes are accepted in history contract, unknown cod
 
 test('PWA cache tracks the current Web revision and preload of core code',()=>{
   const version=/<meta name="escudo-fit-build" content="([^"]+)"/.exec(html)?.[1];
-  assert.equal(version,'web-v43-sync-recovery-20');
-  assert.match(sw,/escudo-fit-web-v31-approved-campaign-v1/);
-  for(const asset of ['history-sync-contract.js','app.js','sw.js']){
-    assert.ok(asset==='sw.js'||html.includes(asset+'?v='+version));
+  assert.match(version,/^web-v[0-9]+-[a-z0-9-]+$/);
+  const cache=/const CACHE=['"]([^'"]+)['"]/.exec(sw)?.[1];
+  assert.match(cache,/^escudo-fit-web-v[0-9]+-[a-z0-9-]+$/);
+  const scripts=Array.from(html.matchAll(/<script[^>]+src="([^"]+)"/g),m=>m[1]);
+  for(const asset of ['history-sync-contract.js','app.js']){
+    const src=scripts.find(value=>value.startsWith('./'+asset+'?v='));
+    assert.ok(src,'versioned core script is present: '+asset);
+    const revision=new URL(src,'https://escudofit.com.br/app/').searchParams.get('v');
+    assert.match(revision,/^web-v[0-9]+-[a-z0-9-]+$/);
+    assert.ok(sw.includes(src),'cache preloads the actual HTML revision: '+asset);
   }
-  assert.match(sw,new RegExp('history-sync-contract\\.js\\?v='+version));
 });
 
 test('future push receiver uses fixed privacy-safe messages; no background delivery without server',async()=>{

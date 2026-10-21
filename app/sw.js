@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v31-approved-campaign-v1';
+const CACHE='escudo-fit-web-v34-carousel-compact-crop-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -6,7 +6,7 @@ const ASSETS=[
   './history-sync-contract.js?v=web-v43-sync-recovery-20',
   './history-backup-bridge.js?v=web-v43-sync-recovery-20',
   './web-reminders.js?v=web-v43-sync-recovery-20',
-  './app.js?v=web-v43-sync-recovery-20',
+  './app.js?v=web-v43-sync-recovery-21',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',

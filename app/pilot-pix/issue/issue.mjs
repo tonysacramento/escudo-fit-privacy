@@ -190,6 +190,8 @@ function boot(){
    u.hash=new URLSearchParams({a:share.approvalId,c:share.challengeId,n:share.buyerNonce,e:String(share.expiresAtMs)}).toString();get('buyer-link').value=u.href;
   }else get('buyer-link').value='';
   get('order-id').textContent=controller.getResult()?.orderId||'Sem referência confirmada';
+  const order=controller.getResult()?.orderId,payment=get('payment-link');payment.hidden=!order;
+  if(order){const u=new URL('/app/pilot-pix/pay/',location.origin);u.hash=new URLSearchParams({o:order}).toString();payment.href=u.href;}else payment.removeAttribute('href');
  },renderGoogle:({role,nonce,callback})=>{
   if(!ready)throw Error('GOOGLE_UNAVAILABLE');const api=window.google.accounts.id;api.disableAutoSelect();
   api.initialize({client_id:GOOGLE_CLIENT_ID,nonce,callback,auto_select:false,button_auto_select:false,

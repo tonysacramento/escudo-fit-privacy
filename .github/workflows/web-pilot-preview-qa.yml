@@ -2,7 +2,7 @@ name: Escudo Fit Pilot Proposal Preview OFF QA
 on:
   pull_request:
     branches: [main]
-    paths: ['app/pilot-pix/**','app/sw.js','privacy.html','test/**','qa/web-pilot-preview.spec.mjs','qa/web-pilot-approval.spec.mjs','qa/web-pilot-identity-qa.spec.mjs','qa/web-pilot-issuer.spec.mjs','.github/workflows/web-pilot-preview-qa.yml']
+    paths: ['app/pilot-pix/**','app/sw.js','privacy.html','test/**','qa/web-pilot-preview.spec.mjs','qa/web-pilot-approval.spec.mjs','qa/web-pilot-identity-qa.spec.mjs','qa/web-pilot-issuer.spec.mjs','qa/web-pilot-payment.spec.mjs','.github/workflows/web-pilot-preview-qa.yml']
 permissions:
   contents: read
 jobs:
@@ -23,6 +23,7 @@ jobs:
           node --check app/pilot-pix/approval/approval.mjs
           node --check app/pilot-pix/identity/identity.mjs
           node --check app/pilot-pix/issue/issue.mjs
+          node --check app/pilot-pix/pay/pay.mjs
           node --check app/sw.js
           node --test test/*.test.mjs
       - name: Browser dependency
@@ -36,4 +37,4 @@ jobs:
           done
           exit 1
       - name: Mobile preview with explicit Google/API mocks and all other external traffic blocked
-        run: npx playwright test qa/web-pilot-preview.spec.mjs qa/web-pilot-approval.spec.mjs qa/web-pilot-identity-qa.spec.mjs qa/web-pilot-issuer.spec.mjs --reporter=line
+        run: npx playwright test qa/web-pilot-preview.spec.mjs qa/web-pilot-approval.spec.mjs qa/web-pilot-identity-qa.spec.mjs qa/web-pilot-issuer.spec.mjs qa/web-pilot-payment.spec.mjs --reporter=line
