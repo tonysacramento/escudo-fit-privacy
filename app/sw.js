@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v29-sync-recovery-pilot-preview-v1';
+const CACHE='escudo-fit-web-v30-campaign-local-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -11,6 +11,10 @@ const ASSETS=[
   './android-icon.svg',
   './icon-approved-v43.png',
   './splash-approved-v43.png',
+  './campaign/escudo-fit-01.png',
+  './campaign/escudo-fit-02.png',
+  './campaign/escudo-fit-03.png',
+  './campaign/escudo-fit-04.png',
   './manifest.webmanifest',
   './icon.svg'
 ];
