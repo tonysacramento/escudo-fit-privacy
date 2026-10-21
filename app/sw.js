@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v33-carousel-refine-v1';
+const CACHE='escudo-fit-web-v34-carousel-compact-crop-v1';
 const ASSETS=[
   './',
   './index.html',
