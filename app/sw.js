@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v34-carousel-compact-crop-v1';
+const CACHE='escudo-fit-web-v35-carousel-six-approved-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -11,9 +11,12 @@ const ASSETS=[
   './android-icon.svg',
   './icon-approved-v43.png',
   './splash-approved-v43.png',
-  './campaign/escudo-fit-01.png',
-  './campaign/escudo-fit-02.png',
-  './campaign/escudo-fit-04.png',
+  './campaign/escudo-fit-01-organize-rotina.png',
+  './campaign/escudo-fit-02-hidratacao.png',
+  './campaign/escudo-fit-03-movimento.png',
+  './campaign/escudo-fit-04-nutricao.png',
+  './campaign/escudo-fit-05-aplicacoes.png',
+  './campaign/escudo-fit-06-meu-progresso.png',
   './manifest.webmanifest',
   './icon.svg'
 ];
