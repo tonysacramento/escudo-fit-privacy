@@ -8,9 +8,9 @@
 <title>Comprar Escudo Fit Premium | Pix</title>
 <meta name="description" content="Compra avulsa do Escudo Fit Premium com Pix e acompanhamento de reconciliação.">
 <link rel="icon" href="../icon-approved-v43.png" type="image/png">
-<link rel="stylesheet" href="purchase.css?v=checkout-review-v1">
+<link rel="stylesheet" href="purchase.css?v=pix-auth-profile-v2">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script type="module" src="purchase.mjs?v=checkout-review-v1"></script>
+<script type="module" src="purchase.mjs?v=pix-auth-profile-v2"></script>
 </head>
 <body>
 <header class="header"><a class="brand" href="../../"><img src="../icon-approved-v43.png" width="46" height="46" alt=""><span>Escudo Fit</span></a><a class="back" href="../">Voltar ao aplicativo</a></header>
@@ -28,8 +28,15 @@
    <h3>Entrar com Google</h3>
    <p>Use a mesma conta vinculada ao seu Escudo Fit. A contratação está limitada aos compradores autorizados neste piloto.</p>
    <div id="google-slot" aria-label="Login com Google"></div>
-   <p id="account" class="muted">Aguardando login.</p>
-   <button id="disconnect" class="secondary" type="button" hidden>Sair desta compra</button>
+   <div id="profile-panel" class="profile" role="group" aria-label="Perfil Google autenticado" hidden>
+     <div class="profile-icon" aria-hidden="true"><span>✓</span></div>
+     <div class="profile-details">
+       <strong id="profile-name">Conta Escudo Fit</strong>
+       <span id="account" class="muted">Aguardando login.</span>
+       <small>Identidade verificada pelo servidor Escudo Fit. A compra é uma etapa independente.</small>
+     </div>
+   </div>
+   <button id="disconnect" class="secondary" type="button" hidden>Trocar conta Google</button>
   </section>
   <section class="panel" aria-labelledby="checkout-title">
    <p class="eyebrow">ETAPA 2 • ORDEM PIX</p><h2 id="checkout-title">Consultar ou comprar</h2>
