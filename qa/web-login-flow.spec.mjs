@@ -483,7 +483,7 @@ for(const scenario of [
     }else{
       await expect(page.locator('#webAccessGate')).toBeVisible();
       await expect(page.locator('#appExperience')).toBeHidden();
-      await expect(page.locator('#webPremiumPurchase')).toHaveAttribute('href',/mailto:escudofit@gmail.com/);
+      await expect(page.locator('#webPremiumPurchase')).toHaveAttribute('href',/^\.\/comprar\/$/);
       expect(historyReads).toBe(0);
       await expect(page.locator('#webAccessMessage')).toContainText('histórico permanece preservado');
     }
