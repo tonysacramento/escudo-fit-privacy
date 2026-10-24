@@ -59,6 +59,15 @@ test('all values validated: one monthly prepaid Pix; QR expires and does not mea
   assert.throws(()=>inspectPurchaseHealth(health({automaticRenewal:true})));
   assert.throws(()=>inspectPurchaseReconciliation(reconciled({reconciliationWritten:true}),EF));
 });
+test('old production health response with missing new flags is treated as OFF',()=>{
+ const previous=health();
+ delete previous.sitePurchaseEnabled;
+ delete previous.buyerReconciliationReadEnabled;
+ assert.deepEqual(inspectPurchaseHealth(previous),
+   {sitePurchaseEnabled:false,buyerReconciliationReadEnabled:false});
+ assert.throws(()=>inspectPurchaseHealth(health({sitePurchaseEnabled:'true'})));
+});
+
 test('page checks GET health + current FIRST, sends only one explicit POST to authenticated backend',async()=>{
   const h=harness();
   assert.equal(h.c.snapshot().canBuy,false);
