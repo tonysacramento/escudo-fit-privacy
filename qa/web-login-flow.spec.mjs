@@ -960,7 +960,7 @@ test('non-Gmail signup is routed to Web-only access', async ({ page }) => {
 });
 
 
-test('Monise30 campaign link shows 30 days and pending approval confirmation', async ({ page }) => {
+test('Monise30 campaign link shows 30 days and awaits verified Google login', async ({ page }) => {
   let captured=null;
   await page.route('https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/trial/register', async route => {
     captured=route.request().postDataJSON();
@@ -970,18 +970,20 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
       headers:{'access-control-allow-origin':'*'},
       body:JSON.stringify({
         registered:true,
-        accessChannel:'WEB_ONLY',
+        accessChannel:'GOOGLE_PLAY',
         promoCode:'Monise30',
         trialDays:30,
-        pendingApproval:true,
-        next:'MANUAL_APPROVAL'
+        existing:false,
+        campaignAccepted:true,
+        pendingApproval:false,
+        next:'GOOGLE_LOGIN'
       })
     });
   });
 
   await page.goto('http://127.0.0.1:4173/app/?promo=Monise30', { waitUntil:'networkidle' });
   await expect(page.locator('#trialTitle')).toHaveText('30 dias grátis de Escudo Fit');
-  await expect(page.locator('#trialIntro')).toContainText('liberado em até 24 horas');
+  await expect(page.locator('#trialIntro')).toContainText('primeiro acesso');
   await expect(page.locator('#trialEmail')).toHaveValue('');
   await expect(page.locator('#trialEmail')).not.toHaveAttribute('readonly', '');
 
@@ -990,9 +992,8 @@ test('Monise30 campaign link shows 30 days and pending approval confirmation', a
   await page.locator('#trialLgpd').check();
   await page.locator('#trialForm').evaluate(form=>form.requestSubmit());
 
-  await expect(page.locator('#trialStatus')).toContainText('30 dias grátis');
-  await expect(page.locator('#trialStatus')).toContainText('até 24 horas');
-  await expect(page.locator('#trialLoginButton')).toBeHidden();
+  await expect(page.locator('#trialStatus')).toContainText('ativar os 30 dias');
+  await expect(page.locator('#trialLoginButton')).toBeVisible();
   expect(captured.promoCode).toBe('Monise30');
   expect(captured.email).toBe('divulgacao@example.com');
 });
