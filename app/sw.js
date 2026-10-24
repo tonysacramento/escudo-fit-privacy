@@ -6,7 +6,7 @@ const ASSETS=[
   './history-sync-contract.js?v=web-v43-sync-recovery-20',
   './history-backup-bridge.js?v=web-v43-sync-recovery-20',
   './web-reminders.js?v=web-v43-sync-recovery-20',
-  './app.js?v=web-v43-campaigns-22',
+  './app.js?v=web-v43-sync-recovery-22',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',
