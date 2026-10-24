@@ -97,18 +97,18 @@ async function requestJson(fetchImpl,url,{method='GET',accessToken=null,body=nul
 /** No local/session storage, no automatic financial POST, no silent retry. */
 export function createPurchaseController({fetchImpl=fetch,now=Date.now,
   newKey=()=>crypto.randomUUID(),onState=()=>{}}={}){
-  let token=null,userEmail='',order=null,health=null,provider=null;
+  let token=null,userEmail='',userName='',order=null,health=null,provider=null;
   let phase='READY',attempted=false,busy=false,epoch=0,qrExpiryEmitted=false;
   const snapshot=()=>Object.freeze({
-    phase,account:userEmail,order:order?copy(order):null,provider:provider?copy(provider):null,
+    phase,account:userEmail,name:userName,order:order?copy(order):null,provider:provider?copy(provider):null,
     signedIn:Boolean(token),canBuy:Boolean(token&&health?.sitePurchaseEnabled&&
       health?.buyerReconciliationReadEnabled&&!order&&!attempted&&!busy),
     canRead:Boolean(token&&health?.buyerReconciliationReadEnabled&&order&&!busy),
-    canRefresh:Boolean(token&&health?.buyerReconciliationReadEnabled&&!busy),
+    canRefresh:Boolean(token&&!busy),
     attempted,busy
   });
   const emit=(next,message)=>{phase=next;onState(snapshot(),message);};
-  const signout=()=>{epoch++;token=null;userEmail='';order=null;provider=null;
+  const signout=()=>{epoch++;token=null;userEmail='';userName='';order=null;provider=null;
     health=null;attempted=false;busy=false;qrExpiryEmitted=false;
     emit('READY','Sessão encerrada.');};
   const active=e=>{if(e!==epoch||!token)throw Error('SESSION_CLOSED');};
@@ -119,32 +119,96 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
       if(busy||token||typeof googleToken!=='string'||googleToken.length>16384||!JWT.test(googleToken))
         return false;
       const e=++epoch;busy=true;emit('SIGNING_IN','Verificando a conta Google.');
+      let stage='AUTH';
       try{
         const login=await requestJson(fetchImpl,PURCHASE_API+'/auth/google',{
           method:'POST',body:{id_token:googleToken}});
         if(e!==epoch||!JWT.test(login.access_token||'')||
           !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login.user?.email||''))
           throw Error('INVALID_LOGIN');
-        token=login.access_token;userEmail=login.user.email;
+        // The backend has already verified the Google ID token. Profile
+        // display MUST NOT depend on a separate commercial health endpoint.
+        token=login.access_token;
+        userEmail=login.user.email;
+        userName=typeof login.user.name==='string'?
+          login.user.name.slice(0,100):'';
+        emit('PROFILE_LOADED','Conta Google autenticada. Verificando a disponibilidade da compra.');
+        stage='CHECKOUT';
         const state=inspectPurchaseHealth(await requestJson(fetchImpl,PATH+'/health'));
         active(e);health=state;
-        // Existing order MUST be loaded before any buyer-facing POST.
+        // A fresh canonical order read is mandatory BEFORE enabling purchase.
         if(state.buyerReconciliationReadEnabled){
           const current=await requestJson(fetchImpl,PATH+'/orders/current',{accessToken:token});
           active(e);
-          if(current?.order)order=inspectPurchaseOrder(current.order,now());
+          if(!current||typeof current!=='object'||!Object.hasOwn(current,'order'))
+            throw Error('INVALID_CURRENT_ORDER_RESPONSE');
+          if(current.order)order=inspectPurchaseOrder(current.order,now());
         }
         busy=false;
         if(order){emit('ORDER_EXISTS',messageForOrder(order.status));return true;}
         if(state.sitePurchaseEnabled&&state.buyerReconciliationReadEnabled){
-          emit('READY_TO_BUY','Conta verificada. Nenhuma ordem pendente encontrada.');
+          emit('READY_TO_BUY','Conta autenticada. Nenhuma ordem pendente encontrada.');
           return true;
         }
-        emit('CHECKOUT_CLOSED','Checkout não liberado pelo servidor. Nenhuma cobrança será criada.');
+        emit('CHECKOUT_CLOSED','Sua conta está conectada. O servidor ainda não liberou novas compras Pix.');
         return true;
-      }catch {
-        if(e===epoch){token=null;userEmail='';health=null;order=null;busy=false;
-          emit('ERROR','Não foi possível validar sua conta e consultar a situação do checkout.');}
+      }catch(error) {
+        if(e===epoch){
+          busy=false;
+          if(stage==='CHECKOUT'&&token){
+            // Important: missing/old/unavailable payment API does NOT undo
+            // a successful Google login or erase the profile from the page.
+            health=null;order=null;provider=null;
+            const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
+              ' ('+error.message.replace('API_HTTP_','HTTP ')+')':'';
+            emit('CHECKOUT_UNAVAILABLE',
+              'Conta Google autenticada. Não foi possível consultar a API financeira'+code+
+              '. Nenhum Pix será criado. Use "Verificar disponibilidade" para tentar novamente.');
+          }else {
+            token=null;userEmail='';userName='';health=null;order=null;provider=null;
+            const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
+              ' ('+error.message.replace('API_HTTP_','HTTP ')+')':'';
+            emit('AUTH_ERROR',
+              'Não foi possível autenticar sua conta no servidor Escudo Fit'+code+
+              '. Tente entrar novamente; nenhuma cobrança foi gerada.');
+          }
+        }
+        return stage==='CHECKOUT'&&Boolean(token);
+      }
+    },
+    async retryPreflight(){
+      if(!token||busy)return false;
+      const e=epoch;busy=true;emit('CHECKING_CHECKOUT','Consultando o servidor e seu pedido existente.');
+      // Read-only retry only: never POST to /orders.
+      try{
+        const state=inspectPurchaseHealth(await requestJson(fetchImpl,PATH+'/health'));
+        active(e);health=state;
+        // A previous uncertainty never becomes permission for a second POST.
+        if(state.buyerReconciliationReadEnabled){
+          const current=await requestJson(fetchImpl,PATH+'/orders/current',{accessToken:token});
+          active(e);
+          if(!current||typeof current!=='object'||!Object.hasOwn(current,'order'))
+            throw Error('INVALID_CURRENT_ORDER_RESPONSE');
+          if(current.order)order=inspectPurchaseOrder(current.order,now());
+        }
+        busy=false;
+        if(order){emit('ORDER_EXISTS',messageForOrder(order.status));return true;}
+        if(state.sitePurchaseEnabled&&state.buyerReconciliationReadEnabled&&!attempted){
+          emit('READY_TO_BUY','Conta autenticada. Nenhuma ordem pendente encontrada.');
+          return true;
+        }
+        emit('CHECKOUT_CLOSED',
+          'Conta Google conectada. Compras indisponíveis ou aguardando reconciliação; nenhum Pix foi criado.');
+        return true;
+      }catch(error){
+        if(e===epoch){
+          busy=false;health=null;
+          const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
+            ' ('+error.message.replace('API_HTTP_','HTTP ')+')':'';
+          emit('CHECKOUT_UNAVAILABLE',
+            'Sua conta continua autenticada, mas a consulta financeira falhou'+code+
+            '. Nenhuma nova compra foi iniciada.');
+        }
         return false;
       }
     },
@@ -212,12 +276,16 @@ function boot(){
   const controller=createPurchaseController({
     onState:(s,message)=>{
       el('account').textContent=s.account?'Conta conectada: '+s.account:'Aguardando login.';
+      el('profile-name').textContent=s.name||'Conta Escudo Fit';
+      el('profile-panel').hidden=!s.signedIn;
+      googleSlot.hidden=s.signedIn;
       el('disconnect').hidden=!s.signedIn;
       el('availability').textContent=message||'Verificando a disponibilidade do checkout.';
       el('status').textContent=message||'Acompanhe sua ordem.';
       consent.disabled=!s.canBuy;
       start.disabled=!s.canBuy||!consent.checked;
       refresh.disabled=!s.canRefresh;
+      refresh.textContent=s.canRead&&s.order?'Consultar reconciliação pela API':'Verificar disponibilidade';
       el('order-panel').hidden=!s.order;
       if(s.order){
         el('order-ref').textContent=s.order.orderId;
@@ -237,7 +305,10 @@ function boot(){
   consent.addEventListener('change',()=>{const s=controller.snapshot();
     start.disabled=!s.canBuy||!consent.checked;});
   start.addEventListener('click',()=>controller.buy(consent.checked));
-  refresh.addEventListener('click',()=>controller.refresh());
+  refresh.addEventListener('click',()=>{
+    const s=controller.snapshot();
+    return s.canRead&&s.order?controller.refresh():controller.retryPreflight();
+  });
   el('disconnect').addEventListener('click',()=>{controller.signout();consent.checked=false;
     googleSlot.replaceChildren();renderGoogle();});
   el('copy').addEventListener('click',async()=>{const pix=controller.getPix();
