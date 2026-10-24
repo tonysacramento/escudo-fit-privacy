@@ -109,7 +109,7 @@ test('monthly site remains OFF and cannot create a Pix from disabled API flags',
  const h=await fixtures(page);
  await page.setViewportSize({width:375,height:800});await enter(page);
  await expect(page.locator('#buy')).toBeDisabled();
- await expect(page.locator('#availability')).toContainText('não liberado');
+ await expect(page.locator('#availability')).toContainText('não liberou novas compras Pix');
  expect(h.requests.filter(x=>x.url.endsWith('/orders')&&x.method==='POST')).toHaveLength(0);
  expect(h.errors).toEqual([]);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
