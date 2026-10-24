@@ -96,16 +96,19 @@ async function requestJson(fetchImpl,url,{method='GET',accessToken=null,body=nul
 export function createPurchaseController({fetchImpl=fetch,now=Date.now,
   newKey=()=>crypto.randomUUID(),onState=()=>{}}={}){
   let token=null,userEmail='',order=null,health=null,provider=null;
-  let phase='READY',attempted=false,busy=false,epoch=0;
+  let phase='READY',attempted=false,busy=false,epoch=0,qrExpiryEmitted=false;
   const snapshot=()=>Object.freeze({
     phase,account:userEmail,order:order?copy(order):null,provider:provider?copy(provider):null,
-    signedIn:Boolean(token),canBuy:Boolean(token&&health?.sitePurchaseEnabled&&!order&&!attempted&&!busy),
+    signedIn:Boolean(token),canBuy:Boolean(token&&health?.sitePurchaseEnabled&&
+      health?.buyerReconciliationReadEnabled&&!order&&!attempted&&!busy),
     canRead:Boolean(token&&health?.buyerReconciliationReadEnabled&&order&&!busy),
+    canRefresh:Boolean(token&&health?.buyerReconciliationReadEnabled&&!busy),
     attempted,busy
   });
   const emit=(next,message)=>{phase=next;onState(snapshot(),message);};
   const signout=()=>{epoch++;token=null;userEmail='';order=null;provider=null;
-    health=null;attempted=false;busy=false;emit('READY','Sessão encerrada.');};
+    health=null;attempted=false;busy=false;qrExpiryEmitted=false;
+    emit('READY','Sessão encerrada.');};
   const active=e=>{if(e!==epoch||!token)throw Error('SESSION_CLOSED');};
   return Object.freeze({
     snapshot,
@@ -154,7 +157,7 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
             acceptedTermsVersion:TERMS,requestKey:newKey()}});
         active(e);
         order=inspectPurchaseOrder(result,now());
-        busy=false;
+        qrExpiryEmitted=false;busy=false;
         emit('ORDER_EXISTS',messageForOrder(order.status));
         return true;
       }catch{
@@ -190,6 +193,13 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
     },
     getPix(){return order?.qrCode&&Date.parse(order.checkoutExpiresAt)>now()?
       order.qrCode:null;},
+    checkExpiry(){
+      if(order?.qrCode&&order.status==='AWAITING_PAYMENT'&&
+        Date.parse(order.checkoutExpiresAt)<=now()&&!qrExpiryEmitted){
+        qrExpiryEmitted=true;
+        emit('PIX_WINDOW_EXPIRED','O prazo do QR Code terminou. Consulte o Mercado Pago pela API; não repita a emissão.');
+      }
+    },
   });
 }
 function boot(){
@@ -205,7 +215,7 @@ function boot(){
       el('status').textContent=message||'Acompanhe sua ordem.';
       consent.disabled=!s.canBuy;
       start.disabled=!s.canBuy||!consent.checked;
-      refresh.disabled=!s.canRead&&!s.signedIn;
+      refresh.disabled=!s.canRefresh;
       el('order-panel').hidden=!s.order;
       if(s.order){
         el('order-ref').textContent=s.order.orderId;
@@ -251,7 +261,9 @@ function boot(){
     else if(Date.now()-loaded<10000)setTimeout(tryGoogle,200);
     else el('availability').textContent='Login Google indisponível neste navegador.';
   };
-  window.addEventListener('pagehide',()=>controller.signout());
+  const expiryPoll=setInterval(()=>controller.checkExpiry(),15000);
+  window.addEventListener('visibilitychange',()=>{if(!document.hidden)controller.checkExpiry();});
+  window.addEventListener('pagehide',()=>{clearInterval(expiryPoll);controller.signout();});
   tryGoogle();
 }
 if(typeof window!=='undefined'&&typeof document!=='undefined')boot();
