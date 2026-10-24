@@ -16,3 +16,12 @@ dl{margin:14px 0}dl div{display:flex;justify-content:space-between;align-items:b
 [hidden]{display:none!important}
 @media(max-width:760px){.columns{grid-template-columns:1fr}.shell{padding-top:25px}.header{padding:14px 18px}.brand img{width:40px;height:40px}.back{font-size:.84rem}.actions button{width:100%}dl div{align-items:flex-start;flex-direction:column;gap:3px}dd{text-align:left}}
 @media(prefers-reduced-motion:reduce){button{transition:none}}
+
+/* Authentication and commerce are separate server checks. A successful
+   Google login remains visible even while the payment API is unavailable. */
+.profile{display:flex;align-items:center;gap:14px;padding:15px;margin:16px 0;border:1px solid #47877a;border-radius:14px;background:#153c40}
+.profile-icon{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;background:#246b59;color:#d4fff3;flex-shrink:0;font-size:1.3rem;font-weight:800}
+.profile-details{display:flex;flex-direction:column;gap:1px;min-width:0;overflow-wrap:anywhere}
+.profile-details strong{font-size:1.04rem;color:var(--text)}
+.profile-details span{font-size:.88rem}
+.profile-details small{font-size:.79rem;color:#b0d5d4;line-height:1.35;margin-top:6px}
