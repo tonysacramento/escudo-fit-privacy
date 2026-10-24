@@ -1,0 +1,59 @@
+name: Escudo Fit Commercial Pix Website QA (NO LIVE)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/comprar/**'
+      - 'app/index.html'
+      - 'index.html'
+      - 'test/website-pix-purchase.test.mjs'
+      - 'qa/web-commercial-pix.spec.mjs'
+      - '.github/workflows/web-commercial-checkout-qa.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/comprar/**'
+      - 'app/index.html'
+      - 'index.html'
+      - 'test/website-pix-purchase.test.mjs'
+      - 'qa/web-commercial-pix.spec.mjs'
+      - '.github/workflows/web-commercial-checkout-qa.yml'
+permissions:
+  contents: read
+jobs:
+  purchase-off-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and synthetic buyer safety contracts
+        run: |
+          node --check app/comprar/purchase.mjs
+          node --test test/website-pix-purchase.test.mjs
+      - name: Verify no token or payment secret in website source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -REn '(APP_USR-[A-Za-z0-9]{10,}|BEGIN PRIVATE KEY|MP_ACCESS_TOKEN[=:]|MERCADO_PAGO_ACCESS_TOKEN[=:])' app/comprar
+          grep -q "sitePurchaseEnabled" app/comprar/purchase.mjs
+          grep -q "reconciliation" app/comprar/purchase.mjs
+          echo "FINANCIAL_WEBSITE_DEFAULT_OFF=PASS"
+      - name: Browser test dependencies (test only)
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.58.2
+          npx playwright install --with-deps chromium
+      - name: Serve static pages for isolated mock tests
+        run: |
+          python3 -m http.server 4173 --directory . >/tmp/escudo-site-checkout-qa.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/app/comprar/ >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+      - name: Mobile/desktop mock checkout and GET-only reconciliation
+        run: npx playwright test qa/web-commercial-pix.spec.mjs --reporter=line

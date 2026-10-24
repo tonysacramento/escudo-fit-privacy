@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102f38"><meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://escudo-fit-api-v38-835029473980.us-central1.run.app https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<title>Comprar Escudo Fit Premium | Pix</title>
+<meta name="description" content="Compra avulsa do Escudo Fit Premium com Pix e acompanhamento de reconciliação.">
+<link rel="icon" href="../icon-approved-v43.png" type="image/png">
+<link rel="stylesheet" href="purchase.css?v=checkout-review-v1">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module" src="purchase.mjs?v=checkout-review-v1"></script>
+</head>
+<body>
+<header class="header"><a class="brand" href="../../"><img src="../icon-approved-v43.png" width="46" height="46" alt=""><span>Escudo Fit</span></a><a class="back" href="../">Voltar ao aplicativo</a></header>
+<main class="shell">
+ <p class="eyebrow">PAGAMENTO PIX • ACESSO CONTROLADO</p>
+ <h1>Seu Premium, no seu ritmo.</h1>
+ <p class="intro">Compre um período avulso, sem renovação automática. Consulte o estado da sua ordem diretamente na API do Escudo Fit, que verifica o Mercado Pago.</p>
+ <div class="columns">
+  <section class="panel offer" aria-labelledby="offer-title">
+   <p class="eyebrow">PLANO SELECIONADO</p><h2 id="offer-title">Premium por 30 dias</h2>
+   <p class="price">R$ 4,99 <span>/ pagamento único</span></p>
+   <p class="hint">Pagamento Pix manual. O acesso só é ativado após confirmação e conciliação no servidor.</p>
+   <div class="rule"></div>
+   <p class="eyebrow">ETAPA 1 • IDENTIFICAÇÃO</p>
+   <h3>Entrar com Google</h3>
+   <p>Use a mesma conta vinculada ao seu Escudo Fit. A contratação está limitada aos compradores autorizados neste piloto.</p>
+   <div id="google-slot" aria-label="Login com Google"></div>
+   <p id="account" class="muted">Aguardando login.</p>
+   <button id="disconnect" class="secondary" type="button" hidden>Sair desta compra</button>
+  </section>
+  <section class="panel" aria-labelledby="checkout-title">
+   <p class="eyebrow">ETAPA 2 • ORDEM PIX</p><h2 id="checkout-title">Consultar ou comprar</h2>
+   <p>Ao entrar, verificaremos primeiro se você já possui uma ordem pendente. Não emitiremos outro Pix enquanto existir uma ordem não reconciliada.</p>
+   <div id="availability" class="notice" role="status" aria-live="polite">Verificando disponibilidade da compra.</div>
+   <label class="consent"><input id="terms" type="checkbox" disabled><span>Concordo com a compra avulsa de <strong>R$ 4,99</strong> por <strong>30 dias</strong>, sem renovação automática, e com a emissão de no máximo uma cobrança Pix.</span></label>
+   <div class="actions">
+    <button id="buy" type="button" disabled>Gerar meu Pix de R$ 4,99</button>
+    <button id="refresh" type="button" class="secondary" disabled>Consultar reconciliação pela API</button>
+   </div>
+   <div id="order-panel" class="order" hidden>
+    <p class="eyebrow">REFERÊNCIA DA ORDEM</p><code id="order-ref"></code>
+    <dl>
+     <div><dt>Estado canônico</dt><dd id="canonical">—</dd></div>
+     <div><dt>Consulta Mercado Pago</dt><dd id="provider">—</dd></div>
+     <div><dt>Vencimento do Pix</dt><dd id="expiry">—</dd></div>
+    </dl>
+    <div id="pix-panel" hidden>
+     <label for="pix-code">Pix copia e cola (confira valor e recebedor no banco)</label>
+     <textarea id="pix-code" readonly spellcheck="false" rows="4"></textarea>
+     <button id="copy" class="secondary" type="button">Copiar código Pix</button>
+    </div>
+   </div>
+   <p id="status" class="muted" role="status" aria-live="polite">Nenhum pedido será emitido sem sua confirmação e autorização do servidor.</p>
+  </section>
+ </div>
+ <section class="explain" aria-label="Como funciona">
+  <h2>O que acontece após a compra?</h2>
+  <p>O servidor reserva um identificador único antes de enviar o pedido ao Mercado Pago. A consulta da reconciliação usa operações autenticadas de leitura e não confirma um pagamento apenas pela existência do QR Code. Em caso de atraso, vencimento ou resposta incerta, a ordem permanece retida para revisão e não é emitida novamente automaticamente.</p>
+  <p>Se o serviço informar que o checkout está indisponível, a página continuará disponível para acompanhamento quando a consulta estiver habilitada. Não tente criar outra ordem para contornar esse aviso.</p>
+ </section>
+</main>
+<footer>Escudo Fit · <a href="../../privacy.html">Privacidade</a> · <a href="../../terms.html">Termos de uso</a> · Nenhuma credencial Pix é solicitada nesta página.</footer>
+</body></html>
