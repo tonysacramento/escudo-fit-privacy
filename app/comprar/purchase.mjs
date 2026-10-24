@@ -62,8 +62,8 @@ const commercialPreflightError=(error)=>error?.message==='API_HTTP_404'?
   {phase:'CHECKOUT_NOT_PUBLISHED',
    message:'A compra Pix ainda não está disponível no servidor (HTTP 404). Seu perfil Google foi carregado corretamente. A página já existe, mas a API financeira precisa ser publicada. Nenhum Pix foi gerado.'}:
   error?.message==='API_HTTP_503'?
-  {phase:'CHECKOUT_CLOSED',
-   message:'Sua conta está conectada, mas a API financeira está desativada (HTTP 503). Nenhum Pix foi gerado.'}:
+  {phase:'CHECKOUT_UNAVAILABLE',
+   message:'Sua conta está conectada, mas a API financeira está indisponível (HTTP 503). Nenhum Pix foi gerado. Você pode tentar novamente.'}:
   {phase:'CHECKOUT_UNAVAILABLE',
    message:'Conta Google autenticada. Não foi possível consultar a API financeira. Nenhum Pix foi gerado. Você pode tentar novamente.'};
 const messageForProvider=s=>({
