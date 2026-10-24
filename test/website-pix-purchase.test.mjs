@@ -142,3 +142,11 @@ test('site purchase is a distinct no-index page and landing/app links go to its 
  assert.doesNotMatch(main,/(?:href|action)="https?:\/\/[^"]+mercadopago\.com/);
  assert.doesNotMatch(script,/localStorage|sessionStorage|innerHTML|\bwindow\.open\(/);
 });
+
+test('PWA service worker excludes all buyer checkout resources from offline cache',()=>{
+ const sw=readFileSync(new URL('../app/sw.js',import.meta.url),'utf8');
+ assert.match(sw,/url\.pathname\.startsWith\(new URL\('\.\/comprar\/'/);
+ assert.match(sw,/return;/);
+ const body=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
+ assert.match(body,/noindex,nofollow/);
+});

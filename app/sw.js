@@ -46,6 +46,10 @@ self.addEventListener('fetch',event=>{
   // fresh network response; never replace it with a cached product/login page.
   if(url.pathname.startsWith(new URL('./pilot-audit/',self.location.href).pathname))return;
   if(url.pathname.startsWith(new URL('./pilot-pix/',self.location.href).pathname))return;
+  // Financial purchase and account reconciliation must ALWAYS reach the
+  // network. Never cache the checkout HTML, authentication controller, or
+  // payment status; offline must fail closed rather than load a stale Pix.
+  if(url.pathname.startsWith(new URL('./comprar/',self.location.href).pathname))return;
 
   const networkFirst=
     request.mode==='navigate' ||
