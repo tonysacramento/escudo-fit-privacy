@@ -8,9 +8,9 @@
 <title>Comprar Escudo Fit Premium | Pix</title>
 <meta name="description" content="Compra avulsa do Escudo Fit Premium com Pix e acompanhamento de reconciliação.">
 <link rel="icon" href="../icon-approved-v43.png" type="image/png">
-<link rel="stylesheet" href="purchase.css?v=pix-auth-profile-v2">
+<link rel="stylesheet" href="purchase.css?v=pix-finance-status-v3">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script type="module" src="purchase.mjs?v=pix-auth-profile-v2"></script>
+<script type="module" src="purchase.mjs?v=pix-finance-status-v3"></script>
 </head>
 <body>
 <header class="header"><a class="brand" href="../../"><img src="../icon-approved-v43.png" width="46" height="46" alt=""><span>Escudo Fit</span></a><a class="back" href="../">Voltar ao aplicativo</a></header>
@@ -39,13 +39,13 @@
    <button id="disconnect" class="secondary" type="button" hidden>Trocar conta Google</button>
   </section>
   <section class="panel" aria-labelledby="checkout-title">
-   <p class="eyebrow">ETAPA 2 • ORDEM PIX</p><h2 id="checkout-title">Consultar ou comprar</h2>
-   <p>Ao entrar, verificaremos primeiro se você já possui uma ordem pendente. Não emitiremos outro Pix enquanto existir uma ordem não reconciliada.</p>
+   <p class="eyebrow">ETAPA 2 • ORDEM PIX</p><h2 id="checkout-title">Comprar Premium com Pix</h2>
+   <p>Ao entrar, consultamos automaticamente seu pedido e a disponibilidade do Pix. Se o serviço ainda não estiver publicado, você verá um aviso claro e nenhuma cobrança será criada.</p>
    <div id="availability" class="notice" role="status" aria-live="polite">Verificando disponibilidade da compra.</div>
    <label class="consent"><input id="terms" type="checkbox" disabled><span>Concordo com a compra avulsa de <strong>R$ 4,99</strong> por <strong>30 dias</strong>, sem renovação automática, e com a emissão de no máximo uma cobrança Pix.</span></label>
    <div class="actions">
     <button id="buy" type="button" disabled>Gerar meu Pix de R$ 4,99</button>
-    <button id="refresh" type="button" class="secondary" disabled>Consultar reconciliação pela API</button>
+    <button id="refresh" type="button" class="secondary" disabled>Tentar novamente</button>
    </div>
    <div id="order-panel" class="order" hidden>
     <p class="eyebrow">REFERÊNCIA DA ORDEM</p><code id="order-ref"></code>
