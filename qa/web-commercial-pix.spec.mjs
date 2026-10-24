@@ -15,7 +15,7 @@ const liveOrder=()=>({orderId:ID,requestKey:ID,planKey:'monthly',amountBRL:'4.99
  checkoutExpiresAt:new Date(Date.now()+120000).toISOString(),
  qrCode:'000201'+'1'.repeat(60),premiumActivated:false});
 async function fixtures(page,{enabled=false,pending=null,healthFailOnce=false,
-   currentFailOnce=false,loginFailure=false}={}){
+   currentFailOnce=false,loginFailure=false,healthNotFound=false,currentNotFound=false}={}){
  const requests=[],errors=[];let healthChecks=0,currentChecks=0;
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
@@ -35,7 +35,8 @@ async function fixtures(page,{enabled=false,pending=null,healthFailOnce=false,
         email:'buyer@example.invalid'},access_token:'access.synthetic.jwt'};
     }
     else if(url.endsWith('/payments/commercial/health')){
-      if(healthFailOnce&&++healthChecks===1){
+      if(healthNotFound){data={code:'NOT_FOUND'};status=404;}
+      else if(healthFailOnce&&++healthChecks===1){
         data={code:'COMMERCIAL_HEALTH_UNAVAILABLE'};status=503;
       } else data={
       mode:enabled?'CONFIGURED':'OFF',sitePurchaseEnabled:enabled,
@@ -44,7 +45,8 @@ async function fixtures(page,{enabled=false,pending=null,healthFailOnce=false,
       plans:{monthly:{amount:'4.99'},yearly:{amount:'49.90'}}};
     }
     else if(url.endsWith('/orders/current')){
-      if(currentFailOnce&&++currentChecks===1){
+      if(currentNotFound){data={code:'NOT_FOUND'};status=404;}
+      else if(currentFailOnce&&++currentChecks===1){
         data={code:'COMMERCIAL_PAYMENTS_DISABLED'};status=503;
       } else data={order:pending};
     }
@@ -68,6 +70,22 @@ async function enter(page){
  await page.getByRole('button',{name:'Google de teste'}).click();
  await expect(page.locator('#account')).toContainText('buyer@example.invalid');
 }
+test('realistic HTTP404 missing commercial route: profile loaded, no misleading retry and zero Pix',async({page})=>{
+ for(const option of [{healthNotFound:true},{enabled:true,currentNotFound:true}]){
+  const h=await fixtures(page,option);
+  await enter(page);
+  await expect(page.locator('#profile-panel')).toBeVisible();
+  await expect(page.locator('#profile-name')).toHaveText('Conta Google de teste');
+  await expect(page.locator('#availability')).toContainText('HTTP 404');
+  await expect(page.locator('#availability')).toContainText('API financeira precisa ser publicada');
+  await expect(page.locator('#buy')).toBeDisabled();
+  await expect(page.locator('#refresh')).toBeHidden();
+  await expect(page.locator('#terms')).toBeDisabled();
+  await expect(page.locator('#status')).not.toContainText('HTTP 404');
+  expect(h.requests.filter(x=>x.method==='POST'&&x.url.endsWith('/payments/commercial/orders'))).toHaveLength(0);
+  expect(h.errors).toEqual([]);
+ }
+});
 test('Google profile stays visible when commercial health returns 503, retry without POST',async({page})=>{
  const h=await fixtures(page,{enabled:true,healthFailOnce:true});
  await enter(page);
@@ -76,7 +94,7 @@ test('Google profile stays visible when commercial health returns 503, retry wit
  await expect(page.locator('#availability')).toContainText('HTTP 503');
  await expect(page.locator('#buy')).toBeDisabled();
  await expect(page.locator('#refresh')).toBeEnabled();
- await expect(page.locator('#refresh')).toHaveText('Verificar disponibilidade');
+ await expect(page.locator('#refresh')).toHaveText('Tentar novamente');
  await page.locator('#refresh').click();
  await expect(page.locator('#availability')).toContainText('Nenhuma ordem pendente');
  await expect(page.locator('#terms')).toBeEnabled();
