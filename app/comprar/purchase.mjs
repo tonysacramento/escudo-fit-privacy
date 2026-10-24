@@ -58,6 +58,14 @@ const messageForOrder=s=>({
   COMMITTED:'O registro da operação foi concluído. Consulte seu acesso no aplicativo.',
   REVIEW_REQUIRED:'Ordem retida para revisão. Não emita outro Pix.',
 })[s]||'Acompanhe o estado da ordem.';
+const commercialPreflightError=(error)=>error?.message==='API_HTTP_404'?
+  {phase:'CHECKOUT_NOT_PUBLISHED',
+   message:'A compra Pix ainda não está disponível no servidor (HTTP 404). Seu perfil Google foi carregado corretamente. A página já existe, mas a API financeira precisa ser publicada. Nenhum Pix foi gerado.'}:
+  error?.message==='API_HTTP_503'?
+  {phase:'CHECKOUT_CLOSED',
+   message:'Sua conta está conectada, mas a API financeira está desativada (HTTP 503). Nenhum Pix foi gerado.'}:
+  {phase:'CHECKOUT_UNAVAILABLE',
+   message:'Conta Google autenticada. Não foi possível consultar a API financeira. Nenhum Pix foi gerado. Você pode tentar novamente.'};
 const messageForProvider=s=>({
   PROVIDER_ID_NOT_BOUND_REVIEW_REQUIRED:'Identificador do Mercado Pago ainda não confirmado. Revisão necessária.',
   EXPIRED_RECONCILIATION_REQUIRED:'O Mercado Pago mostra expiração. Ainda é necessária a reconciliação do Firestore.',
@@ -104,7 +112,8 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
     signedIn:Boolean(token),canBuy:Boolean(token&&health?.sitePurchaseEnabled&&
       health?.buyerReconciliationReadEnabled&&!order&&!attempted&&!busy),
     canRead:Boolean(token&&health?.buyerReconciliationReadEnabled&&order&&!busy),
-    canRefresh:Boolean(token&&!busy),
+    canRefresh:Boolean(token&&!busy&&phase!=='CHECKOUT_NOT_PUBLISHED'&&
+      phase!=='CHECKOUT_CLOSED'),
     attempted,busy
   });
   const emit=(next,message)=>{phase=next;onState(snapshot(),message);};
@@ -159,11 +168,8 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
             // Important: missing/old/unavailable payment API does NOT undo
             // a successful Google login or erase the profile from the page.
             health=null;order=null;provider=null;
-            const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
-              ' ('+error.message.replace('API_HTTP_','HTTP ')+')':'';
-            emit('CHECKOUT_UNAVAILABLE',
-              'Conta Google autenticada. Não foi possível consultar a API financeira'+code+
-              '. Nenhum Pix será criado. Use "Verificar disponibilidade" para tentar novamente.');
+            const guidance=commercialPreflightError(error);
+            emit(guidance.phase,guidance.message);
           }else {
             token=null;userEmail='';userName='';health=null;order=null;provider=null;
             const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
@@ -177,7 +183,8 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
       }
     },
     async retryPreflight(){
-      if(!token||busy)return false;
+      if(!token||busy||phase==='CHECKOUT_NOT_PUBLISHED'||phase==='CHECKOUT_CLOSED')
+        return false;
       const e=epoch;busy=true;emit('CHECKING_CHECKOUT','Consultando o servidor e seu pedido existente.');
       // Read-only retry only: never POST to /orders.
       try{
@@ -203,11 +210,8 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
       }catch(error){
         if(e===epoch){
           busy=false;health=null;
-          const code=/^API_HTTP_\d{3}$/.test(error?.message||'')?
-            ' ('+error.message.replace('API_HTTP_','HTTP ')+')':'';
-          emit('CHECKOUT_UNAVAILABLE',
-            'Sua conta continua autenticada, mas a consulta financeira falhou'+code+
-            '. Nenhuma nova compra foi iniciada.');
+          const guidance=commercialPreflightError(error);
+          emit(guidance.phase,guidance.message);
         }
         return false;
       }
@@ -281,11 +285,17 @@ function boot(){
       googleSlot.hidden=s.signedIn;
       el('disconnect').hidden=!s.signedIn;
       el('availability').textContent=message||'Verificando a disponibilidade do checkout.';
-      el('status').textContent=message||'Acompanhe sua ordem.';
+      el('status').textContent=s.phase==='CHECKOUT_NOT_PUBLISHED'?
+        'Novas cobranças estão bloqueadas até a implantação da API financeira.':
+        s.phase==='CHECKOUT_CLOSED'?
+        'A conta está conectada, mas o checkout está desativado pelo servidor.':
+        s.order?'Acompanhe a ordem existente antes de iniciar outra compra.':
+        'A emissão Pix exige autorização do servidor.';
       consent.disabled=!s.canBuy;
       start.disabled=!s.canBuy||!consent.checked;
+      refresh.hidden=s.phase==='CHECKOUT_NOT_PUBLISHED'||s.phase==='CHECKOUT_CLOSED';
       refresh.disabled=!s.canRefresh;
-      refresh.textContent=s.canRead&&s.order?'Consultar reconciliação pela API':'Verificar disponibilidade';
+      refresh.textContent=s.canRead&&s.order?'Acompanhar meu pagamento':'Tentar novamente';
       el('order-panel').hidden=!s.order;
       if(s.order){
         el('order-ref').textContent=s.order.orderId;
