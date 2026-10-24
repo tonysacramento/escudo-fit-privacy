@@ -21,10 +21,11 @@ const historyDraftFields=new Set();
 document.addEventListener('input',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
 document.addEventListener('change',event=>{if(event.target.matches('input,textarea,select'))historyDraftFields.add(event.target)});
 let googleReady=false;
+const CAMPAIGN_CODES=Object.freeze({monise30:'Monise30',requinte30:'Requinte30',tamires30:'Tamires30',patriota22:'Patriota22'});
 const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
-const ACTIVE_PROMO=/^monise30$/i.test(PROMO_CODE)
-  ? {code:'Monise30',trialDays:30,requiresManualApproval:true}
-  : null;
+const PROMO_CANONICAL=CAMPAIGN_CODES[PROMO_CODE.trim().toLowerCase()]||null;
+const ACTIVE_PROMO=PROMO_CANONICAL?{code:PROMO_CANONICAL,trialDays:30,requiresManualApproval:false}:null;
+const UNKNOWN_PROMO=Boolean(PROMO_CODE&&!ACTIVE_PROMO);
 
 function loadAuth(){try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch{return null}}
 function saveAuth(value){auth=value;if(value)localStorage.setItem(AUTH_KEY,JSON.stringify(value));else localStorage.removeItem(AUTH_KEY)}
@@ -174,12 +175,17 @@ function setTrialStatus(message,isError=false){
 }
 
 function applyPromoLanding(){
+  if(PROMO_CODE&&$('trialPromoCode'))$('trialPromoCode').value=PROMO_CANONICAL||PROMO_CODE;
+  if(UNKNOWN_PROMO){
+    setTrialStatus('Cupom não reconhecido. Confira o código antes de concluir o cadastro.',true);
+    return;
+  }
   if(!ACTIVE_PROMO)return;
   setText('trialEyebrow','BENEFÍCIO EXCLUSIVO');
   setText('trialTitle','30 dias grátis de Escudo Fit');
-  setText('trialIntro','Cadastre-se com nome e e-mail. Sua solicitação será analisada e o acesso será liberado em até 24 horas.');
+  setText('trialIntro','Cadastre-se e entre com a mesma Conta Google. Seus 30 dias começarão após a validação do primeiro acesso.');
   const button=$('trialSubmit');
-  if(button)button.textContent='Solicitar 30 dias grátis';
+  if(button)button.textContent='Cadastrar e ativar 30 dias';
 }
 applyPromoLanding();
 
@@ -189,10 +195,11 @@ async function registerQuickTrial(event){
   const email=$('trialEmail')?.value.trim().toLowerCase()||'';
   const company=$('trialCompany')?.value||'';
   const enteredPromoCode=$('trialPromoCode')?.value.trim()||'';
-  const promoCode=enteredPromoCode||ACTIVE_PROMO?.code||'';
-  if(promoCode&&!/^[A-Za-z0-9_-]{3,40}$/.test(promoCode)){
+  const rawPromoCode=enteredPromoCode||PROMO_CODE.trim();
+  const promoCode=rawPromoCode?(CAMPAIGN_CODES[rawPromoCode.toLowerCase()]||''):'';
+  if(rawPromoCode&&!promoCode){
     $('trialPromoCode')?.focus();
-    return setTrialStatus('Confira o formato do cupom informado.',true);
+    return setTrialStatus('Cupom não reconhecido. Confira o código informado.',true);
   }
   const consentAccepted=$('trialLgpd')?.checked===true;
   const consentVersion='LGPD-2026-10-07-v1';
@@ -225,10 +232,20 @@ async function registerQuickTrial(event){
     if(!res.ok)throw new Error(data.code||('HTTP_'+res.status));
     sessionStorage.setItem('escudofit_trial_email',email);
     const accessChannel=data.accessChannel||(/@(gmail|googlemail)\.com$/i.test(email)?'GOOGLE_PLAY':'WEB_ONLY');
-    const promoPending=data.pendingApproval===true||ACTIVE_PROMO?.requiresManualApproval===true;
+    const promoPending=data.pendingApproval===true;
+    const campaignAccepted=Boolean(promoCode&&data.existing!==true&&data.campaignAccepted===true
+      &&String(data.promoCode||'')===promoCode&&Number(data.trialDays)===30);
     if(promoPending){
-      setTrialStatus('Solicitação recebida. Seu benefício de 30 dias grátis está em análise e será liberado em até 24 horas. Você receberá a confirmação após a aprovação.');
+      setTrialStatus('Sua solicitação de campanha está pendente de aprovação. Você receberá confirmação quando houver liberação.');
       $('trialLoginButton')?.classList.add('hidden');
+      $('trialAndroidButton')?.classList.add('hidden');
+    }else if(campaignAccepted){
+      setTrialStatus('Cadastro recebido! Entre com a mesma Conta Google para ativar os 30 dias no primeiro acesso verificado.');
+      $('trialLoginButton')?.classList.remove('hidden');
+      $('trialAndroidButton')?.classList.remove('hidden');
+    }else if(promoCode){
+      setTrialStatus('Este cadastro não recebeu uma nova concessão. O cupom não renova nem substitui planos existentes; entre para conferir seu acesso.');
+      $('trialLoginButton')?.classList.remove('hidden');
       $('trialAndroidButton')?.classList.add('hidden');
     }else if(accessChannel==='GOOGLE_PLAY'){
       setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis e acessar o Android.');
@@ -248,7 +265,7 @@ async function registerQuickTrial(event){
         : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
       true
     );
-    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Solicitar 30 dias grátis':'Começar 14 dias grátis'}
+    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?'Cadastrar e ativar 30 dias':'Começar 14 dias grátis'}
   }
 }
 
