@@ -22,17 +22,26 @@ const reconciled=(extra={})=>({orderId:EF,providerOrderId:'ORD01SYNTHETICCOMMERC
 const response=(data,status=200)=>new Response(JSON.stringify(data),
   {status,headers:{'content-type':'application/json'}});
 function harness({existing=null,configured=true,readEnabled=true,postError=false,
-  payment=order()}={}){
+  loginError=false,healthError=false,currentError=false,payment=order()}={}){
   const calls=[],events=[],responses=[];
   const fetchImpl=async(url,options)=>{
     calls.push({url,method:options.method,body:options.body||null,
       auth:options.headers.authorization||null,
       credentials:options.credentials,redirect:options.redirect});
-    if(url.endsWith('/auth/google'))return response({
-      user:{id:'user1',email:'buyer@example.invalid'},access_token:JWT});
-    if(url.endsWith('/health'))return response(health({
-      sitePurchaseEnabled:configured,buyerReconciliationReadEnabled:readEnabled}));
-    if(url.endsWith('/orders/current'))return response({order:existing});
+    if(url.endsWith('/auth/google')){
+      if(loginError)return response({code:'AUTH_GOOGLE_TOKEN_INVALID'},401);
+      return response({user:{id:'user1',name:'Conta de teste',email:'buyer@example.invalid'},
+        access_token:JWT});
+    }
+    if(url.endsWith('/health')){
+      if(healthError)return response({code:'COMMERCIAL_HEALTH_UNAVAILABLE'},503);
+      return response(health({
+        sitePurchaseEnabled:configured,buyerReconciliationReadEnabled:readEnabled}));
+    }
+    if(url.endsWith('/orders/current')){
+      if(currentError)return response({code:'COMMERCIAL_PAYMENTS_DISABLED'},503);
+      return response({order:existing});
+    }
     if(url.endsWith('/orders/'+EF+'/reconciliation'))return response(reconciled());
     if(url.endsWith('/orders/'+EF))return response(payment);
     if(url.endsWith('/orders')&&options.method==='POST'){
@@ -66,6 +75,74 @@ test('old production health response with missing new flags is treated as OFF',(
  assert.deepEqual(inspectPurchaseHealth(previous),
    {sitePurchaseEnabled:false,buyerReconciliationReadEnabled:false});
  assert.throws(()=>inspectPurchaseHealth(health({sitePurchaseEnabled:'true'})));
+});
+
+test('Google profile remains visible/authenticated after commercial API returns HTTP 503',async()=>{
+ const h=harness({healthError:true});
+ assert.equal(await h.c.signIn(GOOGLE),true);
+ const state=h.c.snapshot();
+ assert.equal(state.signedIn,true);
+ assert.equal(state.account,'buyer@example.invalid');
+ assert.equal(state.name,'Conta de teste');
+ assert.equal(state.phase,'CHECKOUT_UNAVAILABLE');
+ assert.equal(state.canBuy,false);
+ assert.equal(state.canRefresh,true);
+ assert.match(h.events.at(-1).message,/HTTP 503/);
+ assert.equal(await h.c.buy(true),false);
+ assert.equal(await h.c.retryPreflight(),false);
+ assert.equal(h.c.snapshot().signedIn,true);
+ assert.equal(h.c.snapshot().account,'buyer@example.invalid');
+ assert.equal(h.calls.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,0);
+ h.c.signout();
+ assert.equal(h.c.snapshot().signedIn,false);
+ assert.equal(h.c.snapshot().account,'');
+});
+test('Google profile is not cleared when current order query fails; retries are GET only',async()=>{
+ const h=harness({currentError:true});
+ assert.equal(await h.c.signIn(GOOGLE),true);
+ assert.equal(h.c.snapshot().account,'buyer@example.invalid');
+ assert.equal(h.c.snapshot().phase,'CHECKOUT_UNAVAILABLE');
+ assert.equal(h.c.snapshot().canBuy,false);
+ assert.equal(await h.c.retryPreflight(),false);
+ assert.equal(h.c.snapshot().signedIn,true);
+ const current=h.calls.filter(x=>x.url.endsWith('/orders/current'));
+ assert.equal(current.length,2);
+ assert(current.every(x=>x.method==='GET'));
+ assert.equal(h.calls.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,0);
+});
+test('auth failure does not produce a synthetic logged-in profile',async()=>{
+ const h=harness({loginError:true});
+ assert.equal(await h.c.signIn(GOOGLE),false);
+ assert.equal(h.c.snapshot().signedIn,false);
+ assert.equal(h.c.snapshot().account,'');
+ assert.equal(h.c.snapshot().phase,'AUTH_ERROR');
+ assert.match(h.events.at(-1).message,/HTTP 401/);
+ assert.equal(h.calls.length,1);
+ assert.equal(await h.c.buy(true),false);
+});
+test('payment API recovery is read-only and only enables purchase after canonical GET',async()=>{
+ const requests=[],observed=[];let healthReads=0;
+ const controller=createPurchaseController({
+   now:()=>NOW,newKey:()=>UUID,
+   onState:(state,message)=>observed.push({state,message}),
+   fetchImpl:async(url,opts)=>{
+     requests.push({url,method:opts.method});
+     if(url.endsWith('/auth/google'))return response({
+       user:{id:'u',name:'Comprador',email:'buyer@example.invalid'},access_token:JWT});
+     if(url.endsWith('/health'))return ++healthReads===1?
+       response({code:'TEMPORARY_FAILURE'},503):response(health());
+     if(url.endsWith('/orders/current'))return response({order:null});
+     throw Error('UNEXPECTED_REMOTE_CALL');
+   },
+ });
+ assert.equal(await controller.signIn(GOOGLE),true);
+ assert.equal(controller.snapshot().signedIn,true);
+ assert.equal(controller.snapshot().canBuy,false);
+ assert.equal(await controller.retryPreflight(),true);
+ assert.equal(controller.snapshot().signedIn,true);
+ assert.equal(controller.snapshot().canBuy,true);
+ assert.equal(requests.filter(x=>x.url.endsWith('/orders/current')).length,1);
+ assert.equal(requests.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,0);
 });
 
 test('page checks GET health + current FIRST, sends only one explicit POST to authenticated backend',async()=>{
