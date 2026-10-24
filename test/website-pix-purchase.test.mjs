@@ -22,7 +22,8 @@ const reconciled=(extra={})=>({orderId:EF,providerOrderId:'ORD01SYNTHETICCOMMERC
 const response=(data,status=200)=>new Response(JSON.stringify(data),
   {status,headers:{'content-type':'application/json'}});
 function harness({existing=null,configured=true,readEnabled=true,postError=false,
-  loginError=false,healthError=false,currentError=false,payment=order()}={}){
+  loginError=false,healthError=false,currentError=false,healthNotFound=false,
+  currentNotFound=false,payment=order()}={}){
   const calls=[],events=[],responses=[];
   const fetchImpl=async(url,options)=>{
     calls.push({url,method:options.method,body:options.body||null,
@@ -34,11 +35,13 @@ function harness({existing=null,configured=true,readEnabled=true,postError=false
         access_token:JWT});
     }
     if(url.endsWith('/health')){
+      if(healthNotFound)return response({code:'NOT_FOUND'},404);
       if(healthError)return response({code:'COMMERCIAL_HEALTH_UNAVAILABLE'},503);
       return response(health({
         sitePurchaseEnabled:configured,buyerReconciliationReadEnabled:readEnabled}));
     }
     if(url.endsWith('/orders/current')){
+      if(currentNotFound)return response({code:'NOT_FOUND'},404);
       if(currentError)return response({code:'COMMERCIAL_PAYMENTS_DISABLED'},503);
       return response({order:existing});
     }
@@ -77,6 +80,26 @@ test('old production health response with missing new flags is treated as OFF',(
  assert.throws(()=>inspectPurchaseHealth(health({sitePurchaseEnabled:'true'})));
 });
 
+test('missing financial API 404 preserves verified profile and never offers pointless retries or Pix',async()=>{
+ for(const reason of [{healthNotFound:true},{currentNotFound:true}]){
+  const h=harness(reason);
+  assert.equal(await h.c.signIn(GOOGLE),true);
+  const state=h.c.snapshot();
+  assert.equal(state.phase,'CHECKOUT_NOT_PUBLISHED');
+  assert.equal(state.signedIn,true);
+  assert.equal(state.name,'Conta de teste');
+  assert.equal(state.account,'buyer@example.invalid');
+  assert.equal(state.canBuy,false);
+  assert.equal(state.canRefresh,false);
+  assert.match(h.events.at(-1).message,/API financeira precisa ser publicada/);
+  assert.match(h.events.at(-1).message,/HTTP 404/);
+  const previousCalls=h.calls.length;
+  assert.equal(await h.c.retryPreflight(),false);
+  assert.equal(h.calls.length,previousCalls);
+  assert.equal(await h.c.buy(true),false);
+  assert.equal(h.calls.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,0);
+ }
+});
 test('Google profile remains visible/authenticated after commercial API returns HTTP 503',async()=>{
  const h=harness({healthError:true});
  assert.equal(await h.c.signIn(GOOGLE),true);
