@@ -36,7 +36,7 @@ async function submit(context){
 }
 
 test('all campaign links show 30-day offer but do not activate until API approval',async()=>{
-  for(const code of ['Requinte30','Tamires30','Monise30']){
+  for(const code of ['Requinte30','Tamires30','Monise30','Patriota22']){
     const h=await load(code,{registered:true,participantId:'P-24',existing:false,
       campaignAccepted:true,promoCode:code,trialDays:30,pendingApproval:false,accessChannel:'GOOGLE_PLAY'});
     try{
