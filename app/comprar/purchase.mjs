@@ -17,11 +17,13 @@ const copy=v=>Object.freeze({...v});
 export function inspectPurchaseHealth(value){
   if(!value||typeof value!=='object'||value.automaticRenewal!==false||
     value.termsVersion!==TERMS||
-    typeof value.sitePurchaseEnabled!=='boolean'||
-    typeof value.buyerReconciliationReadEnabled!=='boolean'||
+    ![undefined,true,false].includes(value.sitePurchaseEnabled)||
+    ![undefined,true,false].includes(value.buyerReconciliationReadEnabled)||
     value.plans?.monthly?.amount!=='4.99')throw Error('INVALID_HEALTH');
-  return Object.freeze({sitePurchaseEnabled:value.sitePurchaseEnabled,
-    buyerReconciliationReadEnabled:value.buyerReconciliationReadEnabled});
+  // Production may still run the pre-upgrade V38 health contract.
+  // Missing explicit site/reconciliation flags means OFF, never opt-in.
+  return Object.freeze({sitePurchaseEnabled:value.sitePurchaseEnabled===true,
+    buyerReconciliationReadEnabled:value.buyerReconciliationReadEnabled===true});
 }
 export function inspectPurchaseOrder(value,now=Date.now()){
   if(!value||!EF.test(value.orderId||'')||value.planKey!=='monthly'||
