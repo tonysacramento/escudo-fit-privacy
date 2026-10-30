@@ -50,6 +50,8 @@ self.addEventListener('fetch',event=>{
   // network. Never cache the checkout HTML, authentication controller, or
   // payment status; offline must fail closed rather than load a stale Pix.
   if(url.pathname.startsWith(new URL('./comprar/',self.location.href).pathname))return;
+  // A cancellation acknowledgement must never be replaced by an offline copy.
+  if(url.pathname.startsWith(new URL('./cancelar/',self.location.href).pathname))return;
 
   const networkFirst=
     request.mode==='navigate' ||

@@ -1,0 +1,25 @@
+name: Web cancellation receiving-only contracts
+on:
+  pull_request:
+    paths:
+      - 'app/cancelar/**'
+      - 'app/index.html'
+      - 'app/sw.js'
+      - 'test/cancellation-request.test.mjs'
+      - '.github/workflows/web-cancellation-request-qa.yml'
+permissions:
+  contents: read
+jobs:
+  request-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - run: node --test test/cancellation-request.test.mjs
+      - run: node --check app/cancelar/cancel.mjs && node --check app/cancelar/cancellation-client.mjs
