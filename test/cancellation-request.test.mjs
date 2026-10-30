@@ -89,7 +89,7 @@ test('transport uses only the fixed API and authenticated no-store requests',asy
   const calls=[];const transport=cancellationTransport({storage,fetchImpl:async(...args)=>{
     calls.push(args);return {ok:true,status:200,json:async()=>response()};}});
   await transport.request('/payments/cancellations/current');
-  assert.equal(calls[0][0],'https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/payments/cancellations/current');
+  assert.equal(calls[0][0],'https://escudo-fit-cancellation-requests-835029473980.us-central1.run.app/api/v38/payments/cancellations/current');
   assert.equal(calls[0][1].headers.Authorization,'Bearer test-access');
   assert.equal(calls[0][1].cache,'no-store');assert.equal(calls[0][1].redirect,'error');
 });
@@ -105,7 +105,16 @@ test('refreshing an expired session preserves the same POST body and client key'
   const body=JSON.stringify({orderId,confirm:true,requestKey:'synthetic-key'});
   await transport.request('/payments/cancellations',{method:'POST',body});
   assert.equal(calls.length,3);assert.equal(calls[0][1].body,calls[2][1].body);
+  assert.equal(calls[1][0],'https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/auth/refresh');
+  assert.equal(calls[0][0],'https://escudo-fit-cancellation-requests-835029473980.us-central1.run.app/api/v38/payments/cancellations');
   assert.equal(calls[2][1].headers.Authorization,'Bearer new-access');
+});
+test('transport never sends credentials to an unsupported path or URL',async()=>{
+  const storage=memory([['escudofit_web_auth_v1',JSON.stringify({user:{id:'test'},access_token:'synthetic-token'})]]);
+  let calls=0;const transport=cancellationTransport({storage,fetchImpl:async()=>{calls++;throw Error('unexpected');}});
+  for(const path of ['https://foreign.example.invalid','/auth/refresh','/payments/orders'])
+    await assert.rejects(transport.request(path),/REQUEST_UNCONFIRMED/);
+  assert.equal(calls,0);
 });
 test('transport rejects a response after account switch without overwriting the new session',async()=>{
   const storage=memory([['escudofit_web_auth_v1',JSON.stringify({user:{id:'old'},access_token:'old-access'})]]);

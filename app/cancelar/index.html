@@ -5,19 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://escudo-fit-api-v38-835029473980.us-central1.run.app https://escudo-fit-cancellation-requests-835029473980.us-central1.run.app; base-uri 'none'; form-action 'none'">
   <title>Cancelamento e reembolso — Escudo Fit</title>
   <link rel="stylesheet" href="./cancel.css">
 </head>
 <body>
   <main>
     <a class="brand" href="../"><img src="../icon-approved-v43.png" alt="" width="32" height="32"> Escudo Fit</a>
-    <p class="badge">Teste privado de recebimento do pedido</p>
-    <h1>Cancelamento e reembolso</h1>
-    <p>Consulte sua compra e solicite o cancelamento pela mesma Conta Google usada no Escudo Fit.</p>
+    <p class="badge">Atendimento após a compra</p>
+    <h1>Solicitar reembolso</h1>
+    <p>Consulte sua compra, registre o pedido de cancelamento e acompanhe o protocolo com a mesma Conta Google usada no Escudo Fit.</p>
     <section class="card" aria-labelledby="pilotTitle">
-      <h2 id="pilotTitle">Sobre esta etapa</h2>
-      <p>Este piloto registra o pedido e fornece um protocolo. Esta tela não executa o reembolso nem altera seu plano.</p>
-      <p>O histórico do aplicativo será preservado. O prazo de arrependimento e a devolução serão conferidos com os registros da contratação.</p>
+      <h2 id="pilotTitle">Como funciona</h2>
+      <p>Seu pedido é registrado para análise pelo suporte e recebe um protocolo. Esta tela não executa o reembolso nem altera seu plano.</p>
+      <p>Seu histórico será preservado. O prazo de arrependimento e a devolução serão conferidos com os registros da contratação.</p>
     </section>
     <p id="status" role="status" aria-live="polite">Consultando sua compra…</p>
     <section id="purchase" class="card" hidden aria-labelledby="purchaseTitle">
@@ -36,11 +37,13 @@
     </section>
     <div class="actions">
       <button id="refresh" type="button">Consultar pedido novamente</button>
-      <a href="../">Entrar ou voltar ao Escudo Fit</a>
+      <a href="../#loginSection">Entrar com Google ou voltar ao Escudo Fit</a>
       <a href="mailto:escudofit@gmail.com?subject=Cancelamento%20e%20reembolso%20Escudo%20Fit">Solicitar pelo suporte</a>
     </div>
-    <p class="muted">Caso precise entrar com Google, retorne a esta página após o login. Este canal não exige acesso Premium para consultar o pedido.</p>
+    <p class="muted">Se precisar entrar com Google, volte a esta página após o login ou use Perfil → Seu plano → Cancelamento e reembolso. Não é necessário estar no Premium para consultar o pedido.</p>
+    <p class="muted">Se a compra não aparecer, você também pode solicitar o atendimento pelo suporte.</p>
+    <p class="muted"><a href="../../privacy.html">Privacidade</a> · <a href="../../terms.html">Termos de uso</a></p>
   </main>
-  <script type="module" src="./cancel.mjs"></script>
+  <script type="module" src="./cancel.mjs?v=20261030-request-1"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 const AUTH_KEY='escudofit_web_auth_v1';
-const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
+const AUTH_API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
+const API='https://escudo-fit-cancellation-requests-835029473980.us-central1.run.app/api/v38';
 const PATH='/payments/cancellations';
 const protocol=/^EF-CANCEL-[a-f0-9]{24}$/;
 const hex=/^[a-f0-9]{64}$/;
@@ -17,13 +18,14 @@ export function cancellationTransport({storage,fetchImpl=fetch,onAccountChange=(
   return {
     session:read,
     async request(path,options={}) {
+      if(![PATH,PATH+'/current'].includes(path))throw Error('REQUEST_UNCONFIRMED');
       const start=read(),uid=start?.user?.id;
       if(!uid||!start?.access_token)throw Error('SIGN_IN_REQUIRED');
       const call=token=>fetchImpl(API+path,{...options,cache:'no-store',credentials:'omit',redirect:'error',
         headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
       let response=await call(start.access_token);changed(uid);
       if(response.status===401&&start.refresh_token) {
-        const refresh=await fetchImpl(API+'/auth/refresh',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',
+        const refresh=await fetchImpl(AUTH_API+'/auth/refresh',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',
           headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:start.refresh_token}),
           signal:AbortSignal.timeout(15000)});
         changed(uid);
