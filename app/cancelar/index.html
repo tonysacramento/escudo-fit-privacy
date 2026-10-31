@@ -32,8 +32,9 @@
     </section>
     <section id="receipt" class="card" hidden aria-labelledby="receiptTitle">
       <h2 id="receiptTitle">Pedido recebido</h2>
-      <dl><dt>Protocolo</dt><dd id="protocol"></dd><dt>Recebido em</dt><dd id="receivedAt"></dd><dt>Status</dt><dd>Recebido para análise</dd></dl>
-      <p>O recebimento do pedido não comprova que o dinheiro já foi devolvido. O processamento financeiro é uma etapa separada.</p>
+      <dl><dt>Protocolo</dt><dd id="protocol"></dd><dt>Recebido em</dt><dd id="receivedAt"></dd><dt>Status</dt><dd id="receiptState">Recebido para análise</dd></dl>
+      <p id="receiptDetail">O recebimento do pedido não comprova que o dinheiro já foi devolvido. O processamento financeiro é uma etapa separada.</p>
+      <dl id="refundFinancial" hidden><dt>Identificador da devolução</dt><dd id="refundId"></dd><dt>Confirmada em</dt><dd id="refundedAt"></dd></dl>
     </section>
     <div class="actions">
       <button id="refresh" type="button">Consultar pedido novamente</button>
@@ -44,6 +45,6 @@
     <p class="muted">Se a compra não aparecer, você também pode solicitar o atendimento pelo suporte.</p>
     <p class="muted"><a href="../../privacy.html">Privacidade</a> · <a href="../../terms.html">Termos de uso</a></p>
   </main>
-  <script type="module" src="./cancel.mjs?v=20261030-request-1"></script>
+  <script type="module" src="./cancel.mjs?v=20261031-refund-1"></script>
 </body>
 </html>

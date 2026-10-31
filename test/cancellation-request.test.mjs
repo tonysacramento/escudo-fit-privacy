@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {cancellationController,cancellationTransport,validCancellationReceipt}
+import {cancellationController,cancellationTransport,validCancellationReceipt,cancellationReceiptText}
   from '../app/cancelar/cancellation-client.mjs';
 
 const orderId='EF-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -139,4 +139,32 @@ test('the cancellation page is reachable outside the Premium application gate an
   assert.match(profile,/href="\.\/cancelar\/"/);
   assert.match(sw,/new URL\('\.\/cancelar\/'/);
   assert.doesNotMatch(html,/MERCADO_PAGO_ACCESS_TOKEN|PAYMENT_GRANT_HMAC_SECRET|KMS/);
+});
+test('verified processing, confirmed and completed states are recovered by GET without another POST',async()=>{
+  const states=[{status:'REFUND_PROCESSING',refundExecuted:false,entitlementChanged:false,refundId:null,
+    refundedAt:null,accessCompensation:'PENDING'},
+  {status:'REFUND_CONFIRMED',refundExecuted:true,entitlementChanged:false,refundId:'123',
+    refundedAt:'2026-10-31T00:00:00.000Z',accessCompensation:'PENDING'},
+  {status:'REFUND_CONFIRMED',refundExecuted:true,entitlementChanged:true,refundId:'123',
+    refundedAt:'2026-10-31T00:00:00.000Z',accessCompensation:'PUBLICATION_PENDING'},
+  {status:'REFUND_COMPLETED',refundExecuted:true,entitlementChanged:true,refundId:'123',
+    refundedAt:'2026-10-31T00:00:00.000Z',accessCompensation:'COMPLETED'}];
+  for(const state of states){
+    const r={...receipt,...state,eligibility:'APPROVED'};
+    const h=harness(async()=>({...response(),request:r,refundExecuted:r.refundExecuted,entitlementChanged:r.entitlementChanged}));
+    await h.controller.load();await h.controller.submit(true);
+    assert.equal(h.calls.length,1);assert(h.events.some(([k,v])=>k==='receipt'&&v.status===r.status));
+    const text=cancellationReceiptText(r);
+    if(r.refundExecuted)assert.doesNotMatch(text.message,/ainda não foi executado/);
+    if(r.status==='REFUND_COMPLETED')assert.match(text.detail,/Premium referente a esta compra foi encerrado/);
+  }
+});
+test('inconsistent refund state, ID, amount or access completion never announces refund',async()=>{
+  const complete={...receipt,status:'REFUND_COMPLETED',eligibility:'APPROVED',refundExecuted:true,
+    entitlementChanged:true,refundId:'123',refundedAt:'2026-10-31T00:00:00.000Z',accessCompensation:'COMPLETED'};
+  for(const change of [{refundId:null},{refundedAt:'bad'},{amountBRL:'5.00'},{entitlementChanged:false},
+    {accessCompensation:'PENDING'},{status:'REQUEST_RECEIVED'},{refundExecuted:false}])
+    assert.equal(validCancellationReceipt({...complete,...change}),false);
+  const h=harness(async()=>({...response(),request:complete}));await h.controller.load();
+  assert.equal(h.events.some(([k])=>k==='receipt'),false);
 });

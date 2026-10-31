@@ -4,13 +4,41 @@ const API='https://escudo-fit-cancellation-requests-835029473980.us-central1.run
 const PATH='/payments/cancellations';
 const protocol=/^EF-CANCEL-[a-f0-9]{24}$/;
 const hex=/^[a-f0-9]{64}$/;
+export const REFUND_STATUS_VERSION=1;
+export function cancellationReceiptText(r){
+  if(!validCancellationReceipt(r))throw Error('REQUEST_UNCONFIRMED');
+  return {
+    REQUEST_RECEIVED:{title:'Pedido recebido',label:'Recebido para análise',
+      message:'Pedido recebido para análise. O reembolso ainda não foi executado.',
+      detail:'O recebimento do pedido não comprova que o dinheiro já foi devolvido. O processamento financeiro é uma etapa separada.'},
+    REFUND_PROCESSING:{title:'Reembolso em processamento',label:'Aguardando confirmação financeira',
+      message:'O processamento foi iniciado. A devolução ainda não está confirmada.',
+      detail:'Consulte este mesmo protocolo para acompanhar. Não é necessário abrir outro pedido.'},
+    REFUND_CONFIRMED:{title:'Devolução confirmada',label:'Finalização do acesso pendente',
+      message:'A devolução integral de R$ 4,99 foi confirmada pelo Mercado Pago.',
+      detail:'O encerramento do acesso referente a esta compra ainda está sendo finalizado. Consulte novamente este protocolo.'},
+    REFUND_COMPLETED:{title:'Reembolso concluído',label:'Concluído',
+      message:'Reembolso integral de R$ 4,99 concluído.',
+      detail:'A devolução foi confirmada pelo Mercado Pago e o acesso Premium referente a esta compra foi encerrado. Seu histórico foi preservado.'},
+  }[r.status];
+}
 export function validCancellationReceipt(r) {
-  return Boolean(r && protocol.test(r.protocol||'') && hex.test(r.caseId||'') &&
+  const received=r?.status==='REQUEST_RECEIVED'&&r.eligibility==='PENDING_REVIEW'&&
+    r.refundExecuted===false&&r.entitlementChanged===false;
+  const processing=r?.status==='REFUND_PROCESSING'&&r.eligibility==='APPROVED'&&
+    r.refundExecuted===false&&r.entitlementChanged===false&&r.refundId===null&&
+    r.refundedAt===null&&r.accessCompensation==='PENDING';
+  const confirmed=['REFUND_CONFIRMED','REFUND_COMPLETED'].includes(r?.status)&&r.eligibility==='APPROVED'&&
+    r.refundExecuted===true&&/^[1-9]\d*$/.test(r.refundId||'')&&
+    typeof r.refundedAt==='string'&&Number.isFinite(Date.parse(r.refundedAt))&&
+    (r.status==='REFUND_COMPLETED'?r.entitlementChanged===true&&r.accessCompensation==='COMPLETED':
+      r.entitlementChanged===false&&r.accessCompensation==='PENDING'||
+      r.entitlementChanged===true&&r.accessCompensation==='PUBLICATION_PENDING');
+  return Boolean(r && (received||processing||confirmed) && protocol.test(r.protocol||'') && hex.test(r.caseId||'') &&
     r.protocol==='EF-CANCEL-'+r.caseId.slice(0,24) &&
-    r.status==='REQUEST_RECEIVED' && typeof r.receivedAt==='string' &&
+    typeof r.receivedAt==='string' &&
     Number.isFinite(Date.parse(r.receivedAt)) && r.amountBRL==='4.99' && r.currency==='BRL' &&
-    hex.test(r.acknowledgementDigest||'') && r.eligibility==='PENDING_REVIEW' &&
-    r.refundExecuted===false && r.entitlementChanged===false);
+    hex.test(r.acknowledgementDigest||''));
 }
 export function cancellationTransport({storage,fetchImpl=fetch,onAccountChange=()=>{}}) {
   const read=()=>{try{return JSON.parse(storage.getItem(AUTH_KEY)||'null');}catch{return null;}};
@@ -57,14 +85,18 @@ export function cancellationController({transport,view,keyStorage,newKey=()=>cry
       if(busy)return;busy=true;clear();identity=transport.session()?.user?.id;view.busy(true);
       try {
         const result=await transport.request(PATH+'/current');sameAccount();
-        if(result.refundExecuted!==false||result.entitlementChanged!==false||
-          !/^EF-[a-f0-9-]{36}$/.test(result.purchase?.orderId||'')||
+        if(!/^EF-[a-f0-9-]{36}$/.test(result.purchase?.orderId||'')||
           result.purchase.amountBRL!=='4.99'||result.purchase.currency!=='BRL')throw Error('REQUEST_UNCONFIRMED');
         purchase=result.purchase;
         if(result.request) {
-          if(!validCancellationReceipt(result.request)||result.request.orderId!==purchase.orderId)throw Error('REQUEST_UNCONFIRMED');
+          if(!validCancellationReceipt(result.request)||result.request.orderId!==purchase.orderId||
+            result.refundExecuted!==result.request.refundExecuted||
+            result.entitlementChanged!==result.request.entitlementChanged)throw Error('REQUEST_UNCONFIRMED');
           receipt=result.request;view.receipt(receipt);
-        } else view.purchase(purchase);
+        } else {
+          if(result.refundExecuted!==false||result.entitlementChanged!==false)throw Error('REQUEST_UNCONFIRMED');
+          view.purchase(purchase);
+        }
       } catch(e){clear();error(e);}finally{busy=false;view.busy(false);}
     },
     async submit(confirmed) {
