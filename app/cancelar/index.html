@@ -21,9 +21,17 @@
       <p>Seu histórico será preservado. O prazo de arrependimento e a devolução serão conferidos com os registros da contratação.</p>
     </section>
     <p id="status" role="status" aria-live="polite">Consultando sua compra…</p>
+    <section id="purchaseSelection" class="card" hidden aria-labelledby="selectionTitle">
+      <h2 id="selectionTitle">Escolha a compra</h2>
+      <label for="purchasePicker">Compra que deseja consultar</label>
+      <select id="purchasePicker"></select>
+      <p>Os itens representam compras distintas. Confira o identificador e a validade do período antes de solicitar.</p>
+      <p id="purchaseTruncated" class="muted" hidden>Exibindo as compras mais recentes. Para um registro anterior, solicite pelo suporte.</p>
+    </section>
     <section id="purchase" class="card" hidden aria-labelledby="purchaseTitle">
       <h2 id="purchaseTitle">Sua compra</h2>
-      <p>Plano pré-pago de 30 dias: <strong id="amount"></strong></p>
+      <p><span id="purchasePlan">Plano pré-pago de 30 dias</span>: <strong id="amount"></strong></p>
+      <p>Compra: <span id="orderReference"></span></p>
       <p>Participante: <span id="participant"></span></p>
       <p>Validade do período concedido: <span id="validUntil"></span></p>
       <p>A validade do plano não é a data da compra nem o início automático do prazo de arrependimento.</p>
@@ -32,9 +40,12 @@
     </section>
     <section id="receipt" class="card" hidden aria-labelledby="receiptTitle">
       <h2 id="receiptTitle">Pedido recebido</h2>
+      <p>Compra: <span id="receiptOrderReference"></span></p>
       <dl><dt>Protocolo</dt><dd id="protocol"></dd><dt>Recebido em</dt><dd id="receivedAt"></dd><dt>Status</dt><dd id="receiptState">Recebido para análise</dd></dl>
       <p id="receiptDetail">O recebimento do pedido não comprova que o dinheiro já foi devolvido. O processamento financeiro é uma etapa separada.</p>
-      <dl id="refundFinancial" hidden><dt>Identificador da devolução</dt><dd id="refundId"></dd><dt>Confirmada em</dt><dd id="refundedAt"></dd></dl>
+      <div id="refundFinancial" hidden><dl><dt>Identificador da devolução</dt><dd id="refundId"></dd><dt>Confirmada em</dt><dd id="refundedAt"></dd></dl>
+        <dl id="numericRefund" hidden><dt>Referência numérica do estorno</dt><dd id="numericRefundId"></dd></dl></div>
+      <p id="accessSnapshot" class="muted" hidden>Situação do benefício registrada em <span id="accessSnapshotAt"></span>. Uma compra posterior pode alterar seu plano atual; confira o Perfil.</p>
     </section>
     <div class="actions">
       <button id="refresh" type="button">Consultar pedido novamente</button>
@@ -45,6 +56,7 @@
     <p class="muted">Se a compra não aparecer, você também pode solicitar o atendimento pelo suporte.</p>
     <p class="muted"><a href="../../privacy.html">Privacidade</a> · <a href="../../terms.html">Termos de uso</a></p>
   </main>
-  <script type="module" src="./cancel.mjs?v=20261031-refund-1"></script>
+  <script type="module" src="./cancel.mjs?v=20261102-refund-2"></script>
 </body>
 </html>
+

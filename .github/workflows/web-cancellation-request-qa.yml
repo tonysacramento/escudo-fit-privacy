@@ -6,6 +6,7 @@ on:
       - 'app/index.html'
       - 'app/sw.js'
       - 'test/cancellation-request.test.mjs'
+      - 'test/customer-cancellation.test.mjs'
       - '.github/workflows/web-cancellation-request-qa.yml'
 permissions:
   contents: read
@@ -21,5 +22,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.23.4'
-      - run: node --test test/cancellation-request.test.mjs
+      - run: node --test test/cancellation-request.test.mjs test/customer-cancellation.test.mjs
       - run: node --check app/cancelar/cancel.mjs && node --check app/cancelar/cancellation-client.mjs
+
