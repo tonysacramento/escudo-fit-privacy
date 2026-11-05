@@ -1,0 +1,30 @@
+name: Escudo Fit v44 private Google nonce approval QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/comprar/v2/**'
+      - 'test/v44-private-v2-approval.test.mjs'
+      - '.github/workflows/v44-private-v2-approval-web-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  approval-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax and offline unit contracts
+        run: |
+          node --check app/comprar/v2/approval.mjs
+          node --test test/v44-private-v2-approval.test.mjs
+      - name: Ensure only frontend approval; no financial mutation
+        run: |
+          ! grep -R -E '(/v1/orders|/v1/payments|api.mercadopago.com|localStorage|sessionStorage|document.cookie)' app/comprar/v2
+          grep -q "PAYMENT" .github/workflows/v44-private-v2-approval-web-qa.yml || true
