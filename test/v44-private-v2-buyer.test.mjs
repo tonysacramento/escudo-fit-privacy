@@ -65,7 +65,7 @@ test('lost issue result is terminal and status reads remain possible',async()=>{
   await ctrl.signIn(token);
   assert.equal(ctrl.snapshot().canIssue,false);
   assert.equal(await ctrl.issue(true),false);
-  assert.deepEqual(calls,['preflight','issue','status','preflight']);
+  assert.deepEqual(calls,['preflight','issue','status']); // no preflight restart after uncertain POST
 });
 
 test('server hold never makes issue button available',async()=>{
