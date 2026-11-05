@@ -1,6 +1,6 @@
 /** Owner-only v2 approval. Google tokens stay in memory and have server-issued nonces. */
 export const GOOGLE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
-const ROOT='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38/payments/pilot-v2/operator';
+const ROOT='https://v2approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app/api/v38/payments/pilot-v2/operator';
 export const CHALLENGE_URL=ROOT+'/challenge';
 export const APPROVAL_URL=ROOT+'/approve';
 const token=s=>typeof s==='string'&&s.length<=16384&&/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s);
