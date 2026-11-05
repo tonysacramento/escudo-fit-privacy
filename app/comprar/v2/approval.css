@@ -1,0 +1,10 @@
+/* Private v2 operator page extends the existing Escudo Fit purchase design. */
+.instruction{font-weight:700;color:var(--cyan);margin:16px 0 8px}
+#google-slot{min-height:46px}
+.panel dl dd{overflow-wrap:anywhere}
+.panel code{font-size:.9rem}
+#phase{font:600 .77rem/1.4 ui-monospace,SFMono-Regular,Consolas,monospace}
+#state{min-height:52px}
+#receipt p{font-size:.9rem;color:var(--muted)}
+#approve:disabled{opacity:.4}
+@media(max-width:760px){.panel{padding:22px}.panel dl div{flex-direction:column}}
