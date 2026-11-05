@@ -1,7 +1,7 @@
-// Escudo Fit v44 — approval-only browser flow. This page never issues Pix,
+// Escudo Fit v44 — approval-only browser flow via 0%-traffic tagged API candidate. This page never issues Pix,
 // invokes the private signer directly, grants Premium or sends payment data.
 // All identity and nonce validation is authoritative on the backend.
-export const V2_API='https://escudo-fit-api-v38-835029473980.us-central1.run.app';
+export const V2_API='https://v2approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app';
 export const V2_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 export const CHALLENGE_PATH='/api/v38/payments/pilot-v2/operator/challenge';
 export const APPROVE_PATH='/api/v38/payments/pilot-v2/operator/approve';
