@@ -26,5 +26,9 @@ jobs:
           node --test test/v44-private-v2-approval.test.mjs
       - name: Ensure only frontend approval; no financial mutation
         run: |
-          ! grep -R -E '(/v1/orders|/v1/payments|api.mercadopago.com|localStorage|sessionStorage|document.cookie)' app/comprar/v2
-          grep -q "PAYMENT" .github/workflows/v44-private-v2-approval-web-qa.yml || true
+          set -euo pipefail
+          if grep -REn '(/v1/orders|/v1/payments|api\.mercadopago\.com|localStorage[[:space:]]*\.|sessionStorage[[:space:]]*\.|document[[:space:]]*\.cookie)' app/comprar/v2; then
+            echo 'PRIVATE_V2_UNSAFE_BROWSER_ACTION' >&2
+            exit 1
+          fi
+          echo 'PRIVATE_V2_CLIENT_APPROVAL_ONLY=PASS'
