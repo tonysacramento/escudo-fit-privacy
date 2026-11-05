@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#102f38">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://v2approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<title>Escudo Fit — Compra privada Pix v2</title>
+<link rel="stylesheet" href="../purchase.css">
+<link rel="stylesheet" href="approval.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module" src="buyer.mjs"></script>
+</head>
+<body>
+<header class="header"><a class="brand" href="../../"><img src="../../icon-approved-v43.png" width="46" height="46" alt=""><span>Escudo Fit</span></a><a class="back" href="./">Voltar à aprovação</a></header>
+<main class="shell">
+<p class="eyebrow">ENSAIO LIVE PRIVADO • P-00</p>
+<h1>Compra Pix única e controlada</h1>
+<p class="intro">O servidor só permite a emissão após aprovação KMS válida, autenticação Google atual e pré-voo do receptor Premium. Esta página não confirma pagamento ou concede acesso por conta própria.</p>
+<div class="columns">
+<section class="panel">
+<p class="eyebrow">IDENTIDADE DO COMPRADOR</p><h2>Entrar com Google</h2>
+<p>Use a conta Google cadastrada no Escudo Fit como P-00. A identidade é validada no servidor.</p>
+<div id="google-slot" aria-label="Login Google do comprador P-00"></div>
+<button id="logout" type="button" class="secondary" hidden>Trocar conta</button>
+<p class="notice">Conta recebedora autorizada: <strong>13926970</strong>. Confirme sempre valor e recebedor no aplicativo do banco antes de pagar.</p>
+<p class="price">R$ 4,99 <span>/ Premium 30 dias, sem renovação</span></p>
+<label class="consent"><input type="checkbox" id="terms" disabled><span>Confirmo o pagamento único de R$ 4,99 para Premium por 30 dias e autorizo apenas uma tentativa de emissão Pix. Sei que uma resposta incerta não autoriza repetir a compra.</span></label>
+<div class="actions">
+<button type="button" id="buy" disabled>Gerar um único Pix</button>
+<button type="button" id="checkout" class="secondary" disabled>Consultar código Pix</button>
+<button type="button" id="refresh" class="secondary" disabled>Consultar Premium e aviso</button>
+</div>
+</section>
+<section class="panel">
+<p class="eyebrow">ESTADO CANÔNICO</p><h2>Consulta autenticada</h2>
+<div id="state" class="notice" role="status" aria-live="polite">Nenhum Pix emitido. Entre com Google para consultar o pré-voo.</div>
+<dl>
+<div><dt>Etapa atual</dt><dd id="phase">GOOGLE_LOGIN</dd></div>
+<div><dt>Estado do servidor</dt><dd id="server-state">—</dd></div>
+<div><dt>Ordem</dt><dd id="order-id">—</dd></div>
+<div><dt>Pagamento</dt><dd id="payment">Não confirmado</dd></div>
+<div><dt>Premium</dt><dd id="premium">Não confirmado</dd></div>
+<div><dt>Aviso automático</dt><dd id="notice">Não confirmado</dd></div>
+<div><dt>Expiração do QR</dt><dd id="expiry">—</dd></div>
+</dl>
+<div id="pix-panel" class="order" hidden>
+<label for="pix-code">Pix copia e cola (confira valor e recebedor)</label>
+<textarea id="pix-code" readonly spellcheck="false" rows="5"></textarea>
+<button id="copy" type="button" class="secondary">Copiar código Pix</button>
+</div>
+<p class="muted">Só o estado <strong>PREMIUM_ACTIVE</strong> confirmado pelo servidor representa acesso concedido. QR disponível não significa pagamento.</p>
+</section>
+</div>
+</main>
+<footer>Escudo Fit • Compra privada de homologação • Nenhuma credencial bancária é solicitada.</footer>
+</body></html>
