@@ -108,7 +108,7 @@ export function createV2ApprovalController({request=v2Request,now=Date.now,onSta
       return false;
     },
     async approve(confirmed){
-      if(confirmed!==true||!this.snapshot().canApprove||!operatorJwt||!buyerJwt||
+      if(confirmed!==true||!snapshot().canApprove||!operatorJwt||!buyerJwt||
          !looksLikeGoogleIdToken(operatorJwt)||!looksLikeGoogleIdToken(buyerJwt))return false;
       const current=epoch;submitted=true;busy=true;phase='SUBMITTING';
       const headers={authorization:'Bearer '+operatorJwt,
@@ -134,6 +134,10 @@ export function createV2ApprovalController({request=v2Request,now=Date.now,onSta
 }
 
 function boot(){
+  if(window.location.origin!=='https://escudofit.com.br'||window.top!==window.self){
+    document.body.textContent='A aprovação privada só pode ocorrer diretamente no domínio oficial do Escudo Fit.';
+    return;
+  }
   const el=id=>document.getElementById(id);
   const slot=el('google-slot'),confirm=el('consent'),approve=el('approve');
   let googleReady=false,lastRendered='';
@@ -175,7 +179,7 @@ function boot(){
         else if(current==='BUYER_NONCE')controller.acceptNonceCredential('buyer',jwt);
         jwt=null;
       },
-      auto_select:false,button_auto_select:false,use_fedcm_for_button:false,ux_mode:'popup'
+      auto_select:false,button_auto_select:false,use_fedcm_for_button:true,ux_mode:'popup'
     });
     api.renderButton(slot,{theme:'outline',size:'large',shape:'pill',
       text:'signin_with',width:Math.min(320,Math.max(200,slot.clientWidth))});
