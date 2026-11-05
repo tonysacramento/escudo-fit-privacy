@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#102f38">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://escudo-fit-api-v38-835029473980.us-central1.run.app https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' https://accounts.google.com/gsi/style; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<title>Escudo Fit — Aprovação privada v2</title>
+<link rel="stylesheet" href="../purchase.css">
+<link rel="stylesheet" href="approval.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="module" src="approval.mjs"></script>
+</head>
+<body>
+<header class="header">
+  <a class="brand" href="../../"><img src="../../icon-approved-v43.png" width="46" height="46" alt=""><span>Escudo Fit</span></a>
+  <a href="../" class="back">Voltar à compra</a>
+</header>
+<main class="shell">
+  <p class="eyebrow">HOMOLOGAÇÃO PRIVADA • v44 • OPERADOR</p>
+  <h1>Aprovação da compra única</h1>
+  <p class="intro">Etapa restrita ao operador autorizado e à conta compradora P-00. Esta página apenas solicita uma aprovação assinada ao servidor. Não cria Pix nem libera Premium ou pagamentos públicos.</p>
+  <div class="columns">
+    <section class="panel" aria-labelledby="details-title">
+      <p class="eyebrow">ESCOPO IMUTÁVEL</p>
+      <h2 id="details-title">Premium por 30 dias</h2>
+      <p class="price">R$ 4,99 <span>/ compra única</span></p>
+      <dl>
+        <div><dt>Comprador</dt><dd>P-00</dd></div>
+        <div><dt>Recebedor Mercado Pago</dt><dd>13926970</dd></div>
+        <div><dt>Máximo de ordens</dt><dd>1</dd></div>
+        <div><dt>Renovação automática</dt><dd>Não</dd></div>
+      </dl>
+      <p class="notice">Você controla as duas contas Google, mas elas representam duas identidades verificadas, não uma revisão humana independente.</p>
+      <p>O servidor valida o operador, o comprador, a janela de autorização e a assinatura KMS. Nenhuma credencial Google deve ser copiada para esta página.</p>
+    </section>
+    <section class="panel" aria-labelledby="auth-title">
+      <p class="eyebrow">DESAFIO GOOGLE • NONCE</p>
+      <h2 id="auth-title">Autenticar e aprovar</h2>
+      <p>Primeiro confirme a conta do operador para criar o desafio. Depois autentique novamente o operador com o nonce e escolha a conta do comprador P-00 com seu nonce individual.</p>
+      <div id="identity-prompt" class="instruction">Escolha a conta Google do OPERADOR autorizado.</div>
+      <div id="google-slot" aria-label="Autenticação Google"></div>
+      <dl aria-label="Estado da aprovação">
+        <div><dt>Etapa</dt><dd id="phase">OPERATOR_INITIAL</dd></div>
+        <div><dt>Prazo do desafio</dt><dd id="deadline">—</dd></div>
+      </dl>
+      <div id="state" class="notice" role="status" aria-live="polite">Nenhuma assinatura solicitada. Comece com a conta do operador.</div>
+      <label class="consent">
+        <input type="checkbox" id="consent" disabled>
+        <span>Eu autorizo uma única aprovação privada, para compra Pix real de R$ 4,99 pelo P-00, com Premium por 30 dias sem renovação. Confirmo que administro as duas contas e aceito não haver revisor humano independente.</span>
+      </label>
+      <div class="actions">
+        <button id="approve" type="button" disabled>Assinar aprovação KMS v2</button>
+        <button id="restart" class="secondary" type="button">Reiniciar autenticação</button>
+      </div>
+      <div id="receipt" class="order" hidden>
+        <p class="eyebrow">APROVAÇÃO CONFIRMADA PELO SERVIDOR</p>
+        <code id="approval-ref"></code>
+        <p>Sem Pix criado, sem Premium concedido. Consulte o Firestore antes de habilitar a emissão.</p>
+      </div>
+      <p class="muted">Se o servidor não confirmar a assinatura, não repita o envio: a operação pode ter sido registrada. A aprovação depende de uma janela KMS curta e do relay privado habilitado.</p>
+    </section>
+  </div>
+</main>
+<footer>Escudo Fit • Fluxo privado de aprovação • Nenhuma senha ou token é armazenado no navegador.</footer>
+</body>
+</html>
