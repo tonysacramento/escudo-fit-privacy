@@ -1,6 +1,6 @@
 // Escudo Fit v44 private buyer-only Pix flow. Browser never signs, grants Premium,
 // reconciles payments or calls Mercado Pago directly. All financial state is server-authoritative.
-export const BUYER_API='https://v2approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app';
+export const BUYER_API='https://v2buyer---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app';
 export const BUYER_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 export const BUYER_RELAY='/api/v38/private-pilot-v2';
 export const BUYER_REQUEST_KEY='e032b3fb-74de-4108-9a6f-48767faf8edf';
