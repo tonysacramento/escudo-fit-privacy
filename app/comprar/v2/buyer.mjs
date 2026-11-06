@@ -45,6 +45,7 @@ export async function privateBuyerRequest(action,token,{fetchImpl=fetch}={}){
     headers:{authorization:'Bearer '+token,accept:'application/json','content-type':'application/json'},
     body:JSON.stringify(body)
   });
+  if(res.status===503)throw Error('PRIVATE_V2_RELAY_503');
   if(!res.ok||!/^application\/json(?:;|$)/i.test(res.headers?.get('content-type')||''))
     throw Error('PRIVATE_V2_API_UNAVAILABLE');
   const raw=await res.text();
@@ -77,8 +78,10 @@ export function createPrivateBuyerController({request=privateBuyerRequest,now=Da
           'Premium confirmado pelo servidor. Confira o estado do aviso automático.':
           'Estado retornado pelo servidor: '+result.state+'. Não crie uma segunda ordem.');
       return true;
-    }catch{
-      if(active(current)){busy=false;phase='READ_UNAVAILABLE';emit('Leitura indisponível. Não gere outro Pix sem consultar a ordem existente.');}
+    }catch(error){
+      if(active(current)){busy=false;phase='READ_UNAVAILABLE';emit(error?.message==='PRIVATE_V2_RELAY_503'?
+        'A consulta da autorização falhou (HTTP 503). Aguarde e use Verificar autorização novamente. Nenhum Pix foi solicitado.':
+        'Leitura indisponível. Verifique a autorização novamente. Não gere outro Pix sem consultar a ordem existente.');}
       return false;
     }
   };
@@ -130,7 +133,10 @@ function boot(){
     el('payment').textContent=s.paymentConfirmed?'Confirmado':'Não confirmado';
     el('premium').textContent=s.premiumGranted?'Ativo':'Não confirmado';
     el('buy').disabled=!s.canIssue||!consent.checked;
-    consent.disabled=!s.canIssue;
+    // Consent may be acknowledged after Google login, even during a temporary API hold.
+    // Only canIssue (server READY) may unlock the financial POST button.
+    consent.disabled=!s.canRead;
+    el('retry-preflight').disabled=!s.canRead||s.attempted;
     el('checkout').disabled=!s.canRead||!s.orderId;
     el('refresh').disabled=!s.canRead;
     slot.hidden=s.phase!=='GOOGLE_LOGIN';el('logout').hidden=s.phase==='GOOGLE_LOGIN';
@@ -138,6 +144,7 @@ function boot(){
     el('expiry').textContent=s.expiresAt?new Date(s.expiresAt).toLocaleString('pt-BR'):'—';
   }});
   consent.addEventListener('change',()=>{el('buy').disabled=!consent.checked||!controller.snapshot().canIssue;});
+  el('retry-preflight').addEventListener('click',()=>controller.preflight());
   el('buy').addEventListener('click',()=>controller.issue(consent.checked));
   el('checkout').addEventListener('click',()=>controller.checkout());
   el('refresh').addEventListener('click',()=>controller.status());
