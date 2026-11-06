@@ -26,7 +26,9 @@
 <p class="notice">Conta recebedora autorizada: <strong>13926970</strong>. Confirme sempre valor e recebedor no aplicativo do banco antes de pagar.</p>
 <p class="price">R$ 4,99 <span>/ Premium 30 dias, sem renovação</span></p>
 <label class="consent"><input type="checkbox" id="terms" disabled><span>Confirmo o pagamento único de R$ 4,99 para Premium por 30 dias e autorizo apenas uma tentativa de emissão Pix. Sei que uma resposta incerta não autoriza repetir a compra.</span></label>
+<p class="muted">A confirmação pode ser marcada após o login Google. O botão de emissão só será liberado quando o servidor confirmar <strong>READY_FOR_SINGLE_PURCHASE</strong>. Se a consulta falhar, use Verificar autorização novamente.</p>
 <div class="actions">
+<button type="button" id="retry-preflight" class="secondary" disabled>Verificar autorização novamente</button>
 <button type="button" id="buy" disabled>Gerar um único Pix</button>
 <button type="button" id="checkout" class="secondary" disabled>Consultar código Pix</button>
 <button type="button" id="refresh" class="secondary" disabled>Consultar Premium e aviso</button>
