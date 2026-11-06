@@ -86,6 +86,37 @@ test('expired QR is hidden even if the previous server reply was once valid',asy
   assert.equal(ctrl.pix(),null);
 });
 
+test('transient HTTP 503 never enables Pix and a later read-only preflight may recover',async()=>{
+  let reads=0;
+  const ctrl=createPrivateBuyerController({now:()=>NOW,request:async action=>{
+    assert.equal(action,'preflight');
+    if(++reads===1)throw Error('PRIVATE_V2_RELAY_503');
+    return preflight;
+  }});
+  assert.equal(await ctrl.signIn(token),false);
+  assert.equal(ctrl.snapshot().phase,'READ_UNAVAILABLE');
+  assert.equal(ctrl.snapshot().canIssue,false);
+  assert.equal(ctrl.snapshot().canRead,true);
+  assert.equal(await ctrl.preflight(),true);
+  assert.equal(ctrl.snapshot().phase,'READY_FOR_SINGLE_PURCHASE');
+  assert.equal(reads,2);
+});
+
+test('HTTP 503 is reported explicitly and cannot issue a Pix',async()=>{
+  await assert.rejects(()=>privateBuyerRequest('preflight',token,{fetchImpl:async()=>({ok:false,status:503})}),
+    /PRIVATE_V2_RELAY_503/);
+});
+
+test('buyer page consent is independent of backend readiness, financial action is not',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const html=readFileSync(new URL('../app/comprar/v2/buyer.html',import.meta.url),'utf8');
+  const js=readFileSync(new URL('../app/comprar/v2/buyer.mjs',import.meta.url),'utf8');
+  assert.match(html,/id="retry-preflight"/);
+  assert.match(js,/consent\.disabled=!s\.canRead/);
+  assert.match(js,/el\('buy'\)\.disabled=!s\.canIssue\|\|!consent\.checked/);
+  assert.match(js,/controller\.preflight\(\)/);
+});
+
 test('buyer relay sends only an exact one-shot request body with no browser provider calls',async()=>{
   const calls=[];
   const fetchImpl=async(url,opts)=>{calls.push({url,opts});return {
