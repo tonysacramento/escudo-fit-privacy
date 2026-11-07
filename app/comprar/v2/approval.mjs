@@ -39,8 +39,20 @@ export async function v2Request(path,headers,{fetchImpl=fetch}={}){
     // Intentionally no body and no Content-Type: the relay rejects either.
     signal:AbortSignal.timeout(15000)
   });
-  if(!response.ok||!/^application\/json(?:;|$)/i.test(response.headers?.get('content-type')||''))
+  if(!/^application\/json(?:;|$)/i.test(response.headers?.get('content-type')||''))
     throw Error('APPROVAL_API_UNAVAILABLE');
+  if(!response.ok){
+    // Disclose only known policy codes. Never show arbitrary provider response data.
+    const reason=await response.text();
+    let code='';
+    try{code=JSON.parse(reason.slice(0,4096))?.code||'';}catch{}
+    const allowed=new Set(['V2_OPERATOR_NOT_ALLOWED','V2_OPERATOR_ORIGIN_REJECTED',
+      'V2_OPERATOR_APPROVAL_RELAY_OFF','V2_OPERATOR_RELAY_SCOPE_REJECTED',
+      'V2_OPERATOR_GOOGLE_TOKENS_REQUIRED','V2_OPERATOR_SIGNER_UNAVAILABLE',
+      'V2_OPERATOR_APPROVAL_HELD','V2_CHALLENGE_OFF','V2_CHALLENGE_REJECTED',
+      'V2_OPERATOR_IAM_UNAVAILABLE','V2_OPERATOR_CHALLENGE_RESPONSE_INVALID']);
+    throw Error(allowed.has(code)?code:'APPROVAL_HTTP_'+response.status);
+  }
   const raw=await response.text();
   if(raw.length>4096)throw Error('APPROVAL_RESPONSE_TOO_LARGE');
   try{return JSON.parse(raw);}catch{throw Error('APPROVAL_RESPONSE_INVALID');}
@@ -88,8 +100,21 @@ export function createV2ApprovalController({request=v2Request,now=Date.now,onSta
         challenge=validateV2Challenge(value,now());busy=false;phase='OPERATOR_NONCE';
         emit('Desafio emitido. Entre novamente com a conta Google do operador usando o nonce correspondente.');
         return true;
-      }catch{
-        if(current===epoch){clear();busy=false;phase='ERROR';emit('Desafio indisponível ou inválido. Confira o relay e a janela de autorização.');}
+      }catch(error){
+        if(current===epoch){
+          clear();busy=false;phase='ERROR';
+          const code=error?.message||'';
+          const guidance=code==='V2_OPERATOR_NOT_ALLOWED'
+            ?'Conta Google não autorizada para operador. Escolha escudofit@gmail.com, não a conta compradora P-00.'
+            :code==='V2_OPERATOR_ORIGIN_REJECTED'
+            ?'Origem rejeitada (HTTP 403). Verifique a URL oficial e a configuração do proxy do servidor.'
+            :code==='V2_OPERATOR_RELAY_SCOPE_REJECTED'
+            ?'Janela de autorização encerrada ou configuração do relay incompatível. Nenhuma assinatura foi criada.'
+            :code==='V2_OPERATOR_SIGNER_UNAVAILABLE'||code==='V2_OPERATOR_APPROVAL_HELD'
+            ?'Assinador privado indisponível; desafio não confirmado.'
+            :'Desafio recusado ('+(/^[A-Z0-9_]{3,80}$/.test(code)?code:'ERRO_DESCONHECIDO')+'). Nenhum Pix foi criado.';
+          emit(guidance);
+        }
         return false;
       }
     },

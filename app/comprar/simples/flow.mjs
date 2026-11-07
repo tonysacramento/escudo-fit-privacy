@@ -94,11 +94,11 @@ function renderGoogle(){
   }
   const phase=approval.snapshot().phase;
   const prompt=phase==='OPERATOR_INITIAL'?
-    'Escolha a conta Google do operador autorizado.':
+    'OPERADOR: escolha escudofit@gmail.com (não tonysacramento@gmail.com).':
     phase==='OPERATOR_NONCE'?
-    'Confirme novamente o operador com o desafio de segurança.':
+    'OPERADOR: confirme escudofit@gmail.com novamente com o desafio de segurança.':
     phase==='BUYER_NONCE'?
-    'Agora escolha a conta Google do comprador P-00.':
+    'COMPRADOR P-00: escolha tonysacramento@gmail.com.':
     'Autenticação concluída. Confirme a assinatura abaixo.';
   $('identity-prompt').textContent=prompt;
   if(['OPERATOR_INITIAL','OPERATOR_NONCE','BUYER_NONCE'].includes(phase)){
@@ -129,8 +129,8 @@ $('start-approval').addEventListener('click',()=>{
   mode='approval';
   $('approval-panel').hidden=false;
   $('start-approval').hidden=true;
-  $('identity-prompt').textContent='Escolha primeiro a conta do operador.';
-  $('approval-status').textContent='Autentique o operador e o comprador para assinar uma única aprovação KMS.';
+  $('identity-prompt').textContent='Escolha primeiro escudofit@gmail.com como OPERADOR.';
+  $('approval-status').textContent='Selecione escudofit@gmail.com como operador e tonysacramento@gmail.com como comprador.';
   renderGoogle();
 });
 $('approval-consent').addEventListener('change',()=>{
