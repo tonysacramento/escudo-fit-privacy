@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0b2534">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://v2buyer---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://accounts.google.com/gsi/client; connect-src https://v2buyer---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app https://v2approval---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://accounts.google.com https://*.googleusercontent.com; font-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
 <title>Pix simples — Escudo Fit</title>
 <link rel="icon" href="../../icon-approved-v43.png" type="image/png">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script type="module" src="../v2/buyer.mjs"></script>
+<script type="module" src="./flow.mjs?v=single-flow-r1"></script>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:dark;background:#0b2534;color:#edf7fc}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(150deg,#0b2534,#123e46)}
@@ -30,7 +30,7 @@ input[type=checkbox]{width:19px;height:19px;accent-color:#42d6cf;flex:none;margi
 button{border:0;border-radius:12px;padding:14px 17px;font:inherit;font-weight:780;cursor:pointer;background:#51dfd4;color:#08313b}
 button:disabled{cursor:not-allowed;opacity:.43}button:not(:disabled):hover{filter:brightness(1.07)}
 #buy{width:100%;margin:15px 0 0;font-size:16px;padding:17px}
-.secondary{font-size:13px;background:#1e4c57;color:#e4f7f6;padding:10px 13px;border:1px solid #36717b}
+#approval-panel{border-color:#51dfd4}#start-approval{background:#51dfd4;color:#073039}.secondary{font-size:13px;background:#1e4c57;color:#e4f7f6;padding:10px 13px;border:1px solid #36717b}
 .buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .notice{padding:14px 15px;background:#1b4651;border:1px solid #386875;border-radius:12px;color:#e2f7f8;font-size:14px;line-height:1.48;margin:10px 0}
 #pix-panel{padding:18px;background:#173b45;border:1px solid #367a80;border-radius:13px;margin-top:18px}
@@ -49,16 +49,32 @@ footer{text-align:center;color:#a5c6cf;font-size:12px;margin:16px auto 28px;max-
 <header><a href="../../" class="brand"><img src="../../icon-approved-v43.png" alt=""> Escudo Fit</a><a href="../">Página tradicional</a></header>
 <main><div class="card">
 <p class="eyebrow">Pagamento único • Pix</p>
-<h1>Seu Premium por 30 dias</h1>
+<h1>Pix de R$ 4,99</h1>
 <p class="price">R$ 4,99 <small>Sem assinatura. Sem renovação automática.</small></p>
 <section class="step" aria-label="Identificar comprador">
-<h2>1. Entre com sua conta Google</h2>
+<h2>1. Identifique-se</h2>
 <p class="sub">Use a mesma conta do aplicativo. O servidor verifica se você pode comprar.</p>
+<p id="identity-prompt" class="sub">Conta do comprador P-00.</p>
 <div id="google-slot" aria-label="Entrar com Google"></div>
 <button id="logout" type="button" class="secondary" hidden>Trocar conta</button>
 </section>
+<section id="approval-panel" class="step" aria-label="Autorizar compra Pix" hidden>
+<p class="eyebrow">Autorização privada no mesmo checkout</p>
+<h2>Autorize esta compra única</h2>
+<p class="sub">Use as duas contas Google sob sua administração. O servidor valida identidade, desafio e assinatura KMS. Sem Pix criado durante esta etapa.</p>
+<p class="sub"><strong>Comprador P-00 · R$ 4,99 · Premium 30 dias · uma emissão</strong></p>
+<div class="notice" id="approval-status" role="status" aria-live="polite">Autentique o operador e o comprador para assinar uma única aprovação KMS.</div>
+<label><input type="checkbox" id="approval-consent" disabled>
+<span>Autorizo uma única assinatura de compra privada de R$ 4,99. Confirmo que controlo as duas contas Google e não há revisão humana independente.</span></label>
+<div class="buttons"><button id="approve" type="button" disabled>Confirmar autorização</button>
+<button id="restart-approval" type="button" class="secondary">Recomeçar autenticação</button></div>
+<details><summary>Detalhes da autorização</summary>
+<dl><dt>Etapa KMS</dt><dd id="approval-phase">OPERATOR_INITIAL</dd>
+<dt>Prazo do desafio</dt><dd id="approval-expiry">—</dd></dl>
+</details>
+</section>
 <section class="step" aria-label="Gerar Pix">
-<h2>2. Gere o Pix e pague no seu banco</h2>
+<h2>2. Gere o Pix e pague</h2>
 <label><input id="terms" type="checkbox" disabled><span>Confirmo a compra de <strong>R$ 4,99</strong>, com até uma emissão de Pix e acesso Premium por 30 dias.</span></label>
 <button id="buy" type="button" disabled>Gerar Pix de R$ 4,99</button>
 <div id="state" class="notice" role="status" aria-live="polite">Entre com Google para verificar sua compra.</div>
@@ -69,6 +85,7 @@ footer{text-align:center;color:#a5c6cf;font-size:12px;margin:16px auto 28px;max-
 <p class="sub">Antes de pagar, confira o valor e o recebedor no aplicativo do seu banco. Não pague duas vezes.</p>
 </div>
 <div class="buttons">
+<button id="start-approval" type="button" class="secondary" hidden>Autorizar esta compra</button>
 <button id="retry-preflight" class="secondary" type="button" disabled>Verificar liberação</button>
 <button id="checkout" class="secondary" type="button" disabled>Consultar Pix</button>
 <button id="refresh" class="secondary" type="button" disabled>Verificar pagamento e Premium</button>
