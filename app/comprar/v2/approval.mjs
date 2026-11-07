@@ -201,4 +201,4 @@ function boot(){
   el('phase').textContent='OPERATOR_INITIAL';
   poll();
 }
-if(typeof window!=='undefined'&&typeof document!=='undefined')boot();
+if(typeof window!=='undefined'&&typeof document!=='undefined'&&/^\/app\/comprar\/v2\/(?:index\.html)?$/.test(window.location.pathname))boot();
