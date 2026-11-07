@@ -177,4 +177,4 @@ function boot(){
   window.addEventListener('pagehide',()=>{activePage=false;controller.destroy();});
   load();
 }
-if(typeof window!=='undefined'&&typeof document!=='undefined')boot();
+if(typeof window!=='undefined'&&typeof document!=='undefined'&&window.location.pathname==='/app/comprar/v2/buyer.html')boot();
