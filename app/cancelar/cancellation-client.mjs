@@ -31,6 +31,31 @@ export function cancellationReceiptText(r){
       detail:'A devolução foi confirmada pelo Mercado Pago e o acesso Premium referente a esta compra foi encerrado. Seu histórico foi preservado.'},
   }[r.status];
 }
+const WITHDRAWAL_BASES=['PROVIDER_PAYMENT_APPROVED','ACCESS_CONFIRMED_FALLBACK'];
+const brasilia=iso=>new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',
+  year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(', ',' às ')+' (horário de Brasília)';
+/** Informational 7-day withdrawal period (CDC art. 49). The server computes it from the
+ * payment approval; an absent or malformed value never blocks the page, it just shows that
+ * the period will be checked against the purchase records. `request` is the receipt, if any. */
+export function withdrawalText(w,request=null){
+  const known=w&&WITHDRAWAL_BASES.includes(w.basis)&&typeof w.deadlineAt==='string'&&
+    Number.isFinite(Date.parse(w.deadlineAt))&&(w.withinPeriod===null||typeof w.withinPeriod==='boolean');
+  if(!known)return {state:'UNKNOWN',deadline:null,
+    message:'O prazo de 7 dias será conferido com os registros da contratação.'};
+  const deadline=brasilia(w.deadlineAt);
+  const from=w.basis==='PROVIDER_PAYMENT_APPROVED'?'da aprovação do pagamento':'da confirmação do acesso';
+  const pending=!request||request.status==='REQUEST_RECEIVED';
+  if(w.withinPeriod===true)return {state:'WITHIN',deadline,
+    message:request?(pending?'Pedido feito dentro do prazo de 7 dias '+from+'. O reembolso integral é processado '+
+      'automaticamente e esta página mostra cada etapa. Se alguma conferência exigir análise, o suporte segue pelo mesmo protocolo.':
+      'Pedido feito dentro do prazo de 7 dias '+from+'.'):
+      'Você está dentro do prazo de 7 dias '+from+'. Ao confirmar, o reembolso integral é processado automaticamente.'};
+  if(w.withinPeriod===false)return {state:'OUTSIDE',deadline,
+    message:request?(pending?'Pedido registrado após o prazo de 7 dias '+from+'. Ele será analisado pelo suporte; '+
+      'o reembolso automático não se aplica.':'Pedido registrado após o prazo de 7 dias '+from+'.'):
+      'O prazo de 7 dias '+from+' terminou. Você ainda pode registrar o pedido; ele será analisado pelo suporte.'};
+  return {state:'UNKNOWN',deadline,message:'O prazo de 7 dias é contado a partir '+from+'.'};
+}
 export function validCancellationReceipt(r) {
   const customer=r?.refundStatusVersion===2;
   if(r?.refundStatusVersion!==undefined&&![1,2].includes(r.refundStatusVersion))return false;
@@ -116,7 +141,7 @@ export function cancellationController({transport,view,keyStorage,newKey=()=>cry
   const show=entry=>{
     selected=entry;purchase=entry.purchase;receipt=entry.request||null;
     view.purchases?.(entries.map(e=>e.purchase),purchase.orderId,truncated);
-    if(receipt)view.receipt(receipt);else view.purchase(purchase);
+    if(receipt)view.receipt(receipt,entry.requestWithdrawal||null);else view.purchase(purchase);
   };
   return {
     reset:clear,
@@ -161,7 +186,7 @@ export function cancellationController({transport,view,keyStorage,newKey=()=>cry
         sameAccount();
         if(!validCancellationReceipt(result)||result.orderId!==purchase.orderId||result.amountBRL!==purchase.amountBRL||
           (customer?result.refundStatusVersion!==2:result.refundStatusVersion===2))throw Error('REQUEST_UNCONFIRMED');
-        receipt=result;view.receipt(receipt);
+        receipt=result;view.receipt(receipt,result.withdrawal||null);
       } catch(e){error(e);}finally{busy=false;view.busy(false);}
     },
   };
