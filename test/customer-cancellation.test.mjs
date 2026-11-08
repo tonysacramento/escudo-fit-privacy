@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cancellationController,cancellationTransport,validCancellationReceipt,cancellationReceiptText}
+import {cancellationController,cancellationTransport,validCancellationReceipt,cancellationReceiptText,withdrawalText}
   from '../app/cancelar/cancellation-client.mjs';
 
 const oldId='EF-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',newId='EF-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -120,4 +120,43 @@ test('transport sends buyer credentials only to fixed cancellation endpoints and
     '/payments/customer-cancellations/purchases/'+newId+'?buyer=other','https://foreign.example.invalid'])
     await assert.rejects(transport.request(path),/REQUEST_UNCONFIRMED/);
   assert.equal(calls.length,2);
+});
+
+const within={basis:'PROVIDER_PAYMENT_APPROVED',startsAt:'2026-11-08T03:04:00.000Z',deadlineAt:'2026-11-15T03:04:00.000Z',withinPeriod:true};
+test('7-day period shows the Brasília deadline and announces the automatic refund only within the period',()=>{
+  const before=withdrawalText(within);
+  assert.equal(before.state,'WITHIN');assert.equal(before.deadline,'15/11/2026 às 00:04 (horário de Brasília)');
+  assert.match(before.message,/dentro do prazo de 7 dias da aprovação do pagamento.*automaticamente/);
+  const pending=withdrawalText(within,receipt);
+  assert.match(pending.message,/processado automaticamente.*mesmo protocolo/);
+  const done=withdrawalText(within,{...receipt,status:'REFUND_COMPLETED'});
+  assert.doesNotMatch(done.message,/automaticamente|análise/);
+  const late=withdrawalText({...within,withinPeriod:false},receipt);
+  assert.equal(late.state,'OUTSIDE');assert.match(late.message,/analisado pelo suporte; o reembolso automático não se aplica/);
+  assert.match(withdrawalText({...within,withinPeriod:false}).message,/terminou.*ainda pode registrar/);
+  assert.match(withdrawalText({...within,basis:'ACCESS_CONFIRMED_FALLBACK'}).message,/confirmação do acesso/);
+});
+test('missing or malformed period never blocks the page nor promises an automatic refund',()=>{
+  for(const w of [undefined,null,{basis:'UNAVAILABLE',startsAt:null,deadlineAt:null,withinPeriod:null},
+    {...within,basis:'CLIENT_CLAIM'},{...within,deadlineAt:'amanhã'},{...within,withinPeriod:'true'}]){
+    const t=withdrawalText(w,receipt);
+    assert.equal(t.state,'UNKNOWN');assert.equal(t.deadline,null);assert.doesNotMatch(t.message,/automaticamente/);
+  }
+});
+test('the period reaches the view from the listing and from the POST receipt',async()=>{
+  const p={...purchase,withdrawal:within},late={...within,withinPeriod:false};
+  const run=async(request,submit)=>{
+    const shown=[],view={clear(){},busy(){},error(){},purchases(){},purchase:x=>shown.push(['purchase',x]),
+      receipt:(r,w)=>shown.push(['receipt',r,w])};
+    const m=new Map(),controller=cancellationController({transport:{session:()=>({user:{id:'buyer'}}),request},view,
+      keyStorage:{getItem:k=>m.get(k)||null,setItem:(k,v)=>m.set(k,v)},discoverCustomerPurchases:true,
+      newKey:()=>'11111111-1111-4111-8111-111111111111'});
+    await controller.load();if(submit)await controller.submit(true);return shown;
+  };
+  const posted=await run(async(path,o)=>{if(o?.method==='POST')return {...receipt,withdrawal:within};
+    if(path.includes('customer-cancellations'))return listed([entry(p)]);throw Error('PILOT_UNAVAILABLE');},true);
+  assert.deepEqual(posted[0],['purchase',p]);assert.deepEqual(posted[1][2],within);
+  const reloaded=await run(async path=>{if(path.includes('customer-cancellations'))
+    return listed([{...entry(p,receipt),requestWithdrawal:late}]);throw Error('PILOT_UNAVAILABLE');},false);
+  assert.equal(reloaded.length,1);assert.deepEqual(reloaded[0][2],late);
 });

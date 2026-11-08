@@ -1,4 +1,5 @@
-import {cancellationTransport,cancellationController,cancellationReceiptText} from './cancellation-client.mjs?v=20261102-refund-2';
+import {cancellationTransport,cancellationController,cancellationReceiptText,withdrawalText}
+  from './cancellation-client.mjs?v=20261108-withdrawal-1';
 const $=id=>document.getElementById(id);
 const messages={SIGN_IN_REQUIRED:'Entre com a mesma Conta Google no Escudo Fit e volte a esta página.',
   SESSION_CHANGED:'A conta foi alterada. Consulte novamente para continuar com a conta atual.',
@@ -7,7 +8,7 @@ const messages={SIGN_IN_REQUIRED:'Entre com a mesma Conta Google no Escudo Fit e
 let busy=false,controller;
 const view={
   clear(){ $('purchase').hidden=true;$('receipt').hidden=true;$('refundFinancial').hidden=true;$('accessSnapshot').hidden=true;
-    $('purchaseSelection').hidden=true;$('purchasePicker').replaceChildren();$('confirm').checked=false;$('submit').disabled=true; },
+    $('purchaseSelection').hidden=true;$('receiptWithdrawal').hidden=true;$('purchasePicker').replaceChildren();$('confirm').checked=false;$('submit').disabled=true; },
   busy(value){busy=value;$('refresh').disabled=value;$('purchasePicker').disabled=value;$('submit').disabled=value||!$('confirm').checked;},
   purchases(items,selectedId,truncated){
     $('purchasePicker').replaceChildren();
@@ -21,13 +22,18 @@ const view={
     $('orderReference').textContent=p.orderId;
     $('participant').textContent=p.participantId;
     $('validUntil').textContent=new Date(p.premiumUntil).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' (Brasília)';
+    const w=withdrawalText(p.withdrawal);$('withdrawal').dataset.state=w.state;
+    $('withdrawalDeadline').textContent=w.deadline||'a conferir';$('withdrawalMessage').textContent=w.message;
     $('purchase').hidden=false;$('status').textContent='Confira a compra antes de confirmar a solicitação.';},
-  receipt(r){$('purchase').hidden=true;$('receipt').hidden=false;$('protocol').textContent=r.protocol;
+  receipt(r,withdrawal){$('purchase').hidden=true;$('receipt').hidden=false;$('protocol').textContent=r.protocol;
     $('receiptOrderReference').textContent=r.orderId;
     $('receivedAt').textContent=new Date(r.receivedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})+' (Brasília)';
     const text=cancellationReceiptText(r);
     $('receiptTitle').textContent=text.title;$('receiptState').textContent=text.label;
     $('status').textContent=text.message;$('receiptDetail').textContent=text.detail;
+    const w=withdrawalText(withdrawal,r);$('receiptWithdrawal').hidden=w.state==='UNKNOWN'&&!w.deadline;
+    $('receiptWithdrawal').dataset.state=w.state;$('receiptWithdrawalDeadline').textContent=w.deadline||'';
+    $('receiptWithdrawalMessage').textContent=w.message;
     $('refundFinancial').hidden=!r.refundExecuted;
     $('refundId').textContent=r.refundExecuted?r.refundId:'';
     $('numericRefund').hidden=!r.refundExecuted||!r.numericRefundId;

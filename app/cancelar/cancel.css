@@ -10,3 +10,4 @@ dt{color:#a8c0c2;margin-top:12px}dd{margin:2px 0;overflow-wrap:anywhere}#status{
 select{width:100%;min-height:48px;border:1px solid #35d3dd;border-radius:12px;padding:10px;background:#0a292e;color:#f5f7f4;font:inherit}
 select:focus-visible{outline:3px solid #e5ae35;outline-offset:4px}#orderReference,#receiptOrderReference{overflow-wrap:anywhere}
 
+.notice{border-left:4px solid #35d3dd;padding:4px 0 4px 14px;margin:16px 0}.notice p{margin:6px 0}.notice[data-state=OUTSIDE]{border-color:#e5ae35}

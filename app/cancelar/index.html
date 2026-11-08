@@ -17,8 +17,8 @@
     <p>Consulte sua compra, registre o pedido de cancelamento e acompanhe o protocolo com a mesma Conta Google usada no Escudo Fit.</p>
     <section class="card" aria-labelledby="pilotTitle">
       <h2 id="pilotTitle">Como funciona</h2>
-      <p>Seu pedido é registrado para análise pelo suporte e recebe um protocolo. Esta tela não executa o reembolso nem altera seu plano.</p>
-      <p>Seu histórico será preservado. O prazo de arrependimento e a devolução serão conferidos com os registros da contratação.</p>
+      <p>Você pode cancelar e pedir o reembolso integral em até 7 dias após a aprovação do pagamento. Pedidos dentro desse prazo são processados automaticamente; fora dele, o pedido é analisado pelo suporte.</p>
+      <p>Cada pedido recebe um protocolo. Esta tela não executa o reembolso diretamente: ela registra o pedido e mostra o andamento. Seu histórico será preservado.</p>
     </section>
     <p id="status" role="status" aria-live="polite">Consultando sua compra…</p>
     <section id="purchaseSelection" class="card" hidden aria-labelledby="selectionTitle">
@@ -34,7 +34,9 @@
       <p>Compra: <span id="orderReference"></span></p>
       <p>Participante: <span id="participant"></span></p>
       <p>Validade do período concedido: <span id="validUntil"></span></p>
-      <p>A validade do plano não é a data da compra nem o início automático do prazo de arrependimento.</p>
+      <div id="withdrawal" class="notice"><p>Prazo para reembolso integral: <strong id="withdrawalDeadline">a conferir</strong></p>
+        <p id="withdrawalMessage">O prazo de 7 dias será conferido com os registros da contratação.</p></div>
+      <p class="muted">A validade do plano não é a data da compra nem o início do prazo de 7 dias.</p>
       <label><input id="confirm" type="checkbox"> Quero solicitar o cancelamento e o reembolso desta compra.</label>
       <button id="submit" type="button" disabled>Confirmar solicitação</button>
     </section>
@@ -42,6 +44,8 @@
       <h2 id="receiptTitle">Pedido recebido</h2>
       <p>Compra: <span id="receiptOrderReference"></span></p>
       <dl><dt>Protocolo</dt><dd id="protocol"></dd><dt>Recebido em</dt><dd id="receivedAt"></dd><dt>Status</dt><dd id="receiptState">Recebido para análise</dd></dl>
+      <div id="receiptWithdrawal" class="notice" hidden><p>Prazo para reembolso integral: <strong id="receiptWithdrawalDeadline"></strong></p>
+        <p id="receiptWithdrawalMessage"></p></div>
       <p id="receiptDetail">O recebimento do pedido não comprova que o dinheiro já foi devolvido. O processamento financeiro é uma etapa separada.</p>
       <div id="refundFinancial" hidden><dl><dt>Identificador da devolução</dt><dd id="refundId"></dd><dt>Confirmada em</dt><dd id="refundedAt"></dd></dl>
         <dl id="numericRefund" hidden><dt>Referência numérica do estorno</dt><dd id="numericRefundId"></dd></dl></div>
@@ -56,7 +60,7 @@
     <p class="muted">Se a compra não aparecer, você também pode solicitar o atendimento pelo suporte.</p>
     <p class="muted"><a href="../../privacy.html">Privacidade</a> · <a href="../../terms.html">Termos de uso</a></p>
   </main>
-  <script type="module" src="./cancel.mjs?v=20261102-refund-2"></script>
+  <script type="module" src="./cancel.mjs?v=20261108-withdrawal-1"></script>
 </body>
 </html>
 
