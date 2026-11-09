@@ -610,3 +610,16 @@ test('declining stops asking for those dates; out-of-cycle and duplicated days a
     assert(missed.every(d=>prefs.missedDismissed[d]));
   }finally{h.dom.window.close()}
 });
+
+test('weights keep two decimals in chart, summary and history list',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    h.setRemote({weights:[{id:'w1',weightKg:101.55,timestampMs:Date.parse('2026-09-17T12:00:00Z'),origin:'PROFILE'},
+      {id:'w2',weightKg:98.65,timestampMs:Date.parse('2026-11-08T12:00:00Z'),origin:'PROFILE'}]});
+    w.document.getElementById('refreshHistoryButton').click();await pause();
+    const chart=w.document.getElementById('weightChartProfile').textContent;
+    assert.match(chart,/98,65 kg/);assert.match(chart,/101,55/);assert.match(chart,/-2,9 kg/);
+    assert.match(w.document.getElementById('weightHistory').textContent,/98,65 kg/);
+    assert.equal(w.document.getElementById('weightInput').getAttribute('step'),'0.01');
+  }finally{h.dom.window.close()}
+});

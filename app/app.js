@@ -508,9 +508,11 @@ function renderApp(){
     'Comece com uma ação simples de cuidado.'
   );
 
-  setText('lastWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'—');
-  setText('profileCurrentWeight',state.weights.length?state.weights[0].value.toFixed(1).replace('.',',')+' kg':'não registrado');
-  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).slice(-12).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
+  // Up to two decimals, as recorded on Android (98,65 kg); never rounds to one.
+  const kgText=value=>Number(value).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2})+' kg';
+  setText('lastWeight',state.weights.length?kgText(state.weights[0].value):'—');
+  setText('profileCurrentWeight',state.weights.length?kgText(state.weights[0].value):'não registrado');
+  if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).slice(-12).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+kgText(w.kg)+'</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   renderWeightChart('weightChartFull');
   renderWeightChart('weightChartProfile');
   // Bindings below are created after the first render; skip until they exist.
