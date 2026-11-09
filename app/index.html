@@ -28,12 +28,15 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <!-- Same opening as the Android app (app/index.tsx): #0F2B33, approved mark,
-       "Escudo Fit" wordmark, fade-in 620 ms, at least 1.75 s, fade-out 320 ms. -->
+  <!-- Same opening as the Android app (app/index.tsx): shield springs in with a cyan
+       halo pulse, wordmark rises after it, at least 1.75 s, then opens out in 320 ms. -->
   <div id="brandIntro" class="brand-intro" aria-hidden="true">
     <div class="brand-intro-mark">
-      <img src="./brand-mark-approved-v44.png" alt="" width="255" height="255">
-      <strong>Escudo <span>Fit</span></strong>
+      <div class="brand-intro-shield">
+        <span class="brand-intro-halo"></span>
+        <img src="./brand-mark-approved-v44.png" alt="" width="255" height="255">
+      </div>
+      <strong><span class="brand-intro-word">Escudo</span> <span class="brand-intro-fit">Fit</span></strong>
     </div>
   </div>
   <div id="sessionLoading" class="session-loading" role="status" aria-live="polite">
