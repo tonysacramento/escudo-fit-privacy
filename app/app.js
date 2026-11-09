@@ -117,6 +117,15 @@ function webAccessAllowed(){
   return Boolean(auth?.user&&entitlementVerified&&webAccessDecision(auth.entitlement).allowed);
 }
 
+// Android parity: the brand opening stays at least 1.75 s from page start and then
+// fades out over the ready screen (app/index.tsx). Never blocks the app underneath.
+const BRAND_INTRO_MIN_MS=1750;
+function dismissBrandIntro(){
+  const el=$('brandIntro');if(!el||el.dataset.leaving)return;el.dataset.leaving='1';
+  const elapsed=typeof performance!=='undefined'?performance.now():BRAND_INTRO_MIN_MS;
+  setTimeout(()=>{el.classList.add('leaving');setTimeout(()=>el.remove(),340);},Math.max(0,BRAND_INTRO_MIN_MS-elapsed));
+}
+
 function showWebAccessGate(reason){
   const message=reason==='VERIFY'
     ? 'Não foi possível confirmar seu plano agora. Conecte-se à internet e verifique novamente. Seu histórico permanece preservado.'
@@ -125,7 +134,7 @@ function showWebAccessGate(reason){
       : 'Seu período de teste ou acesso temporário terminou. Para continuar no Escudo Fit Web, assine o Premium. Seu histórico permanece preservado.';
   setText('webAccessTitle',reason==='VERIFY'?'Verificando seu acesso':reason==='FREE'?'Escudo Fit Web Premium':'Seu período de acesso terminou');
   setText('webAccessMessage',message);
-  $('sessionLoading').classList.add('hidden');
+  $('sessionLoading').classList.add('hidden');dismissBrandIntro();
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.add('hidden');
   $('webAccessGate').classList.remove('hidden');
@@ -261,7 +270,7 @@ function showMarketing(){
   const installed=isStandalonePwa();
   document.documentElement.dataset.entry=installed?'installed':'guest';
   document.body.classList.toggle('pwa-login-mode',installed);
-  $('sessionLoading').classList.add('hidden');
+  $('sessionLoading').classList.add('hidden');dismissBrandIntro();
   accountUiReady=false;
   $('marketingExperience').classList.remove('hidden');
   $('appExperience').classList.add('hidden');
@@ -277,7 +286,7 @@ function showApp(){
   $('webAccessGate').classList.add('hidden');
   document.documentElement.dataset.entry='app';
   document.body.classList.remove('pwa-login-mode');
-  $('sessionLoading').classList.add('hidden');
+  $('sessionLoading').classList.add('hidden');dismissBrandIntro();
   $('marketingExperience').classList.add('hidden');
   $('appExperience').classList.remove('hidden');
   document.body.classList.add('is-app');
