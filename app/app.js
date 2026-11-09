@@ -327,6 +327,9 @@ function weightChartSeries(records){
   return [...days.values()].sort((a,b)=>a.time-b.time);
 }
 
+// Bars for the most recent records (like the Android chart) plus a dashed trend
+// line through the top of each bar. Baseline and total change still use the whole history.
+const WEIGHT_CHART_BARS=8;
 function renderWeightChart(containerId){
   const root=$(containerId);
   if(!root)return;
@@ -335,59 +338,43 @@ function renderWeightChart(containerId){
     root.innerHTML='<p class="weight-chart-empty">Ainda não há registros de peso para criar o gráfico. Registre seu primeiro peso para começar.</p>';
     return;
   }
-  const fmt=value=>value.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const fmt=value=>value.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2});
+  const short=value=>value.toLocaleString('pt-BR',{maximumFractionDigits:2});
   const displayDay=day=>day.slice(8,10)+'/'+day.slice(5,7);
   const earliest=series[0],latest=series[series.length-1];
   const change=latest.kg-earliest.kg;
   const delta=series.length>1?(change>0?'+':'')+fmt(change)+' kg':'—';
-  const chartWidth=360,left=43,right=344,top=24,bottom=149;
-  const low=Math.min(...series.map(p=>p.kg)),high=Math.max(...series.map(p=>p.kg));
-  const padding=Math.max(0.7,(high-low)*0.16);
-  const min=low-padding,max=high+padding;
-  const start=earliest.time,end=latest.time;
+  const shown=series.slice(-WEIGHT_CHART_BARS);
+  const chartWidth=360,left=6,right=354,top=34,bottom=150;
+  const low=Math.min(...shown.map(p=>p.kg)),high=Math.max(...shown.map(p=>p.kg));
+  // Baseline below the lowest bar keeps differences visible without exaggerating them.
+  const base=low-Math.max(1,(high-low)*0.6);
+  const slot=(right-left)/shown.length,barWidth=Math.min(34,slot*0.62);
   const pos=n=>Number(n.toFixed(2));
-  const points=series.map((point,i)=>({
-    ...point,
-    x:series.length===1?(left+right)/2:left+(right-left)*(point.time-start)/(end-start),
-    y:bottom-(point.kg-min)/(max-min)*(bottom-top)
-  }));
-  const line=points.map(p=>pos(p.x)+','+pos(p.y)).join(' ');
-  const area='M '+pos(points[0].x)+' '+bottom+' L '+
-    points.map(p=>pos(p.x)+' '+pos(p.y)).join(' L ')+
-    ' L '+pos(points.at(-1).x)+' '+bottom+' Z';
-  const ticks=[min,(min+max)/2,max].map(v=>{
-    const y=pos(bottom-(v-min)/(max-min)*(bottom-top));
-    return '<line x1="'+left+'" x2="'+right+'" y1="'+y+'" y2="'+y+'" class="weight-grid-line"/>'+
-      '<text x="37" y="'+(y+4)+'" text-anchor="end" class="weight-axis-label">'+fmt(v)+'</text>';
-  }).join('');
-  // Dense history preserves every line point while keeping the dots legible.
-  const markerStep=Math.max(1,Math.ceil(points.length/25));
-  const dots=points.map((p,i)=>{
-    if(i!==0 && i!==points.length-1 && i%markerStep!==0)return '';
-    const first=i===0,last=i===points.length-1;
-    return '<circle class="weight-chart-point'+(first?' first':'')+(last?' latest':'')+
-      '" cx="'+pos(p.x)+'" cy="'+pos(p.y)+'" r="'+(first||last?4.5:3)+'">'+
-      '<title>'+displayDay(p.day)+': '+fmt(p.kg)+' kg</title></circle>';
-  }).join('');
-  const captions='<text x="'+left+'" y="175" text-anchor="start" class="weight-axis-label">'+displayDay(earliest.day)+'</text>'+
-    '<text x="'+right+'" y="175" text-anchor="end" class="weight-axis-label">'+displayDay(latest.day)+'</text>';
-  const pointValues=points.length>1
-    ? '<text x="'+(left+5)+'" y="'+Math.max(12,pos(points[0].y)-10)+'" class="weight-value-label" text-anchor="start">'+fmt(earliest.kg)+' kg</text>'+
-      '<text x="'+(right-5)+'" y="'+Math.max(12,pos(points.at(-1).y)-10)+'" class="weight-value-label" text-anchor="end">'+fmt(latest.kg)+' kg</text>'
-    : '<text x="'+pos(points[0].x)+'" y="'+Math.max(12,pos(points[0].y)-10)+'" class="weight-value-label" text-anchor="middle">'+fmt(latest.kg)+' kg</text>';
+  const bars=shown.map((p,i)=>{
+    const cx=left+slot*(i+0.5),y=high===base?top:bottom-(p.kg-base)/(high-base)*(bottom-top);
+    return {...p,cx,y,last:i===shown.length-1};
+  });
+  const rects=bars.map(b=>'<g class="weight-bar'+(b.last?' latest':'')+'">'+
+    '<rect x="'+pos(b.cx-barWidth/2)+'" y="'+pos(b.y)+'" width="'+pos(barWidth)+'" height="'+pos(bottom-b.y)+'" rx="'+pos(Math.min(9,barWidth/3))+'"/>'+
+    '<text x="'+pos(b.cx)+'" y="'+pos(b.y-17)+'" text-anchor="middle" class="weight-bar-value">'+short(b.kg)+'</text>'+
+    '<text x="'+pos(b.cx)+'" y="172" text-anchor="middle" class="weight-axis-label">'+displayDay(b.day)+'</text></g>').join('');
+  const line=bars.length>1?'<polyline class="weight-chart-line" points="'+bars.map(b=>pos(b.cx)+','+pos(b.y)).join(' ')+'"/>':'';
+  const dots=bars.map((b,i)=>'<circle class="weight-chart-point'+(i===0?' first':'')+(b.last?' latest':'')+
+    '" cx="'+pos(b.cx)+'" cy="'+pos(b.y)+'" r="'+(b.last?4.5:3.5)+'"><title>'+displayDay(b.day)+': '+fmt(b.kg)+' kg</title></circle>').join('');
   const aria='Evolução do peso de '+fmt(earliest.kg)+' kg em '+displayDay(earliest.day)+
-    ' para '+fmt(latest.kg)+' kg em '+displayDay(latest.day)+'. '+series.length+' dias com registros.';
+    ' para '+fmt(latest.kg)+' kg em '+displayDay(latest.day)+'. '+series.length+' dias com registros; '+
+    'gráfico de barras dos '+shown.length+' mais recentes.';
   root.innerHTML='<div class="weight-chart-summary">'+
     '<div><small>Início da jornada</small><strong>'+fmt(earliest.kg)+' kg</strong><small>'+displayDay(earliest.day)+'</small></div>'+
-    '<div><small>Peso atual registrado</small><strong>'+fmt(latest.kg)+' kg</strong><small>'+displayDay(latest.day)+'</small></div>'+
-    '<div><small>Variação total</small><strong class="weight-chart-delta">'+delta+'</strong></div></div>'+
-    '<svg class="weight-chart-svg" viewBox="0 0 '+chartWidth+' 190" role="img" aria-label="'+aria+'">'+
-    '<g>'+ticks+'</g><path class="weight-chart-area" d="'+area+'"/>'+
-    (points.length>1?'<polyline class="weight-chart-line" points="'+line+'"/>':'')+
-    dots+pointValues+captions+'</svg>'+
+    '<div><small>Peso atual registrado</small><strong class="weight-chart-current">'+fmt(latest.kg)+' kg</strong><small>'+displayDay(latest.day)+'</small></div>'+
+    '<div><small>Variação total</small><strong class="weight-chart-delta'+(change<0?' down':change>0?' up':'')+'">'+delta+'</strong></div></div>'+
+    '<div class="weight-chart-frame"><svg class="weight-chart-svg" viewBox="0 0 '+chartWidth+' 182" role="img" aria-label="'+aria+'">'+
+    rects+line+dots+'</svg></div>'+
     '<p class="weight-chart-caption">Histórico completo • '+series.length+
     (series.length===1?' dia com registro':' dias com registros')+
-    (series.length===1?' • Registre outro dia para acompanhar a tendência.':' • Do primeiro ao último peso registrado.')+'</p>';
+    (series.length===1?' • Registre outro dia para acompanhar a tendência.':
+      ' • Exibindo até os '+WEIGHT_CHART_BARS+' registros mais recentes; início e variação consideram todo o histórico.')+'</p>';
 }
 
 function renderApp(){
@@ -526,6 +513,8 @@ function renderApp(){
   if($('weightHistory'))$('weightHistory').innerHTML=weightChartSeries(state.weights).slice(-12).reverse().map(w=>'<div class="history-row"><span>'+fmtDate(w.time)+'</span><strong>'+w.kg.toFixed(1).replace('.',',')+' kg</strong></div>').join('')||'<small class="muted">Nenhum peso registrado ainda.</small>';
   renderWeightChart('weightChartFull');
   renderWeightChart('weightChartProfile');
+  // Bindings below are created after the first render; skip until they exist.
+  try{renderMissedApplication();}catch(error){if(!(error instanceof ReferenceError))throw error;}
   const m=state.measurements||{};
   const latestMeasurement=(Array.isArray(state.measurementHistory)?state.measurementHistory:[])[0];
   const measurementSummary=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']]
@@ -1422,6 +1411,41 @@ $('addActivity')?.addEventListener('click',async()=>{
 let selectedApplicationSite=null;
 const mapImg=$('approvedBodyMap');
 if(mapImg&&window.escudoFitApprovedBodyMapUri)mapImg.src=window.escudoFitApprovedBodyMapUri;
+// Missed scheduled application: offered from the schedule saved in this browser.
+// "Sim" opens a retroactive entry for that cycle; "Não" stops asking for that date.
+let retroApplication=null;
+const brDay=key=>key.slice(8,10)+'/'+key.slice(5,7)+'/'+key.slice(0,4);
+const weekdayName=key=>new Date(key+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long'});
+function renderMissedApplication(){
+  const card=$('missedApplicationCard');if(!card)return;
+  const next=webReminderUI?.missed?.()[0]||null;
+  if(retroApplication&&(!next||next.date!==retroApplication.date))retroApplication=null;
+  card.hidden=!next;
+  const button=$('confirmApplication');
+  if(!next){if(button)button.textContent='CONFIRMAR APLICAÇÃO DE HOJE';return;}
+  setText('missedApplicationText','A aplicação prevista para '+brDay(next.date)+' ('+weekdayName(next.date)+
+    ') não foi registrada. Deseja registrar esta aplicação?');
+  $('missedApplicationAsk').hidden=!!retroApplication;
+  $('missedApplicationForm').hidden=!retroApplication;
+  if(button)button.textContent=retroApplication?'CONFIRMAR APLICAÇÃO RETROATIVA':'CONFIRMAR APLICAÇÃO DE HOJE';
+}
+$('missedApplicationYes')?.addEventListener('click',()=>{
+  const next=webReminderUI?.missed?.()[0];if(!next)return;
+  retroApplication=next;
+  const input=$('missedApplicationDate');
+  if(input){input.min=next.earliest;input.max=next.latest;input.value=next.date<=next.latest?next.date:next.latest;}
+  renderMissedApplication();setText('applicationSaved','');
+  $('approvedBodyMap')?.scrollIntoView?.({behavior:'smooth',block:'center'});
+});
+$('missedApplicationNo')?.addEventListener('click',()=>{
+  const next=webReminderUI?.missed?.()[0];if(!next)return;
+  webReminderUI.dismissMissed(next.date);retroApplication=null;renderMissedApplication();
+  toast('Data '+brDay(next.date)+' ignorada');
+});
+$('missedApplicationCancel')?.addEventListener('click',()=>{retroApplication=null;renderMissedApplication();});
+// A newly saved schedule may reveal or clear missed dates.
+$('webApplicationSave')?.addEventListener('click',()=>setTimeout(()=>renderMissedApplication(),0));
+
 document.querySelectorAll('[data-application-site]').forEach(btn=>{
   btn.setAttribute('aria-pressed','false');
   btn.addEventListener('click',()=>{
@@ -1436,13 +1460,20 @@ document.querySelectorAll('[data-application-site]').forEach(btn=>{
 });
 $('confirmApplication')?.addEventListener('click',async()=>{
   if(!selectedApplicationSite)return;
-  const date=localDayKey();
-  if((Array.isArray(state.applications)?state.applications:[]).some(item=>
-    (item.scheduledDateIso||localDayKey(item.at))===date)){
-    setText('applicationSaved','Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
+  const retro=retroApplication;
+  const date=retro?String($('missedApplicationDate')?.value||''):localDayKey();
+  if(retro&&!(historyContract.validDate(date)&&date>=retro.earliest&&date<=retro.latest)){
+    setText('applicationSaved','Informe uma data entre '+brDay(retro.earliest)+' e '+brDay(retro.latest)+'.');
     return;
   }
-  const appliedAtMs=Date.now();
+  if((Array.isArray(state.applications)?state.applications:[]).some(item=>
+    (item.scheduledDateIso||localDayKey(item.at))===date)){
+    setText('applicationSaved',retro?'Já existe uma aplicação registrada em '+brDay(date)+'.':
+      'Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
+    return;
+  }
+  // A retroactive entry is stamped at noon of the informed day (no invented time).
+  const appliedAtMs=retro?new Date(date+'T12:00:00').getTime():Date.now();
   const applicationSite=selectedApplicationSite;
   const id=crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs;
   const entry={id,site:applicationSiteLabels[applicationSite]||applicationSite,
@@ -1455,8 +1486,9 @@ $('confirmApplication')?.addEventListener('click',async()=>{
     id,applicationSite,appliedAtMs,scheduledDateIso:date,
   }]});
   setText('applicationSaved',synced
-    ?'Aplicação de hoje confirmada na Conta Google.'
+    ?(retro?'Aplicação de '+brDay(date)+' registrada na Conta Google.':'Aplicação de hoje confirmada na Conta Google.')
     :'Aplicação salva neste navegador. O envio à conta será tentado novamente.');
+  if(retro){retroApplication=null;renderMissedApplication();}
   selectedApplicationSite=null;
   document.querySelectorAll('[data-application-site]').forEach(zone=>zone.setAttribute('aria-pressed','false'));
   setText('applicationSelection','Nenhum local selecionado.');

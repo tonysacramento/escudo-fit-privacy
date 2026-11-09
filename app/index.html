@@ -24,7 +24,7 @@
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-20">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-21">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -474,6 +474,23 @@
             </div>
           </article>
 
+          <article id="missedApplicationCard" class="screen-card missed-application-card" data-full-only hidden aria-labelledby="missedApplicationTitle">
+            <div class="section-title gold"><span>🗓️</span><b id="missedApplicationTitle">APLICAÇÃO NÃO REGISTRADA</b></div>
+            <p id="missedApplicationText">Uma aplicação prevista no seu cronograma não foi registrada.</p>
+            <p class="muted">Se você fez a aplicação e esqueceu de registrar, informe a data para manter seu histórico completo.</p>
+            <div id="missedApplicationAsk" class="missed-application-actions">
+              <button id="missedApplicationYes" class="quick-access-button gold" type="button">SIM, REGISTRAR ESTA APLICAÇÃO</button>
+              <button id="missedApplicationNo" class="quick-access-button" type="button">NÃO, IGNORAR ESTA DATA</button>
+            </div>
+            <div id="missedApplicationForm" hidden>
+              <label class="app-field">Data em que a aplicação foi feita
+                <input id="missedApplicationDate" type="date">
+              </label>
+              <p class="muted">Agora selecione no mapa abaixo o local utilizado e confirme.</p>
+              <button id="missedApplicationCancel" class="quick-access-button" type="button">CANCELAR</button>
+            </div>
+          </article>
+
           <article class="screen-card application-map-card">
             <div class="section-title cyan"><span>📍</span><b>MAPA DA APLICAÇÃO</b></div>
             <p class="muted">Selecione no mapa o local utilizado. O registro só será criado depois da confirmação.</p>
@@ -720,8 +737,8 @@
   <script src="./history-sync-contract.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
-  <script src="./web-reminders.js?v=web-v43-sync-recovery-20" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-21" defer></script>
+  <script src="./web-reminders.js?v=web-v43-sync-recovery-21" defer></script>
+  <script src="./app.js?v=web-v43-sync-recovery-22" defer></script>
 </body>
 </html>
 

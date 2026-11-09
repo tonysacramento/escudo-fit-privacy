@@ -333,7 +333,12 @@ test('weight chart includes earliest lifetime reading even when more than twelve
     await pause();
     for(const id of ['weightChartFull','weightChartProfile']){
       const root=w.document.getElementById(id);
-      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,18);
+      // Bars show the 8 most recent days; summary and variation keep the lifetime baseline.
+      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,8);
+      assert.equal(root.querySelectorAll('g.weight-bar rect').length,8);
+      assert.equal(root.querySelectorAll('g.weight-bar.latest').length,1);
+      assert.equal(root.querySelector('polyline.weight-chart-line').getAttribute('points').split(' ').length,8);
+      assert.match(root.textContent,/registros mais recentes/);
       assert.match(root.textContent,/Início da jornada/);
       assert.match(root.textContent,/110,0 kg/);
       assert.match(root.textContent,/101,5 kg/);
@@ -341,7 +346,7 @@ test('weight chart includes earliest lifetime reading even when more than twelve
       assert.match(root.textContent,/Histórico completo/);
       const svg=root.querySelector('svg');
       assert.match(svg.getAttribute('aria-label'),/Evolução do peso de 110,0 kg em 01\/09/);
-      assert.match(svg.querySelector('circle.weight-chart-point.first title').textContent,/01\/09: 110,0 kg/);
+      assert.match(svg.querySelector('circle.weight-chart-point.first title').textContent,/11\/09: 105,0 kg/);
       assert.match(svg.querySelector('circle.weight-chart-point.latest title').textContent,/18\/09: 101,5 kg/);
     }
     // The detailed list may stay concise, but it must not redefine the
@@ -532,4 +537,58 @@ test('a rejected water entry does not block meals, and later water keeps origina
     assert.equal(remote.nutrition[0].meals[0].id,'lunch-25');
     assert.deepEqual(JSON.parse(w.eval('JSON.stringify(loadHistoryOutbox().map(x=>x.id))')),['water-bad','water-later']);
   }finally{w.close()}
+});
+
+async function missedSession(){
+  const h=await liveSession();const {w}=h;
+  const day=n=>w.eval('localDayKey(new Date(Date.now()+('+n+')*86400000))');
+  const anchor=day(-21),weekday=new Date(anchor+'T12:00:00').getDay();
+  w.localStorage.setItem('escudofit_web_reminder_prefs_v1_live-user',JSON.stringify({
+    application:{enabled:false,frequency:'WEEKLY',weekday,intervalDays:7,anchor,time:'09:00'}}));
+  const apps=[anchor,day(-7)].map((d,i)=>({id:'a'+i,appliedAtMs:Date.parse(d+'T12:00:00'),applicationSite:'ABDOMEN_LEFT',scheduledDateIso:d}));
+  h.setRemote({applications:apps});
+  const posted=[];const base=w.fetch;
+  w.fetch=async(url,options={})=>{if(options.body&&String(options.body).includes('applications'))posted.push(JSON.parse(options.body));return base(url,options);};
+  w.document.getElementById('refreshHistoryButton').click();await pause();
+  return {h,w,missed:day(-14),posted};
+}
+
+test('a skipped weekly application is offered and can be registered retroactively with its own date',async()=>{
+  const {h,w,missed,posted}=await missedSession();
+  try{
+    const card=w.document.getElementById('missedApplicationCard');
+    assert.equal(card.hidden,false);
+    assert.match(w.document.getElementById('missedApplicationText').textContent,
+      new RegExp(missed.slice(8,10)+'/'+missed.slice(5,7)+'/'+missed.slice(0,4)));
+    w.document.getElementById('missedApplicationYes').click();
+    const input=w.document.getElementById('missedApplicationDate');
+    assert.equal(input.value,missed);assert(input.min<missed&&input.max>missed,'a few days of tolerance around the cycle');
+    assert.equal(w.document.getElementById('missedApplicationForm').hidden,false);
+    assert.match(w.document.getElementById('confirmApplication').textContent,/RETROATIVA/);
+    w.document.querySelector('button.application-site[data-application-site="THIGH_RIGHT"]').click();
+    w.document.getElementById('confirmApplication').click();await pause();await pause();
+    const saved=JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications.find(a=>a.scheduledDateIso===missed);
+    assert(saved,'retroactive entry stored with the informed day');
+    assert.equal(new Date(saved.at).getTime(),Date.parse(missed+'T12:00:00'));
+    assert(posted.some(b=>JSON.stringify(b).includes('"scheduledDateIso":"'+missed+'"')),'synced to the account');
+    assert.equal(card.hidden,true,'nothing else is missing');
+    assert.match(w.document.getElementById('confirmApplication').textContent,/HOJE/);
+  }finally{h.dom.window.close()}
+});
+
+test('declining a skipped date stops asking for it; dates outside the tolerance are refused',async()=>{
+  const {h,w,missed}=await missedSession();
+  try{
+    w.document.getElementById('missedApplicationYes').click();
+    w.document.getElementById('missedApplicationDate').value=w.eval('localDayKey()');
+    w.document.querySelector('button.application-site[data-application-site="ARM_LEFT"]').click();
+    w.document.getElementById('confirmApplication').click();await pause();
+    assert.match(w.document.getElementById('applicationSaved').textContent,/Informe uma data entre/);
+    assert(!JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications.some(a=>a.scheduledDateIso===w.eval('localDayKey()')),'no entry for an out-of-range date');
+    w.document.getElementById('missedApplicationCancel').click();
+    w.document.getElementById('missedApplicationNo').click();
+    assert.equal(w.document.getElementById('missedApplicationCard').hidden,true);
+    const prefs=JSON.parse(w.localStorage.getItem('escudofit_web_reminder_prefs_v1_live-user'));
+    assert(prefs.missedDismissed[missed]);
+  }finally{h.dom.window.close()}
 });
