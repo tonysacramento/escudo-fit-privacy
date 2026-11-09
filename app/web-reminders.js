@@ -37,11 +37,61 @@
     let scheduled=false;
     if(setting.frequency==='DAILY')scheduled=true;
     if(setting.frequency==='WEEKLY')scheduled=now.getDay()===Number(setting.weekday);
+    if(setting.frequency==='MONTHLY')scheduled=monthlyOn(todayNoon,anchorDate);
     if(setting.frequency==='OTHER'){
       const every=Number(setting.intervalDays);
       scheduled=Number.isInteger(every)&&every>=2&&every<=30&&delta%every===0;
     }
     return scheduled?today+':application:'+at:null;
+  };
+  const parseDay=key=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(String(key||'')))return null;
+    const d=new Date(key+'T12:00:00');return Number.isNaN(d.getTime())||dayKey(d)!==key?null:d;
+  };
+  const addDays=(date,n)=>new Date(date.getFullYear(),date.getMonth(),date.getDate()+n,12);
+  // Days within which an application still covers a scheduled date (a weekly dose
+  // taken a couple of days late is not "missed").
+  const scheduleTolerance=setting=>setting?.frequency==='DAILY'?0:setting?.frequency==='MONTHLY'?7:
+    Math.floor(((setting?.frequency==='WEEKLY'?7:Number(setting?.intervalDays))-1)/2);
+  // Monthly: same day of month as the reference date (last day for shorter months).
+  const monthlyOn=(date,anchor)=>{
+    const last=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
+    return date.getDate()===Math.min(anchor.getDate(),last);
+  };
+  const scheduledOn=(setting,date,anchor)=>{
+    const delta=Math.round((date-anchor)/86400000);
+    if(delta<0)return false;
+    if(setting.frequency==='DAILY')return true;
+    if(setting.frequency==='WEEKLY')return date.getDay()===Number(setting.weekday);
+    if(setting.frequency==='MONTHLY')return monthlyOn(date,anchor);
+    const every=Number(setting.intervalDays);
+    return setting.frequency==='OTHER'&&Number.isInteger(every)&&every>=2&&every<=30&&delta%every===0;
+  };
+  /** Past scheduled dates (oldest first) with no application within the tolerance,
+   * from the schedule's reference date (first dose), looking back at most lookbackDays.
+   * Only uses a schedule the person saved; the date of today is never "missed". */
+  const missedApplications=(setting,applications,now,{lookbackDays=366,dismissed={}}={})=>{
+    const anchor=parseDay(setting?.anchor);
+    if(!anchor||!['DAILY','WEEKLY','MONTHLY','OTHER'].includes(setting.frequency))return [];
+    if(setting.frequency==='OTHER'&&!(Number.isInteger(Number(setting.intervalDays))&&
+      Number(setting.intervalDays)>=2&&Number(setting.intervalDays)<=30))return [];
+    const tol=scheduleTolerance(setting);
+    const applied=new Set((Array.isArray(applications)?applications:[]).map(item=>
+      item?.scheduledDateIso||(item?.at?dayKey(new Date(item.at)):'')).filter(Boolean));
+    const today=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12);
+    let day=addDays(today,-lookbackDays);if(day<anchor)day=anchor;
+    const missed=[];
+    for(;day<today;day=addDays(day,1)){
+      const key=dayKey(day);
+      if(!scheduledOn(setting,day,anchor)||dismissed[key])continue;
+      let covered=false;
+      for(let k=-tol;k<=tol&&!covered;k++)covered=applied.has(dayKey(addDays(day,k)));
+      // A late application may still be inside the window that ends after today.
+      if(!covered&&addDays(day,tol)>=today)continue;
+      if(!covered)missed.push({date:key,earliest:dayKey(addDays(day,-tol)),
+        latest:dayKey(addDays(day,Math.min(tol,Math.round((today-day)/86400000)-1)))});
+    }
+    return missed;
   };
   function mount({getContext,onToast}){
     const get=id=>document.getElementById(id);
@@ -55,7 +105,8 @@
         return {
           hydration:{...seed.hydration,...(stored.hydration||{})},
           application:{...seed.application,...(stored.application||{})},
-          sent:stored.sent&&typeof stored.sent==='object'?stored.sent:{}
+          sent:stored.sent&&typeof stored.sent==='object'?stored.sent:{},
+          missedDismissed:stored.missedDismissed&&typeof stored.missedDismissed==='object'?stored.missedDismissed:{}
         };
       }catch{return defaults()}
     }
@@ -162,8 +213,21 @@
         void showAlert(message.title,message.body,message.id);
       }
     }
-    return {refresh,tick};
+    // The schedule saved in this browser drives the missed-application prompt;
+    // dismissals are per account and per scheduled date.
+    function missed(now=new Date()){
+      const ctx=getContext();if(!ctx.authenticated||!ctx.userId)return [];
+      const prefs=load(ctx.userId);
+      if(!prefs.application.anchor)return [];
+      return missedApplications(prefs.application,ctx.applications,now,{dismissed:prefs.missedDismissed||{}});
+    }
+    function dismissMissed(date){
+      const ctx=getContext();if(!ctx.authenticated||!ctx.userId||!parseDay(date))return;
+      const prefs=load(ctx.userId);
+      prefs.missedDismissed={...(prefs.missedDismissed||{}),[date]:Date.now()};save(ctx.userId,prefs);
+    }
+    return {refresh,tick,missed,dismissMissed};
   }
-  root.EscudoFitWebReminders={mount,dueHydration,dueApplication};
-  if(typeof module!=='undefined'&&module.exports)module.exports={dueHydration,dueApplication};
+  root.EscudoFitWebReminders={mount,dueHydration,dueApplication,missedApplications};
+  if(typeof module!=='undefined'&&module.exports)module.exports={dueHydration,dueApplication,missedApplications};
 })(typeof window!=='undefined'?window:globalThis);

@@ -333,7 +333,12 @@ test('weight chart includes earliest lifetime reading even when more than twelve
     await pause();
     for(const id of ['weightChartFull','weightChartProfile']){
       const root=w.document.getElementById(id);
-      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,18);
+      // Bars show the 8 most recent days; summary and variation keep the lifetime baseline.
+      assert.equal(root.querySelectorAll('circle.weight-chart-point').length,8);
+      assert.equal(root.querySelectorAll('g.weight-bar rect').length,8);
+      assert.equal(root.querySelectorAll('g.weight-bar.latest').length,1);
+      assert.equal(root.querySelector('polyline.weight-chart-line').getAttribute('points').split(' ').length,8);
+      assert.match(root.textContent,/registros mais recentes/);
       assert.match(root.textContent,/Início da jornada/);
       assert.match(root.textContent,/110,0 kg/);
       assert.match(root.textContent,/101,5 kg/);
@@ -341,7 +346,7 @@ test('weight chart includes earliest lifetime reading even when more than twelve
       assert.match(root.textContent,/Histórico completo/);
       const svg=root.querySelector('svg');
       assert.match(svg.getAttribute('aria-label'),/Evolução do peso de 110,0 kg em 01\/09/);
-      assert.match(svg.querySelector('circle.weight-chart-point.first title').textContent,/01\/09: 110,0 kg/);
+      assert.match(svg.querySelector('circle.weight-chart-point.first title').textContent,/11\/09: 105,0 kg/);
       assert.match(svg.querySelector('circle.weight-chart-point.latest title').textContent,/18\/09: 101,5 kg/);
     }
     // The detailed list may stay concise, but it must not redefine the
@@ -532,4 +537,76 @@ test('a rejected water entry does not block meals, and later water keeps origina
     assert.equal(remote.nutrition[0].meals[0].id,'lunch-25');
     assert.deepEqual(JSON.parse(w.eval('JSON.stringify(loadHistoryOutbox().map(x=>x.id))')),['water-bad','water-later']);
   }finally{w.close()}
+});
+
+async function missedSession(){
+  const h=await liveSession();const {w}=h;
+  const day=n=>w.eval('localDayKey(new Date(Date.now()+('+n+')*86400000))');
+  const anchor=day(-35),weekday=new Date(anchor+'T12:00:00').getDay();
+  w.localStorage.setItem('escudofit_web_reminder_prefs_v1_live-user',JSON.stringify({
+    application:{enabled:false,frequency:'WEEKLY',weekday,intervalDays:7,anchor,time:'09:00'}}));
+  // First dose registered on the reference date, then only the most recent week.
+  const apps=[anchor,day(-7)].map((d,i)=>({id:'a'+i,appliedAtMs:Date.parse(d+'T12:00:00'),applicationSite:'ABDOMEN_LEFT',scheduledDateIso:d}));
+  h.setRemote({applications:apps});
+  const posted=[];const base=w.fetch;
+  w.fetch=async(url,options={})=>{if(options.body&&String(options.body).includes('applications'))posted.push(JSON.parse(options.body));return base(url,options);};
+  w.document.getElementById('refreshHistoryButton').click();await pause();
+  return {h,w,missed:[day(-28),day(-21),day(-14)],posted};
+}
+const stored=w=>JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications;
+const br=d=>d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
+
+test('applications skipped since the first dose are listed and inserted together with their own dates',async()=>{
+  const {h,w,missed,posted}=await missedSession();
+  try{
+    const card=w.document.getElementById('missedApplicationCard');
+    assert.equal(card.hidden,false);
+    const text=w.document.getElementById('missedApplicationText').textContent;
+    assert.match(text,/^3 aplicações previstas entre/);assert(text.includes(br(missed[0]))&&text.includes(br(missed[2])));
+    w.document.getElementById('missedApplicationYes').click();
+    assert.equal(w.document.getElementById('missedApplicationForm').hidden,false);
+    assert.equal(w.document.getElementById('missedApplicationAsk').hidden,true);
+    const rows=[...w.document.querySelectorAll('.missed-application-row')];
+    assert.deepEqual(rows.map(r=>r.dataset.missedDate),missed);
+    const dateOf=r=>r.querySelector('[data-missed-day]');
+    assert(dateOf(rows[0]).min<missed[0]&&dateOf(rows[0]).max>missed[0],'a few days of tolerance');
+    rows[1].querySelector('[data-missed-include]').checked=false;
+    rows[1].querySelector('[data-missed-include]').dispatchEvent(new w.Event('change',{bubbles:true}));
+    assert.match(w.document.getElementById('missedApplicationConfirm').textContent,/REGISTRAR 2 APLICAÇÕES/);
+    rows[0].querySelector('[data-missed-site]').value='THIGH_RIGHT';
+    w.document.getElementById('missedApplicationConfirm').click();await pause();await pause();
+    for(const d of [missed[0],missed[2]]){
+      const saved=stored(w).find(a=>a.scheduledDateIso===d);
+      assert(saved,'retroactive entry for '+d);assert.equal(new Date(saved.at).getTime(),Date.parse(d+'T12:00:00'));
+    }
+    assert.equal(stored(w).find(a=>a.scheduledDateIso===missed[0]).siteCode,'THIGH_RIGHT');
+    assert.equal(stored(w).find(a=>a.scheduledDateIso===missed[2]).siteCode,'UNSPECIFIED');
+    assert(!stored(w).some(a=>a.scheduledDateIso===missed[1]),'unchecked date is not invented');
+    const body=JSON.stringify(posted);
+    assert(body.includes('"scheduledDateIso":"'+missed[0]+'"')&&body.includes('"scheduledDateIso":"'+missed[2]+'"'),'synced to the account');
+    assert.equal(card.hidden,true,'unchecked date is not asked again');
+    assert.match(w.document.getElementById('applicationSaved').textContent,/2 aplicações retroativas/);
+  }finally{h.dom.window.close()}
+});
+
+test('declining stops asking for those dates; out-of-cycle and duplicated days are refused',async()=>{
+  const {h,w,missed}=await missedSession();
+  try{
+    w.document.getElementById('missedApplicationYes').click();
+    const rows=[...w.document.querySelectorAll('.missed-application-row')];
+    rows[0].querySelector('[data-missed-day]').value=w.eval('localDayKey()');
+    w.document.getElementById('missedApplicationConfirm').click();await pause();
+    assert.match(w.document.getElementById('missedApplicationStatus').textContent,/deve ficar entre/);
+    rows[0].querySelector('[data-missed-day]').value=missed[0];
+    rows[1].querySelector('[data-missed-day]').value=missed[0];
+    rows[1].querySelector('[data-missed-day]').min=missed[0];
+    w.document.getElementById('missedApplicationConfirm').click();await pause();
+    assert.match(w.document.getElementById('missedApplicationStatus').textContent,/Já existe uma aplicação em/);
+    assert(!stored(w).some(a=>missed.includes(a.scheduledDateIso)),'nothing saved on refusal');
+    w.document.getElementById('missedApplicationCancel').click();
+    w.document.getElementById('missedApplicationNo').click();
+    assert.equal(w.document.getElementById('missedApplicationCard').hidden,true);
+    const prefs=JSON.parse(w.localStorage.getItem('escudofit_web_reminder_prefs_v1_live-user'));
+    assert(missed.every(d=>prefs.missedDismissed[d]));
+  }finally{h.dom.window.close()}
 });

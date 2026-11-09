@@ -1,12 +1,12 @@
-const CACHE='escudo-fit-web-v35-carousel-six-approved-v1';
+const CACHE='escudo-fit-web-v35-carousel-six-approved-v2';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-recovery-20',
+  './styles.css?v=web-v43-sync-recovery-21',
   './history-sync-contract.js?v=web-v43-sync-recovery-20',
   './history-backup-bridge.js?v=web-v43-sync-recovery-20',
-  './web-reminders.js?v=web-v43-sync-recovery-20',
-  './app.js?v=web-v43-sync-recovery-21',
+  './web-reminders.js?v=web-v43-sync-recovery-21',
+  './app.js?v=web-v43-sync-recovery-22',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',
