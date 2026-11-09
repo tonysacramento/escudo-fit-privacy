@@ -1,0 +1,27 @@
+name: Publish Escudo Fit 1.0.44 QA APK
+# One-shot: publishes the already-built APK (escudo-fit-app run 42678134288) as a
+# pre-release. No build. Not linked from the web download button.
+on:
+  push:
+    branches: [claude/v44-apk-qa-release]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact build bytes
+        run: |
+          echo 'ed61ebbc1f88cdecd7d8c4e99e446b1d4397378ec5d0ca2ddeb59789d5ef3d03  escudo-fit-v44-full.apk' | sha256sum --check
+          sha256sum --check escudo-fit-v44-full.sha256
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create v44-full-qa escudo-fit-v44-full.apk escudo-fit-v44-full.sha256 \
+            --target main --prerelease \
+            --title "Escudo Fit 1.0.44 FULL — Android (teste)" \
+            --notes "APK do build #42678134288 (escudo-fit-app 8e8a5acb), versão 1.0.44, código 44. Nenhum novo build. Para teste antes de ir para o botão do web. Instala por cima da versão atual, mantendo os dados. SHA-256: ed61ebbc1f88cdecd7d8c4e99e446b1d4397378ec5d0ca2ddeb59789d5ef3d03"
