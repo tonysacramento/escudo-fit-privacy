@@ -57,7 +57,12 @@ test('missed applications respect cycle, tolerance, reference date, today and di
     'the 02/11 dose may still be taken until 05/11');
   assert.deepEqual(m({frequency:'DAILY',anchor:'2026-11-06'},at(['2026-11-06','2026-11-08']),now).map(x=>x.date),['2026-11-07']);
   assert.deepEqual(m({frequency:'OTHER',intervalDays:3,anchor:'2026-11-01'},at(['2026-11-01','2026-11-04']),now).map(x=>x.date),['2026-11-07']);
-  assert.equal(m(weekly,[],now).length,5,'looks back at most 8 weeks, from the reference date');
+  assert.equal(m(weekly,[],now).length,5,'every week since the reference date (first dose)');
+  assert.equal(m({...weekly,anchor:'2025-01-06'},[],now).length,52,'at most one year back');
+  const monthly={frequency:'MONTHLY',anchor:'2026-07-31'};
+  assert.deepEqual(m(monthly,at(['2026-07-31','2026-09-02']),now).map(x=>x.date),['2026-09-30','2026-10-31'],
+    'same day each month (last day when shorter); 02/09 covers 31/08 within 7 days');
+  assert.equal(dueApplication({...monthly,enabled:true,time:'09:00'},new Date(2026,8,30,9,0)),'2026-09-30:application:540');
   assert.deepEqual(m({...weekly,anchor:''},[],now),[]);
   assert.deepEqual(m({...weekly,frequency:'OTHER',intervalDays:1},[],now),[]);
   assert.equal(m(weekly,[{at:'2026-10-26T15:00:00'}],now).some(x=>x.date==='2026-10-26'),false,'legacy entries without scheduledDateIso count by day');

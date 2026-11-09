@@ -475,19 +475,19 @@
           </article>
 
           <article id="missedApplicationCard" class="screen-card missed-application-card" data-full-only hidden aria-labelledby="missedApplicationTitle">
-            <div class="section-title gold"><span>🗓️</span><b id="missedApplicationTitle">APLICAÇÃO NÃO REGISTRADA</b></div>
-            <p id="missedApplicationText">Uma aplicação prevista no seu cronograma não foi registrada.</p>
-            <p class="muted">Se você fez a aplicação e esqueceu de registrar, informe a data para manter seu histórico completo.</p>
+            <div class="section-title gold"><span>🗓️</span><b id="missedApplicationTitle">APLICAÇÕES NÃO REGISTRADAS</b></div>
+            <p id="missedApplicationText">Há aplicações previstas no seu cronograma que não foram registradas.</p>
+            <p class="muted">Se você fez as aplicações e esqueceu de registrar, informe-as para manter seu histórico completo. A conferência usa o cronograma salvo neste navegador, a partir da data de referência (primeira dose).</p>
             <div id="missedApplicationAsk" class="missed-application-actions">
-              <button id="missedApplicationYes" class="quick-access-button gold" type="button">SIM, REGISTRAR ESTA APLICAÇÃO</button>
-              <button id="missedApplicationNo" class="quick-access-button" type="button">NÃO, IGNORAR ESTA DATA</button>
+              <button id="missedApplicationYes" class="quick-access-button gold" type="button">SIM, INSERIR AS APLICAÇÕES</button>
+              <button id="missedApplicationNo" class="quick-access-button" type="button">NÃO, IGNORAR ESTAS DATAS</button>
             </div>
             <div id="missedApplicationForm" hidden>
-              <label class="app-field">Data em que a aplicação foi feita
-                <input id="missedApplicationDate" type="date">
-              </label>
-              <p class="muted">Agora selecione no mapa abaixo o local utilizado e confirme.</p>
+              <p class="muted">Desmarque as que não foram feitas. Ajuste a data se a aplicação ocorreu em outro dia do mesmo ciclo.</p>
+              <div id="missedApplicationList" class="missed-application-list"></div>
+              <button id="missedApplicationConfirm" class="quick-access-button gold" type="button">REGISTRAR APLICAÇÕES SELECIONADAS</button>
               <button id="missedApplicationCancel" class="quick-access-button" type="button">CANCELAR</button>
+              <p id="missedApplicationStatus" class="saved" role="status" aria-live="polite"></p>
             </div>
           </article>
 
@@ -535,6 +535,7 @@
                 <select id="webApplicationFrequency">
                   <option value="DAILY">Diária</option>
                   <option value="WEEKLY">Semanal</option>
+                  <option value="MONTHLY">Mensal (mesmo dia da data de referência)</option>
                   <option value="OTHER">A cada N dias</option>
                 </select>
               </label>
@@ -547,7 +548,7 @@
               <label class="app-field" id="webApplicationEvery" hidden>Intervalo (2 a 30 dias)
                 <input id="webApplicationEveryDays" type="number" min="2" max="30" step="1" value="7">
               </label>
-              <label class="app-field">Data de referência
+              <label class="app-field">Data de referência (primeira dose)
                 <input id="webApplicationAnchor" type="date">
               </label>
               <label class="app-field">Horário do alerta

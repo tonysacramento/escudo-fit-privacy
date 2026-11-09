@@ -542,53 +542,71 @@ test('a rejected water entry does not block meals, and later water keeps origina
 async function missedSession(){
   const h=await liveSession();const {w}=h;
   const day=n=>w.eval('localDayKey(new Date(Date.now()+('+n+')*86400000))');
-  const anchor=day(-21),weekday=new Date(anchor+'T12:00:00').getDay();
+  const anchor=day(-35),weekday=new Date(anchor+'T12:00:00').getDay();
   w.localStorage.setItem('escudofit_web_reminder_prefs_v1_live-user',JSON.stringify({
     application:{enabled:false,frequency:'WEEKLY',weekday,intervalDays:7,anchor,time:'09:00'}}));
+  // First dose registered on the reference date, then only the most recent week.
   const apps=[anchor,day(-7)].map((d,i)=>({id:'a'+i,appliedAtMs:Date.parse(d+'T12:00:00'),applicationSite:'ABDOMEN_LEFT',scheduledDateIso:d}));
   h.setRemote({applications:apps});
   const posted=[];const base=w.fetch;
   w.fetch=async(url,options={})=>{if(options.body&&String(options.body).includes('applications'))posted.push(JSON.parse(options.body));return base(url,options);};
   w.document.getElementById('refreshHistoryButton').click();await pause();
-  return {h,w,missed:day(-14),posted};
+  return {h,w,missed:[day(-28),day(-21),day(-14)],posted};
 }
+const stored=w=>JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications;
+const br=d=>d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
 
-test('a skipped weekly application is offered and can be registered retroactively with its own date',async()=>{
+test('applications skipped since the first dose are listed and inserted together with their own dates',async()=>{
   const {h,w,missed,posted}=await missedSession();
   try{
     const card=w.document.getElementById('missedApplicationCard');
     assert.equal(card.hidden,false);
-    assert.match(w.document.getElementById('missedApplicationText').textContent,
-      new RegExp(missed.slice(8,10)+'/'+missed.slice(5,7)+'/'+missed.slice(0,4)));
+    const text=w.document.getElementById('missedApplicationText').textContent;
+    assert.match(text,/^3 aplicações previstas entre/);assert(text.includes(br(missed[0]))&&text.includes(br(missed[2])));
     w.document.getElementById('missedApplicationYes').click();
-    const input=w.document.getElementById('missedApplicationDate');
-    assert.equal(input.value,missed);assert(input.min<missed&&input.max>missed,'a few days of tolerance around the cycle');
     assert.equal(w.document.getElementById('missedApplicationForm').hidden,false);
-    assert.match(w.document.getElementById('confirmApplication').textContent,/RETROATIVA/);
-    w.document.querySelector('button.application-site[data-application-site="THIGH_RIGHT"]').click();
-    w.document.getElementById('confirmApplication').click();await pause();await pause();
-    const saved=JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications.find(a=>a.scheduledDateIso===missed);
-    assert(saved,'retroactive entry stored with the informed day');
-    assert.equal(new Date(saved.at).getTime(),Date.parse(missed+'T12:00:00'));
-    assert(posted.some(b=>JSON.stringify(b).includes('"scheduledDateIso":"'+missed+'"')),'synced to the account');
-    assert.equal(card.hidden,true,'nothing else is missing');
-    assert.match(w.document.getElementById('confirmApplication').textContent,/HOJE/);
+    assert.equal(w.document.getElementById('missedApplicationAsk').hidden,true);
+    const rows=[...w.document.querySelectorAll('.missed-application-row')];
+    assert.deepEqual(rows.map(r=>r.dataset.missedDate),missed);
+    const dateOf=r=>r.querySelector('[data-missed-day]');
+    assert(dateOf(rows[0]).min<missed[0]&&dateOf(rows[0]).max>missed[0],'a few days of tolerance');
+    rows[1].querySelector('[data-missed-include]').checked=false;
+    rows[1].querySelector('[data-missed-include]').dispatchEvent(new w.Event('change',{bubbles:true}));
+    assert.match(w.document.getElementById('missedApplicationConfirm').textContent,/REGISTRAR 2 APLICAÇÕES/);
+    rows[0].querySelector('[data-missed-site]').value='THIGH_RIGHT';
+    w.document.getElementById('missedApplicationConfirm').click();await pause();await pause();
+    for(const d of [missed[0],missed[2]]){
+      const saved=stored(w).find(a=>a.scheduledDateIso===d);
+      assert(saved,'retroactive entry for '+d);assert.equal(new Date(saved.at).getTime(),Date.parse(d+'T12:00:00'));
+    }
+    assert.equal(stored(w).find(a=>a.scheduledDateIso===missed[0]).siteCode,'THIGH_RIGHT');
+    assert.equal(stored(w).find(a=>a.scheduledDateIso===missed[2]).siteCode,'UNSPECIFIED');
+    assert(!stored(w).some(a=>a.scheduledDateIso===missed[1]),'unchecked date is not invented');
+    const body=JSON.stringify(posted);
+    assert(body.includes('"scheduledDateIso":"'+missed[0]+'"')&&body.includes('"scheduledDateIso":"'+missed[2]+'"'),'synced to the account');
+    assert.equal(card.hidden,true,'unchecked date is not asked again');
+    assert.match(w.document.getElementById('applicationSaved').textContent,/2 aplicações retroativas/);
   }finally{h.dom.window.close()}
 });
 
-test('declining a skipped date stops asking for it; dates outside the tolerance are refused',async()=>{
+test('declining stops asking for those dates; out-of-cycle and duplicated days are refused',async()=>{
   const {h,w,missed}=await missedSession();
   try{
     w.document.getElementById('missedApplicationYes').click();
-    w.document.getElementById('missedApplicationDate').value=w.eval('localDayKey()');
-    w.document.querySelector('button.application-site[data-application-site="ARM_LEFT"]').click();
-    w.document.getElementById('confirmApplication').click();await pause();
-    assert.match(w.document.getElementById('applicationSaved').textContent,/Informe uma data entre/);
-    assert(!JSON.parse(w.localStorage.getItem('escudofit_web_user_v2_live-user')).applications.some(a=>a.scheduledDateIso===w.eval('localDayKey()')),'no entry for an out-of-range date');
+    const rows=[...w.document.querySelectorAll('.missed-application-row')];
+    rows[0].querySelector('[data-missed-day]').value=w.eval('localDayKey()');
+    w.document.getElementById('missedApplicationConfirm').click();await pause();
+    assert.match(w.document.getElementById('missedApplicationStatus').textContent,/deve ficar entre/);
+    rows[0].querySelector('[data-missed-day]').value=missed[0];
+    rows[1].querySelector('[data-missed-day]').value=missed[0];
+    rows[1].querySelector('[data-missed-day]').min=missed[0];
+    w.document.getElementById('missedApplicationConfirm').click();await pause();
+    assert.match(w.document.getElementById('missedApplicationStatus').textContent,/Já existe uma aplicação em/);
+    assert(!stored(w).some(a=>missed.includes(a.scheduledDateIso)),'nothing saved on refusal');
     w.document.getElementById('missedApplicationCancel').click();
     w.document.getElementById('missedApplicationNo').click();
     assert.equal(w.document.getElementById('missedApplicationCard').hidden,true);
     const prefs=JSON.parse(w.localStorage.getItem('escudofit_web_reminder_prefs_v1_live-user'));
-    assert(prefs.missedDismissed[missed]);
+    assert(missed.every(d=>prefs.missedDismissed[d]));
   }finally{h.dom.window.close()}
 });

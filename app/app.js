@@ -1411,40 +1411,90 @@ $('addActivity')?.addEventListener('click',async()=>{
 let selectedApplicationSite=null;
 const mapImg=$('approvedBodyMap');
 if(mapImg&&window.escudoFitApprovedBodyMapUri)mapImg.src=window.escudoFitApprovedBodyMapUri;
-// Missed scheduled application: offered from the schedule saved in this browser.
-// "Sim" opens a retroactive entry for that cycle; "Não" stops asking for that date.
-let retroApplication=null;
+// Missed scheduled applications: from the schedule saved in this browser, since the
+// reference date (first dose). "Sim" lists every missing date to insert at once;
+// "Não" stops asking for those dates.
+let missedFormOpen=false,missedNoticeDay='';
 const brDay=key=>key.slice(8,10)+'/'+key.slice(5,7)+'/'+key.slice(0,4);
 const weekdayName=key=>new Date(key+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long'});
+const missedSiteOptions='<option value="UNSPECIFIED">Local não informado</option>'+
+  Object.entries(applicationSiteLabels).filter(([code])=>code!=='UNSPECIFIED')
+    .map(([code,label])=>'<option value="'+code+'">'+escapeText(label)+'</option>').join('');
 function renderMissedApplication(){
   const card=$('missedApplicationCard');if(!card)return;
-  const next=webReminderUI?.missed?.()[0]||null;
-  if(retroApplication&&(!next||next.date!==retroApplication.date))retroApplication=null;
-  card.hidden=!next;
-  const button=$('confirmApplication');
-  if(!next){if(button)button.textContent='CONFIRMAR APLICAÇÃO DE HOJE';return;}
-  setText('missedApplicationText','A aplicação prevista para '+brDay(next.date)+' ('+weekdayName(next.date)+
-    ') não foi registrada. Deseja registrar esta aplicação?');
-  $('missedApplicationAsk').hidden=!!retroApplication;
-  $('missedApplicationForm').hidden=!retroApplication;
-  if(button)button.textContent=retroApplication?'CONFIRMAR APLICAÇÃO RETROATIVA':'CONFIRMAR APLICAÇÃO DE HOJE';
+  const list=webReminderUI?.missed?.()||[];
+  card.hidden=!list.length;
+  if(!list.length){missedFormOpen=false;return;}
+  setText('missedApplicationText',list.length===1
+    ?'A aplicação prevista para '+brDay(list[0].date)+' ('+weekdayName(list[0].date)+') não foi registrada. Deseja inserir esta aplicação?'
+    :list.length+' aplicações previstas entre '+brDay(list[0].date)+' e '+brDay(list.at(-1).date)+
+      ' não foram registradas. Deseja inserir as aplicações não lançadas?');
+  $('missedApplicationAsk').hidden=missedFormOpen;
+  $('missedApplicationForm').hidden=!missedFormOpen;
+  // Visible-page notice once per day, without repeating on every render.
+  const today=localDayKey();
+  if(missedNoticeDay!==today){missedNoticeDay=today;
+    toast(list.length===1?'1 aplicação do cronograma sem registro':list.length+' aplicações do cronograma sem registro');}
 }
-$('missedApplicationYes')?.addEventListener('click',()=>{
-  const next=webReminderUI?.missed?.()[0];if(!next)return;
-  retroApplication=next;
-  const input=$('missedApplicationDate');
-  if(input){input.min=next.earliest;input.max=next.latest;input.value=next.date<=next.latest?next.date:next.latest;}
-  renderMissedApplication();setText('applicationSaved','');
-  $('approvedBodyMap')?.scrollIntoView?.({behavior:'smooth',block:'center'});
-});
+function openMissedForm(){
+  const list=webReminderUI?.missed?.()||[];if(!list.length)return;
+  missedFormOpen=true;
+  $('missedApplicationList').innerHTML=list.map((m,i)=>'<div class="missed-application-row" data-missed-date="'+m.date+'">'+
+    '<label class="missed-application-check"><input type="checkbox" checked data-missed-include> Prevista para '+brDay(m.date)+'</label>'+
+    '<label class="app-field">Data da aplicação<input type="date" data-missed-day value="'+m.date+'" min="'+m.earliest+'" max="'+m.latest+'"></label>'+
+    '<label class="app-field">Local<select data-missed-site>'+missedSiteOptions+'</select></label></div>').join('');
+  setText('missedApplicationStatus','');setText('missedApplicationConfirm','REGISTRAR '+list.length+(list.length===1?' APLICAÇÃO':' APLICAÇÕES'));
+  renderMissedApplication();
+}
+$('missedApplicationYes')?.addEventListener('click',openMissedForm);
 $('missedApplicationNo')?.addEventListener('click',()=>{
-  const next=webReminderUI?.missed?.()[0];if(!next)return;
-  webReminderUI.dismissMissed(next.date);retroApplication=null;renderMissedApplication();
-  toast('Data '+brDay(next.date)+' ignorada');
+  const list=webReminderUI?.missed?.()||[];
+  for(const m of list)webReminderUI.dismissMissed(m.date);
+  missedFormOpen=false;renderMissedApplication();
+  toast(list.length===1?'Data ignorada':list.length+' datas ignoradas');
 });
-$('missedApplicationCancel')?.addEventListener('click',()=>{retroApplication=null;renderMissedApplication();});
+$('missedApplicationCancel')?.addEventListener('click',()=>{missedFormOpen=false;renderMissedApplication();});
+$('missedApplicationList')?.addEventListener('change',event=>{
+  const n=[...document.querySelectorAll('[data-missed-include]')].filter(x=>x.checked).length;
+  setText('missedApplicationConfirm','REGISTRAR '+n+(n===1?' APLICAÇÃO':' APLICAÇÕES'));
+  $('missedApplicationConfirm').disabled=n===0;
+});
+$('missedApplicationConfirm')?.addEventListener('click',async()=>{
+  const rows=[...document.querySelectorAll('.missed-application-row')].filter(r=>r.querySelector('[data-missed-include]').checked);
+  if(!rows.length)return;
+  const existing=new Set((Array.isArray(state.applications)?state.applications:[]).map(item=>item.scheduledDateIso||localDayKey(item.at)));
+  const chosen=new Set(),entries=[];
+  for(const row of rows){
+    const input=row.querySelector('[data-missed-day]'),date=String(input.value||'');
+    // A retroactive entry is never in the future, stays within its cycle and never duplicates a day.
+    if(!historyContract.validDate(date)||date<input.min||date>input.max){
+      setText('missedApplicationStatus','A aplicação prevista para '+brDay(row.dataset.missedDate)+' deve ficar entre '+
+        brDay(input.min)+' e '+brDay(input.max)+'.');return;}
+    if(existing.has(date)||chosen.has(date)){
+      setText('missedApplicationStatus','Já existe uma aplicação em '+brDay(date)+'. Escolha outro dia ou desmarque.');return;}
+    chosen.add(date);
+    const applicationSite=row.querySelector('[data-missed-site]').value||'UNSPECIFIED';
+    const appliedAtMs=new Date(date+'T12:00:00').getTime();
+    const id=crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs+'-'+entries.length;
+    entries.push({local:{id,site:applicationSiteLabels[applicationSite]||'Local não informado',siteCode:applicationSite,
+      at:new Date(appliedAtMs).toISOString(),scheduledDateIso:date,retroactive:true},
+      remote:{id,applicationSite,appliedAtMs,scheduledDateIso:date}});
+  }
+  const button=$('missedApplicationConfirm');button.disabled=true;
+  state.applications=[...entries.map(e=>e.local),...(Array.isArray(state.applications)?state.applications:[])]
+    .sort((a,b)=>new Date(b.at).getTime()-new Date(a.at).getTime()).slice(0,200);
+  // Unchecked dates were confirmed as not taken: stop asking for them.
+  for(const row of document.querySelectorAll('.missed-application-row'))
+    if(!row.querySelector('[data-missed-include]').checked)webReminderUI?.dismissMissed(row.dataset.missedDate);
+  saveState();missedFormOpen=false;renderApp();
+  const synced=await syncHistoryPatch({applications:entries.map(e=>e.remote)});
+  button.disabled=false;
+  setText('applicationSaved',(entries.length===1?'1 aplicação retroativa registrada':entries.length+' aplicações retroativas registradas')+
+    (synced?' na Conta Google.':' neste navegador. O envio à conta será tentado novamente.'));
+  toast(synced?'Aplicações sincronizadas':'Aplicações salvas localmente');
+});
 // A newly saved schedule may reveal or clear missed dates.
-$('webApplicationSave')?.addEventListener('click',()=>setTimeout(()=>renderMissedApplication(),0));
+$('webApplicationSave')?.addEventListener('click',()=>setTimeout(()=>{missedFormOpen=false;renderMissedApplication();},0));
 
 document.querySelectorAll('[data-application-site]').forEach(btn=>{
   btn.setAttribute('aria-pressed','false');
@@ -1460,20 +1510,13 @@ document.querySelectorAll('[data-application-site]').forEach(btn=>{
 });
 $('confirmApplication')?.addEventListener('click',async()=>{
   if(!selectedApplicationSite)return;
-  const retro=retroApplication;
-  const date=retro?String($('missedApplicationDate')?.value||''):localDayKey();
-  if(retro&&!(historyContract.validDate(date)&&date>=retro.earliest&&date<=retro.latest)){
-    setText('applicationSaved','Informe uma data entre '+brDay(retro.earliest)+' e '+brDay(retro.latest)+'.');
-    return;
-  }
+  const date=localDayKey();
   if((Array.isArray(state.applications)?state.applications:[]).some(item=>
     (item.scheduledDateIso||localDayKey(item.at))===date)){
-    setText('applicationSaved',retro?'Já existe uma aplicação registrada em '+brDay(date)+'.':
-      'Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
+    setText('applicationSaved','Já existe uma aplicação registrada hoje. Consulte o histórico antes de registrar outra.');
     return;
   }
-  // A retroactive entry is stamped at noon of the informed day (no invented time).
-  const appliedAtMs=retro?new Date(date+'T12:00:00').getTime():Date.now();
+  const appliedAtMs=Date.now();
   const applicationSite=selectedApplicationSite;
   const id=crypto.randomUUID?crypto.randomUUID():'application-'+appliedAtMs;
   const entry={id,site:applicationSiteLabels[applicationSite]||applicationSite,
@@ -1486,9 +1529,8 @@ $('confirmApplication')?.addEventListener('click',async()=>{
     id,applicationSite,appliedAtMs,scheduledDateIso:date,
   }]});
   setText('applicationSaved',synced
-    ?(retro?'Aplicação de '+brDay(date)+' registrada na Conta Google.':'Aplicação de hoje confirmada na Conta Google.')
+    ?'Aplicação de hoje confirmada na Conta Google.'
     :'Aplicação salva neste navegador. O envio à conta será tentado novamente.');
-  if(retro){retroApplication=null;renderMissedApplication();}
   selectedApplicationSite=null;
   document.querySelectorAll('[data-application-site]').forEach(zone=>zone.setAttribute('aria-pressed','false'));
   setText('applicationSelection','Nenhum local selecionado.');

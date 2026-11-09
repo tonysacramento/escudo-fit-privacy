@@ -37,6 +37,7 @@
     let scheduled=false;
     if(setting.frequency==='DAILY')scheduled=true;
     if(setting.frequency==='WEEKLY')scheduled=now.getDay()===Number(setting.weekday);
+    if(setting.frequency==='MONTHLY')scheduled=monthlyOn(todayNoon,anchorDate);
     if(setting.frequency==='OTHER'){
       const every=Number(setting.intervalDays);
       scheduled=Number.isInteger(every)&&every>=2&&every<=30&&delta%every===0;
@@ -50,22 +51,28 @@
   const addDays=(date,n)=>new Date(date.getFullYear(),date.getMonth(),date.getDate()+n,12);
   // Days within which an application still covers a scheduled date (a weekly dose
   // taken a couple of days late is not "missed").
-  const scheduleTolerance=setting=>setting?.frequency==='DAILY'?0:
+  const scheduleTolerance=setting=>setting?.frequency==='DAILY'?0:setting?.frequency==='MONTHLY'?7:
     Math.floor(((setting?.frequency==='WEEKLY'?7:Number(setting?.intervalDays))-1)/2);
+  // Monthly: same day of month as the reference date (last day for shorter months).
+  const monthlyOn=(date,anchor)=>{
+    const last=new Date(date.getFullYear(),date.getMonth()+1,0).getDate();
+    return date.getDate()===Math.min(anchor.getDate(),last);
+  };
   const scheduledOn=(setting,date,anchor)=>{
     const delta=Math.round((date-anchor)/86400000);
     if(delta<0)return false;
     if(setting.frequency==='DAILY')return true;
     if(setting.frequency==='WEEKLY')return date.getDay()===Number(setting.weekday);
+    if(setting.frequency==='MONTHLY')return monthlyOn(date,anchor);
     const every=Number(setting.intervalDays);
     return setting.frequency==='OTHER'&&Number.isInteger(every)&&every>=2&&every<=30&&delta%every===0;
   };
   /** Past scheduled dates (oldest first) with no application within the tolerance,
-   * looking back at most lookbackDays and never before the schedule's reference date.
+   * from the schedule's reference date (first dose), looking back at most lookbackDays.
    * Only uses a schedule the person saved; the date of today is never "missed". */
-  const missedApplications=(setting,applications,now,{lookbackDays=56,dismissed={}}={})=>{
+  const missedApplications=(setting,applications,now,{lookbackDays=366,dismissed={}}={})=>{
     const anchor=parseDay(setting?.anchor);
-    if(!anchor||!['DAILY','WEEKLY','OTHER'].includes(setting.frequency))return [];
+    if(!anchor||!['DAILY','WEEKLY','MONTHLY','OTHER'].includes(setting.frequency))return [];
     if(setting.frequency==='OTHER'&&!(Number.isInteger(Number(setting.intervalDays))&&
       Number(setting.intervalDays)>=2&&Number(setting.intervalDays)<=30))return [];
     const tol=scheduleTolerance(setting);

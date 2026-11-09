@@ -1008,4 +1008,9 @@ body.is-app .reminder-card [hidden]{display:none!important}
 .missed-application-actions{display:grid;gap:10px;margin-top:12px}
 .missed-application-actions[hidden]{display:none}
 #missedApplicationForm{display:grid;gap:10px;margin-top:12px}
+.missed-application-list{display:grid;gap:10px}
+.missed-application-row{display:grid;gap:8px;padding:12px;border:1px solid var(--app-border);border-radius:14px;background:#08262B}
+.missed-application-check{display:flex;gap:10px;align-items:center;font-weight:800}
+.missed-application-check input{width:22px;height:22px;accent-color:var(--app-gold)}
+.missed-application-row select{width:100%;min-height:44px}
 #missedApplicationForm[hidden]{display:none}
