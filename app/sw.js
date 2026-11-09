@@ -1,8 +1,8 @@
-const CACHE='escudo-fit-web-v35-carousel-six-approved-v4';
+const CACHE='escudo-fit-web-v35-carousel-six-approved-v5';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-recovery-22',
+  './styles.css?v=web-v43-sync-recovery-23',
   './history-sync-contract.js?v=web-v43-sync-recovery-20',
   './history-backup-bridge.js?v=web-v43-sync-recovery-20',
   './web-reminders.js?v=web-v43-sync-recovery-21',
