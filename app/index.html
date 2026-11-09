@@ -28,13 +28,14 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <!-- Same opening as the Android app (app/index.tsx): shield springs in with a cyan
-       halo pulse, wordmark rises after it, at least 1.75 s, then opens out in 320 ms. -->
+  <!-- Same opening as the Android app (app/index.tsx): the shield fills up like a glass
+       of water (level rises with a gentle slosh), the wordmark rises, at least 1.75 s,
+       then opens out in 320 ms. -->
   <div id="brandIntro" class="brand-intro" aria-hidden="true">
     <div class="brand-intro-mark">
       <div class="brand-intro-shield">
-        <span class="brand-intro-halo"></span>
-        <img src="./brand-mark-approved-v44.png" alt="" width="255" height="255">
+        <img class="brand-intro-empty" src="./brand-mark-approved-v44.png" alt="" width="255" height="255">
+        <div class="brand-intro-liquid"><img src="./brand-mark-approved-v44.png" alt="" width="255" height="255"></div>
       </div>
       <strong><span class="brand-intro-word">Escudo</span> <span class="brand-intro-fit">Fit</span></strong>
     </div>
