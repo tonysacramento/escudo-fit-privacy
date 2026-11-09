@@ -398,6 +398,8 @@ test('opening a saved session never flashes marketing while validation is pendin
   try{
     assert.equal(h.w.document.getElementById('sessionLoading').classList.contains('hidden'),true);
     assert.equal(h.w.document.getElementById('appExperience').classList.contains('hidden'),false);
+    const intro=h.w.document.getElementById('brandIntro');
+    assert(!intro||intro.dataset.leaving==='1','brand opening is dismissed as soon as the app is ready');
   }finally{h.w.close()}
 });
 
@@ -447,7 +449,10 @@ test('PWA name and startup use approved unmodified V43 artwork',()=>{
   assert.equal(manifest.name,'Escudo Fit Web');assert.equal(manifest.short_name,'Escudo Fit Web');
   assert.equal(manifest.id,'./');assert.equal(manifest.start_url,'./');
   assert.equal(manifest.icons[0].src,'./icon-approved-v43.png');
-  assert.match(html,/splash-approved-v43\.png/);
+  assert.match(html,/brand-mark-approved-v44\.png/);
+  // Opening matches the Android app: same background, mark and wordmark.
+  assert.match(html,/id="brandIntro"[^>]*aria-hidden="true"/);assert.match(html,/Escudo <span>Fit<\/span>/);
+  assert.match(html,/theme-color" content="#0F2B33"/);
   assert.match(html,/Instalar Escudo Fit Web/);
 });
 
