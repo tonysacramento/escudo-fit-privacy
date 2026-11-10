@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
   createPurchaseController,inspectPurchaseHealth,inspectPurchaseOrder,
-  inspectPurchaseReconciliation,PURCHASE_API
+  inspectPurchaseReconciliation,PURCHASE_API,PURCHASE_CANARY_APIS,purchaseApiFor
 } from '../app/comprar/purchase.mjs';
 
 const EF='EF-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -249,4 +249,20 @@ test('PWA service worker excludes all buyer checkout resources from offline cach
  assert.match(sw,/return;/);
  const body=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
  assert.match(body,/noindex,nofollow/);
+});
+
+test('closed go-live canary is a fixed list: only ?canary=golive-r10 changes the API, never a free URL',async()=>{
+  const tag='https://golive-r10---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app/api/v38';
+  assert.deepEqual(Object.keys(PURCHASE_CANARY_APIS),['golive-r10']);
+  assert.deepEqual({...purchaseApiFor('?canary=golive-r10')},{api:tag,canary:'golive-r10'});
+  for(const search of ['','?canary=','?canary=other','?canary=https://evil.example/api',
+    '?api=https://evil.example','?canary=__proto__','?canary=constructor','?canary=GOLIVE-R10'])
+    assert.deepEqual({...purchaseApiFor(search)},{api:PURCHASE_API,canary:null},search);
+  assert.throws(()=>createPurchaseController({api:'https://evil.example/api/v38'}),/PURCHASE_API_NOT_ALLOWED/);
+  const urls=[];
+  const c=createPurchaseController({api:tag,now:()=>NOW,fetchImpl:async url=>{urls.push(url);
+    return url.endsWith('/auth/google')?response({access_token:JWT,user:{email:'buyer@example.invalid'}}):
+      url.endsWith('/health')?response(health({sitePurchaseEnabled:false})):response({code:'NOT_FOUND'},404);}});
+  await c.signIn(GOOGLE);
+  assert(urls.length>=2);assert(urls.every(u=>u.startsWith(tag+'/')),urls.join(' '));
 });
