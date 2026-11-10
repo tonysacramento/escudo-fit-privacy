@@ -136,3 +136,16 @@ test('buyer relay sends only an exact one-shot request body with no browser prov
   await assert.rejects(()=>privateBuyerRequest('refund',token,{fetchImpl}));
   assert.equal(calls.length,1);
 });
+
+test('refunded pilot and closed purchase window are explained and never allow a Pix',async()=>{
+  for(const [state,text] of [['REFUNDED',/concluída e reembolsada/],['PILOT_CLOSED',/Nenhuma rodada de compra/]]){
+    const messages=[],calls=[];
+    const ctrl=createPrivateBuyerController({now:()=>NOW,onState:(_s,m)=>messages.push(m),
+      request:async action=>{calls.push(action);return {...noAccess,state,...(state==='REFUNDED'?{orderId:id}:{})};}});
+    assert.equal(await ctrl.signIn(token),true);
+    assert.equal(ctrl.snapshot().phase,state);assert.equal(ctrl.snapshot().canIssue,false);
+    assert.match(messages.at(-1),text);assert.match(messages.at(-1),/Nenhum Pix foi solicitado/);
+    assert.equal(await ctrl.issue(true),false);assert.deepEqual(calls,['preflight']);
+    assert.throws(()=>validatePrivateBuyerResult({state,paymentConfirmed:true,premiumGranted:true},NOW));
+  }
+});

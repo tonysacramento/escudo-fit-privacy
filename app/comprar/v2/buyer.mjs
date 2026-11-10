@@ -12,7 +12,8 @@ const STATES=new Set(['DISABLED','APPROVAL_REQUIRED','READY_FOR_SINGLE_PURCHASE'
   'CHECK_CANONICAL_ACCESS','PAYMENT_OBSERVED_AWAITING_DELIVERY',
   'ORDER_CREATED_CHECKOUT_REVIEW_REQUIRED','EXISTING_ORDER_RECONCILIATION_REQUIRED',
   'PILOT_V2_PREDECESSOR_UNCERTAIN_NO_POST','PILOT_V2_PREDECESSOR_CHANGED_NO_POST',
-  'PILOT_V2_POST_LATCH_UNCERTAIN_NO_POST','PROVIDER_POST_OUTCOME_UNCERTAIN','BIND_OUTCOME_UNCERTAIN']);
+  'PILOT_V2_POST_LATCH_UNCERTAIN_NO_POST','PROVIDER_POST_OUTCOME_UNCERTAIN','BIND_OUTCOME_UNCERTAIN',
+  'REFUNDED','PILOT_CLOSED']);
 const tokenOk=v=>typeof v==='string'&&v.length<16384&&JWT.test(v);
 export function validatePrivateBuyerResult(v,now=Date.now()){
   if(!v||Object.getPrototypeOf(v)!==Object.prototype||!STATES.has(v.state)||
@@ -76,6 +77,10 @@ export function createPrivateBuyerController({request=privateBuyerRequest,now=Da
         'Aprovação válida. É permitido solicitar um único Pix com confirmação expressa.':
         result.state==='PREMIUM_ACTIVE'?
           'Premium confirmado pelo servidor. Confira o estado do aviso automático.':
+        result.state==='REFUNDED'?
+          'A compra deste piloto já foi concluída e reembolsada. Um novo teste exige uma nova rodada do piloto. Nenhum Pix foi solicitado.':
+        result.state==='PILOT_CLOSED'?
+          'Nenhuma rodada de compra do piloto está aberta agora. Nenhum Pix foi solicitado e nada foi cobrado.':
           'Estado retornado pelo servidor: '+result.state+'. Não crie uma segunda ordem.');
       return true;
     }catch(error){
