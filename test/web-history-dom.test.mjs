@@ -434,7 +434,7 @@ for(const mode of ['VIP_LIFETIME','PREMIUM','FREE'])test('plan '+mode+' selects 
     if(full){
       w.document.getElementById('navMedication').click();
       assert.equal(w.document.querySelector('[data-view="applications"]').classList.contains('active'),true);
-      assert.equal(w.document.getElementById('downloadAndroidFull').href,'https://github.com/tonysacramento/escudo-fit-privacy/releases/download/v43-full-approved/escudo-fit-v43-full.apk');
+      assert.equal(w.document.getElementById('downloadAndroidFull').href,'https://github.com/tonysacramento/escudo-fit-privacy/releases/download/v44-full-qa/escudo-fit-v44-full.apk');
       w.matchMedia=()=>({matches:true});w.eval('renderInstallAction()');
       assert.equal(w.document.getElementById('installButtonFloating').classList.contains('hidden'),true);
       assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),false,'native download remains available inside installed PWA');
