@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v35-carousel-six-approved-v6';
+const CACHE='escudo-fit-web-v35-carousel-six-approved-v7';
 const ASSETS=[
   './',
   './index.html',

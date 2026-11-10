@@ -146,7 +146,7 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await page.locator('[data-target="profile"]').click();
   await expect(page.locator('#installButtonFloating')).toHaveText('Instalar Escudo Fit Web');
   await expect(page.locator('#downloadAndroidFull')).toBeVisible();
-  await expect(page.locator('#downloadAndroidFull')).toHaveAttribute('href',/v43-full-approved\/escudo-fit-v43-full\.apk$/);
+  await expect(page.locator('#downloadAndroidFull')).toHaveAttribute('href',/v44-full-qa\/escudo-fit-v44-full\.apk$/);
   await page.locator('[data-target="home"]').click();
   await expect(page.locator('.shield-card[data-view-link="activities"]')).toBeVisible();
   await expect(page.locator('.quick-access [data-view-link="applications"]')).toBeVisible();
