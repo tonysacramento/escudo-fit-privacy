@@ -25,3 +25,4 @@ dl{margin:14px 0}dl div{display:flex;justify-content:space-between;align-items:b
 .profile-details strong{font-size:1.04rem;color:var(--text)}
 .profile-details span{font-size:.88rem}
 .profile-details small{font-size:.79rem;color:#b0d5d4;line-height:1.35;margin-top:6px}
+.canary-banner{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:#5a3d00;color:#ffe4a3;font-size:.9rem;font-weight:700;line-height:1.35}

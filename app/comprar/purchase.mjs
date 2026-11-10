@@ -4,7 +4,17 @@
 export const PURCHASE_API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 export const PURCHASE_CLIENT_ID='835029473980-22hokuuman3rpbiefs54gg1ntnqu6lc7.apps.googleusercontent.com';
 export const TERMS='prepaid-v1-2026-10-16';
-const PATH=PURCHASE_API+'/payments/commercial';
+// Closed go-live canary (R10): a fixed list, never a free URL. The tag revision has
+// no public traffic and its server only accepts the e-mails it allowlists.
+export const PURCHASE_CANARY_APIS=Object.freeze({
+  'golive-r10':'https://golive-r10---escudo-fit-api-v38-olb3tmj35q-uc.a.run.app/api/v38',
+});
+export function purchaseApiFor(search=''){
+  let name=null;try{name=new URLSearchParams(String(search)).get('canary');}catch{}
+  return Object.hasOwn(PURCHASE_CANARY_APIS,name||'')?
+    Object.freeze({api:PURCHASE_CANARY_APIS[name],canary:name}):
+    Object.freeze({api:PURCHASE_API,canary:null});
+}
 const EF=/^EF-[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const JWT=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -104,7 +114,9 @@ async function requestJson(fetchImpl,url,{method='GET',accessToken=null,body=nul
 
 /** No local/session storage, no automatic financial POST, no silent retry. */
 export function createPurchaseController({fetchImpl=fetch,now=Date.now,
-  newKey=()=>crypto.randomUUID(),onState=()=>{}}={}){
+  newKey=()=>crypto.randomUUID(),onState=()=>{},api=PURCHASE_API}={}){
+  if(api!==PURCHASE_API&&!Object.values(PURCHASE_CANARY_APIS).includes(api))throw Error('PURCHASE_API_NOT_ALLOWED');
+  const PATH=api+'/payments/commercial';
   let token=null,userEmail='',userName='',order=null,health=null,provider=null;
   let phase='READY',attempted=false,busy=false,epoch=0,qrExpiryEmitted=false;
   const snapshot=()=>Object.freeze({
@@ -130,7 +142,7 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
       const e=++epoch;busy=true;emit('SIGNING_IN','Verificando a conta Google.');
       let stage='AUTH';
       try{
-        const login=await requestJson(fetchImpl,PURCHASE_API+'/auth/google',{
+        const login=await requestJson(fetchImpl,api+'/auth/google',{
           method:'POST',body:{id_token:googleToken}});
         if(e!==epoch||!JWT.test(login.access_token||'')||
           !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(login.user?.email||''))
@@ -277,7 +289,11 @@ function boot(){
   const googleSlot=el('google-slot'),start=el('buy'),refresh=el('refresh'),
     consent=el('terms');
   let sdkReady=false;
-  const controller=createPurchaseController({
+  const target=purchaseApiFor(location.search);
+  if(target.canary){const banner=document.createElement('p');banner.className='canary-banner';banner.setAttribute('role','note');
+    banner.textContent='Versão de teste fechada ('+target.canary+'): só contas autorizadas pelo servidor podem comprar.';
+    document.querySelector('main')?.prepend(banner);}
+  const controller=createPurchaseController({api:target.api,
     onState:(s,message)=>{
       el('account').textContent=s.account?'Conta conectada: '+s.account:'Aguardando login.';
       el('profile-name').textContent=s.name||'Conta Escudo Fit';
