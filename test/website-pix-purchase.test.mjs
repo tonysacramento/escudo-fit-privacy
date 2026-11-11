@@ -276,3 +276,22 @@ test('page CSP allows exactly the main API and each fixed canary host, nothing b
   assert(connect.every(x=>!x.includes('*')),'no wildcard in connect-src');
   assert.equal(connect.length,2+Object.keys(PURCHASE_CANARY_APIS).length);
 });
+
+test('403 on purchase is a certain refusal: clear message, no retry, no uncertain-outcome warning',async()=>{
+  const events=[],calls=[];
+  const c=createPurchaseController({now:()=>NOW,onState:(s,m)=>events.push({phase:s.phase,m,canBuy:s.canBuy}),
+    fetchImpl:async(url,o)=>{calls.push({url,method:o.method});
+      if(url.endsWith('/auth/google'))return response({access_token:JWT,user:{email:'other@example.invalid'}});
+      if(url.endsWith('/health'))return response(health());
+      if(url.endsWith('/orders/current'))return response({order:null});
+      if(url.endsWith('/orders')&&o.method==='POST')return response({code:'COMMERCIAL_CUSTOMER_NOT_ALLOWED'},403);
+      return response({code:'NOT_FOUND'},404);}});
+  await c.signIn(GOOGLE);
+  assert.equal(c.snapshot().canBuy,true);
+  assert.equal(await c.buy(true),false);
+  const last=events.at(-1);
+  assert.equal(last.phase,'NOT_ALLOWED');assert.match(last.m,/não está liberada/);assert.match(last.m,/Nenhuma ordem nem Pix/);
+  assert.equal(c.snapshot().canBuy,false);assert.equal(await c.buy(true),false);
+  assert.equal(calls.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,1);
+  assert(!events.some(e=>/pode ter sido registrada/.test(e.m||'')));
+});
