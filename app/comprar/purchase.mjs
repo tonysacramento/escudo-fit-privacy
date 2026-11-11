@@ -296,7 +296,9 @@ function boot(){
   const target=purchaseApiFor(location.search);
   if(target.canary){const banner=document.createElement('p');banner.className='canary-banner';banner.setAttribute('role','note');
     banner.textContent='Versão de teste fechada ('+target.canary+'): só contas autorizadas pelo servidor podem comprar.';
-    document.querySelector('main')?.prepend(banner);}
+    document.querySelector('main')?.prepend(banner);
+    // The closed-pilot shortcut leads to a different (v2) flow; never show it in the canary.
+    const legacy=el('legacy-pilot-link');if(legacy)legacy.hidden=true;}
   const controller=createPurchaseController({api:target.api,
     onState:(s,message)=>{
       el('account').textContent=s.account?'Conta conectada: '+s.account:'Aguardando login.';
