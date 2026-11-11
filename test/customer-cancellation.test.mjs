@@ -160,3 +160,11 @@ test('the period reaches the view from the listing and from the POST receipt',as
     return listed([{...entry(p,receipt),requestWithdrawal:late}]);throw Error('PILOT_UNAVAILABLE');},false);
   assert.equal(reloaded.length,1);assert.deepEqual(reloaded[0][2],late);
 });
+
+test('cancellation page states rule A: first refund per account is automatic, later ones go to support within the 7 days',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const html=readFileSync(new URL('../app/cancelar/index.html',import.meta.url),'utf8');
+  assert.match(html,/primeiro reembolso de cada conta, dentro desse prazo, é processado automaticamente/);
+  assert.match(html,/A partir do segundo pedido de reembolso da mesma conta, o pedido é analisado pelo suporte/);
+  assert.match(html,/direito ao reembolso integral dentro dos 7 dias continua garantido/);
+});
