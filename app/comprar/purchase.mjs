@@ -242,8 +242,12 @@ export function createPurchaseController({fetchImpl=fetch,now=Date.now,
         qrExpiryEmitted=false;busy=false;
         emit('ORDER_EXISTS',messageForOrder(order.status));
         return true;
-      }catch{
-        if(e===epoch){busy=false;emit('OUTCOME_UNCERTAIN',
+      }catch(error){
+        // 403 is decided before the server reads the body, touches Firestore or calls the
+        // provider (origin or allowlist check): nothing was created. Any other failure is uncertain.
+        if(e===epoch&&error?.message==='API_HTTP_403'){busy=false;emit('NOT_ALLOWED',
+          'Esta conta não está liberada para comprar nesta versão. Nenhuma ordem nem Pix foi criado.');}
+        else if(e===epoch){busy=false;emit('OUTCOME_UNCERTAIN',
           'A criação pode ter sido registrada. Não repita o Pix; consulte a ordem existente pela API.');}
         return false;
       }
