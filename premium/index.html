@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Escudo Fit Premium — Pix (prévia)</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:#071d23;color:#dff5f8;color-scheme:dark}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#12505d,transparent 55%),#071d23}
+    main{max-width:850px;padding:25px 20px 65px;margin:auto}
+    header{display:flex;align-items:center;gap:14px;margin:0 0 27px}
+    header img{width:68px;height:68px;object-fit:contain;background:#0f2b33;border-radius:14px}
+    .brand{font-size:29px;font-weight:850;letter-spacing:-1px}.brand span{color:#17d1dc}
+    .hint{color:#accbd0;font-size:13px;line-height:1.6}
+    .stage{font-size:12px;color:#ffe8a5;background:#493f1a;border:1px solid #99802f;padding:7px 12px;border-radius:50px;margin-left:auto;text-align:center}
+    h1{font-size:clamp(30px,5vw,47px);line-height:1.12;letter-spacing:-1.3px;margin:0 0 15px}
+    h1 em{font-style:normal;color:#1ed5e3}
+    h2{font-size:21px;margin:0 0 10px}
+    p,li{line-height:1.65}
+    .lead{font-size:16px;color:#b9d5da}
+    .panel{background:#11333c;border:1px solid #31626a;border-radius:20px;padding:24px;margin-top:24px}
+    label{display:block;font-weight:700;margin:13px 0 9px}
+    input[type=email],select{padding:14px;border-radius:12px;border:1px solid #72acb4;background:#08242c;color:white;font:inherit;width:100%}
+    input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #16d4d8;outline-offset:3px}
+    input[type=checkbox]{width:18px;height:18px;vertical-align:middle;margin-right:10px}
+    .check{font-weight:400;display:flex;align-items:flex-start;gap:2px}
+    .form{max-width:580px}
+    button,.cta{display:inline-block;border:0;background:#008aa1;color:white;text-decoration:none;border-radius:12px;font-weight:750;font:inherit;font-weight:750;padding:14px 19px;cursor:pointer;text-align:center}
+    button:hover,.cta:hover{background:#047187}button:disabled{background:#58777b;cursor:not-allowed}
+    .button-secondary{background:#20525f}
+    .button-green{background:#008d58}
+    .button-green:hover{background:#00683f}
+    .plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:17px 0}
+    .plan{padding:20px;text-align:left;background:#f8fbfc;border:2px solid transparent;border-radius:17px;color:#143942;cursor:pointer;line-height:1.5}
+    .plan strong{display:block;font-size:21px}.plan .price{display:block;color:#003c58;font-size:32px;font-weight:900;margin:10px 0}
+    .plan small{color:#41656c}.plan.selected{border:3px solid #00b592}
+    #payment{display:none}
+    .qr-box{background:white;padding:16px;margin:22px auto;max-width:270px;border-radius:14px;display:flex;justify-content:center}
+    #qr canvas,#qr img{max-width:100%;height:auto;display:block;margin:auto}
+    #qr table{border-collapse:collapse}
+    .actions{display:flex;flex-wrap:wrap;gap:10px}
+    .actions button{flex:1;min-width:220px}
+    .message{min-height:27px;color:#aaf3dc;font-size:14px}
+    .warning{color:#ffe4ac;font-size:14px}
+    .footer{margin-top:34px;padding-top:22px;border-top:1px solid #27535e;color:#a7c2c8;font-size:12px}
+    .footer a{color:#8ce2e8}
+    @media(max-width:620px){.plans{grid-template-columns:1fr}.stage{font-size:10px}header img{width:57px;height:57px}.brand{font-size:23px}.panel{padding:17px}}
+  </style>
+</head>
+<body><main>
+  <header><img src="../app/icon-approved-v43.png" alt="Ícone aprovado do Escudo Fit"><div><div class="brand">ESCUDO <span>FIT</span></div><div class="hint">Proteção que transforma seu dia</div></div><div class="stage">PRÉVIA — NÃO PUBLICADO</div></header>
+  <h1>Continue sua jornada com o <em>Premium</em></h1>
+  <p class="lead">Escolha seu período de acesso ao Escudo Fit. O pagamento será por Pix e a equipe liberará seu plano após conferir o recebimento no PicPay.</p>
+  <p class="hint">Esta é uma compra de período de acesso, <strong>sem débito recorrente nem renovação automática</strong>. O pagamento não é processado pela Google Play.</p>
+  <section class="panel" aria-labelledby="step1">
+    <h2 id="step1">1. Informe seu e-mail e escolha o plano</h2>
+    <p class="hint">Utilize o mesmo e-mail da Conta Google com que você entra no Escudo Fit.</p>
+    <div class="form">
+      <label for="email">Seu e-mail do Escudo Fit</label>
+      <input id="email" type="email" name="email" required autocomplete="email" placeholder="voce@exemplo.com" maxlength="200">
+      <label for="plan">Selecione o período Premium</label>
+      <select id="plan">
+        <option value="mensal">Premium mensal — R$ 4,99 (30 dias)</option>
+        <option value="anual">Premium anual — R$ 49,90 (12 meses)</option>
+      </select>
+      <label class="check"><input id="consent" type="checkbox" required><span>Entendo que a identificação informada será incluída por mim na mensagem de atendimento pelo WhatsApp e utilizada apenas para conferir o pedido e liberar o acesso. <a href="../privacy.html" style="color:#8ce2e8">Política de privacidade</a>.</span></label>
+      <button id="continue" type="button">Ver QR Code e Pix Copia e Cola</button>
+      <p id="form-message" class="warning" role="status"></p>
+    </div>
+  </section>
+  <section id="payment" class="panel" aria-labelledby="step2">
+    <h2 id="step2">2. Pague com Pix</h2>
+    <div id="plan-summary"></div>
+    <div id="qr" class="qr-box" aria-label="QR Code Pix para o plano escolhido"></div>
+    <div class="actions">
+      <button id="copy-pix" type="button">Copiar Pix Copia e Cola</button>
+      <button id="copy-email" type="button" class="button-secondary">Copiar e-mail para Mensagem do Pix</button>
+    </div>
+    <p class="hint">Se seu banco mostrar o campo <strong>Mensagem/Descrição</strong>, cole o e-mail da sua Conta Google. Nem todas as instituições transmitem essa mensagem ao recebedor.</p>
+    <p class="warning">Antes de confirmar no banco: confira o valor e o favorecido <strong>ANTONIO DE OLIVEIRA SILVA</strong>. QR Code Pix estático: o padrão permite reutilização, mas cada pagamento deverá ser conferido no PicPay antes de liberar o Premium. Valide a leitura e a disponibilidade dos códigos no PicPay antes da publicação.</p>
+    <p class="message" id="copy-result" role="status"></p>
+  </section>
+  <section class="panel" aria-labelledby="step3">
+    <h2 id="step3">3. Avise a equipe para liberar seu Premium</h2>
+    <p>Após efetuar o Pix, avise pelo WhatsApp <strong>(11) 98523-7017</strong>. A mensagem incluirá o plano e seu e-mail para conciliação. O acesso só será ativado após nossa conferência; nenhum pagamento é identificado automaticamente nesta etapa.</p>
+    <button id="notify" type="button" class="button-green">Avisar pagamento pelo WhatsApp</button>
+    <p id="notify-result" class="warning" role="status"></p>
+    <p class="hint">Não envie senhas ou dados bancários sensíveis. Guarde seu comprovante e não pague novamente caso a confirmação demore.</p>
+  </section>
+  <footer class="footer">
+    Escudo Fit • Página de teste ainda não publicada. E-mail não é salvo nesta página; só será compartilhado quando você abrir o WhatsApp.
+    <div><a href="../privacy.html">Privacidade</a> · <a href="../terms.html">Termos</a> · <a href="../support.html">Suporte</a></div>
+  </footer>
+</main>
+<script src="./qrcode.min.js"></script>
+<script>
+'use strict';
+const PIX_PAYLOADS = {"mensal":"00020126580014br.gov.bcb.pix013693e67387-a5aa-4950-be6b-cb24af671c4d52040000530398654044.995802BR5925ANTONIO DE OLIVEIRA SILVA6009Sao Paulo62290525REC6ACFE1E2B367E66276901663041F07","anual":"00020126580014br.gov.bcb.pix013693e67387-a5aa-4950-be6b-cb24af671c4d520400005303986540549.905802BR5925ANTONIO DE OLIVEIRA SILVA6009Sao Paulo62290525REC6ACFE1E2F01CA145360027630433BA"};
+const PLANS = {mensal:{label:'Premium mensal',price:'R$ 4,99',duration:'30 dias'},anual:{label:'Premium anual',price:'R$ 49,90',duration:'12 meses'}};
+const emailEl=document.querySelector('#email');
+const planEl=document.querySelector('#plan');
+const consentEl=document.querySelector('#consent');
+const panel=document.querySelector('#payment');
+let revealed = null;
+let qr = null;
+const trimmedEmail=()=>emailEl.value.trim();
+function validEmail(){if(!emailEl.checkValidity()){emailEl.reportValidity();return false;}if(!consentEl.checked){document.querySelector('#form-message').textContent='Confirme a identificação e a política de privacidade para continuar.';consentEl.focus();return false;}document.querySelector('#form-message').textContent='';return true}
+function invalidate(){revealed=null;panel.style.display='none';document.querySelector('#copy-result').textContent=''}
+emailEl.addEventListener('input',invalidate);planEl.addEventListener('change',invalidate);consentEl.addEventListener('change',invalidate);
+document.querySelector('#continue').addEventListener('click',()=>{
+ if(!validEmail())return;
+ const kind=planEl.value;revealed={email:trimmedEmail(),kind:kind};
+ const p=PLANS[kind];document.querySelector('#plan-summary').textContent=p.label+' — '+p.price+' • '+p.duration+' de acesso';
+ const div=document.querySelector('#qr');div.innerHTML='';
+ if(typeof QRCode==='undefined'){document.querySelector('#form-message').textContent='QR Code indisponível. Tente novamente mais tarde.';invalidate();return}
+ qr=new QRCode(div,{text:PIX_PAYLOADS[kind],width:240,height:240,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L});
+ panel.style.display='block';panel.scrollIntoView({behavior:'smooth',block:'start'});
+});
+async function copyText(value){if(navigator.clipboard && window.isSecureContext){await navigator.clipboard.writeText(value);return}
+ const input=document.createElement('textarea');input.value=value;input.setAttribute('readonly','');input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();const ok=document.execCommand('copy');input.remove();if(!ok)throw Error('copy failed')}
+async function performCopy(value,success){try{await copyText(value);document.querySelector('#copy-result').textContent=success;}catch(e){window.prompt('Copie o texto:',value)}}
+document.querySelector('#copy-pix').addEventListener('click',()=>{if(revealed)void performCopy(PIX_PAYLOADS[revealed.kind],'Pix copiado. Confira o valor e favorecido no aplicativo do banco.')});
+document.querySelector('#copy-email').addEventListener('click',()=>{if(revealed)void performCopy(revealed.email,'E-mail copiado. Cole no campo Mensagem/Descrição do Pix, se disponível.')});
+document.querySelector('#notify').addEventListener('click',()=>{
+ if(!validEmail())return;
+ if(!revealed || revealed.email!==trimmedEmail() || revealed.kind!==planEl.value){document.querySelector('#notify-result').textContent='Primeiro selecione o plano e abra o Pix na etapa 2.';return}
+ const p=PLANS[revealed.kind];
+ const text='Olá! Solicito conferência de um Pix do Escudo Fit. Plano: '+p.label+' ('+p.price+', '+p.duration+'). Conta Google: '+revealed.email+'. Confirmem o recebimento no PicPay antes de ativar o Premium.';
+ window.open('https://wa.me/5511985237017?text='+encodeURIComponent(text),'_blank','noopener,noreferrer');
+ document.querySelector('#notify-result').textContent='WhatsApp aberto. Envie a mensagem para solicitar conferência.';
+});
+</script>
+</body></html>
