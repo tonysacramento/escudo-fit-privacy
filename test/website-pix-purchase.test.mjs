@@ -295,3 +295,10 @@ test('403 on purchase is a certain refusal: clear message, no retry, no uncertai
   assert.equal(calls.filter(x=>x.url.endsWith('/orders')&&x.method==='POST').length,1);
   assert(!events.some(e=>/pode ter sido registrada/.test(e.m||'')));
 });
+
+test('canary page hides the legacy v2 pilot shortcut',()=>{
+  const html=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
+  const script=readFileSync(new URL('../app/comprar/purchase.mjs',import.meta.url),'utf8');
+  assert.match(html,/<section id="legacy-pilot-link"[^>]*>[\s\S]*?href="\.\/simples\/"/);
+  assert.match(script,/if\(target\.canary\)\{[\s\S]*?el\('legacy-pilot-link'\)[\s\S]*?legacy\.hidden=true/);
+});
