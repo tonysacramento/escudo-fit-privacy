@@ -266,3 +266,13 @@ test('closed go-live canary is a fixed list: only ?canary=golive-r10 changes the
   await c.signIn(GOOGLE);
   assert(urls.length>=2);assert(urls.every(u=>u.startsWith(tag+'/')),urls.join(' '));
 });
+
+test('page CSP allows exactly the main API and each fixed canary host, nothing broader',()=>{
+  const html=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
+  const csp=/http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(html)[1];
+  const connect=csp.split(';').map(x=>x.trim()).find(x=>x.startsWith('connect-src')).split(/\s+/).slice(1);
+  for(const api of [PURCHASE_API,...Object.values(PURCHASE_CANARY_APIS)])
+    assert(connect.includes(new URL(api).origin),'CSP connect-src missing '+new URL(api).origin);
+  assert(connect.every(x=>!x.includes('*')),'no wildcard in connect-src');
+  assert.equal(connect.length,2+Object.keys(PURCHASE_CANARY_APIS).length);
+});
