@@ -18,18 +18,12 @@
  <p class="eyebrow">PAGAMENTO PIX • COMPRA AVULSA</p>
  <h1>Seu Premium, no seu ritmo.</h1>
  <p class="intro">Compre um período avulso, sem renovação automática. Consulte o estado da sua ordem diretamente na API do Escudo Fit, que verifica o Mercado Pago.</p>
- <section id="legacy-pilot-link" aria-label="Pagamento Pix simplificado" style="background:#123c43;border:1px solid #52bdb6;border-radius:16px;padding:20px;margin:20px 0 26px">
-  <p class="eyebrow">FLUXO PIX SIMPLIFICADO</p>
-  <h2 style="margin:7px 0">Pague R$ 4,99 em uma única página</h2>
-  <p>O checkout simplificado reúne login Google, autorização da compra privada, emissão única do Pix e acompanhamento de Premium. Sem renovação automática.</p>
-  <a href="./simples/" style="display:inline-block;background:#55e2d5;color:#092d35;padding:15px 22px;border-radius:12px;font-weight:800;text-decoration:none;margin-top:5px">Abrir pagamento Pix de R$ 4,99</a>
-  <p style="font-size:13px;margin-bottom:0">A emissão depende de autorização válida do servidor; esta página não contorna bloqueios financeiros.</p>
- </section>
  <div class="columns">
   <section class="panel offer" aria-labelledby="offer-title">
    <p class="eyebrow">PLANO SELECIONADO</p><h2 id="offer-title">Premium por 30 dias</h2>
    <p class="price">R$ 4,99 <span>/ pagamento único</span></p>
    <p class="hint">Pagamento Pix manual. O acesso só é ativado após confirmação e conciliação no servidor.</p>
+   <p id="pix-receiver" class="hint"><strong>Recebedor do Pix:</strong> no seu banco, o Pix aparece em nome de <strong>Tony Sacramento</strong>, responsável pelo Escudo Fit (conta Mercado Pago). Confira também o valor de R$ 4,99.</p>
    <div class="rule"></div>
    <p class="eyebrow">ETAPA 1 • IDENTIFICAÇÃO</p>
    <h3>Entrar com Google</h3>
@@ -62,7 +56,7 @@
      <div><dt>Vencimento do Pix</dt><dd id="expiry">—</dd></div>
     </dl>
     <div id="pix-panel" hidden>
-     <label for="pix-code">Pix copia e cola (confira valor e recebedor no banco)</label>
+     <label for="pix-code">Pix copia e cola (confira no banco: R$ 4,99, recebedor Tony Sacramento)</label>
      <textarea id="pix-code" readonly spellcheck="false" rows="4"></textarea>
      <button id="copy" class="secondary" type="button">Copiar código Pix</button>
     </div>
