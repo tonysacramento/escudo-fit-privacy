@@ -296,9 +296,9 @@ test('403 on purchase is a certain refusal: clear message, no retry, no uncertai
   assert(!events.some(e=>/pode ter sido registrada/.test(e.m||'')));
 });
 
-test('canary page hides the legacy v2 pilot shortcut',()=>{
+test('public purchase page drops the closed v2 pilot shortcut and names the Pix receiver',()=>{
   const html=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
-  const script=readFileSync(new URL('../app/comprar/purchase.mjs',import.meta.url),'utf8');
-  assert.match(html,/<section id="legacy-pilot-link"[^>]*>[\s\S]*?href="\.\/simples\/"/);
-  assert.match(script,/if\(target\.canary\)\{[\s\S]*?el\('legacy-pilot-link'\)[\s\S]*?legacy\.hidden=true/);
+  assert.doesNotMatch(html,/legacy-pilot-link|href="\.\/simples\/"/);
+  assert.match(html,/id="pix-receiver"[^>]*>[\s\S]*?Tony Sacramento[\s\S]*?responsável pelo Escudo Fit/);
+  assert.match(html,/recebedor Tony Sacramento/);
 });

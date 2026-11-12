@@ -24,7 +24,7 @@
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-25">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-26">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -277,6 +277,7 @@
               </div>
               <div class="metric-primary"><strong id="movementCount">0</strong><span id="movementCountLabel">atividades registradas hoje</span></div>
               <p id="movementHint">Registre sua primeira atividade do dia.</p>
+              <p id="movementDeviceSteps" class="device-steps hidden"></p>
               <div class="app-progress green"><i id="stepsBar"></i></div>
             </article>
             <article class="screen-card shield-card tappable" data-view-link="nutrition" role="button" tabindex="0" aria-label="Abrir nutrição">
@@ -428,6 +429,7 @@
             <label class="app-field">Passos informados na Web<input id="activityStepsInput" type="number" min="0" step="100" inputmode="numeric" placeholder="0"></label>
             <div class="app-progress green"><i id="activityStepsBar"></i></div>
             <p id="activityStepsHint" class="muted">Meta atual: 8.000 passos.</p>
+            <p id="activityDeviceSteps" class="device-steps hidden"></p>
             <p class="muted">No Android, o Health Connect fornece a contagem automática. Na Web, os passos são informados manualmente e não substituem os dados do aparelho.</p>
           </article>
 
@@ -743,7 +745,7 @@
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./web-reminders.js?v=web-v43-sync-recovery-21" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-25" defer></script>
+  <script src="./app.js?v=web-v43-sync-recovery-26" defer></script>
 </body>
 </html>
 
