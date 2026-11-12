@@ -1021,3 +1021,4 @@ body.is-app .reminder-card [hidden]{display:none!important}
 .missed-application-check input{width:22px;height:22px;accent-color:var(--app-gold)}
 .missed-application-row select{width:100%;min-height:44px}
 #missedApplicationForm[hidden]{display:none}
+.device-steps{margin:6px 0 0;color:#00C2D1;font-weight:800}

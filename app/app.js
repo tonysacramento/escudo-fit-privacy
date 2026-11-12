@@ -129,6 +129,21 @@ function dismissBrandIntro(){
   setTimeout(()=>{el.classList.add('leaving');setTimeout(()=>el.remove(),340);},Math.max(0,BRAND_INTRO_MIN_MS-elapsed));
 }
 
+function deviceStepsText(today,nowMs=Date.now()){
+  const entry=state.deviceSteps;
+  if(!entry||entry.date!==today||!Number.isInteger(entry.steps))return '';
+  const at=Number(entry.updatedAtMs)>0&&Number(entry.updatedAtMs)<=nowMs+60000
+    ? ' • atualizado às '+new Date(entry.updatedAtMs).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+at;
+}
+function renderDeviceSteps(today){
+  const text=deviceStepsText(today);
+  for(const id of ['movementDeviceSteps','activityDeviceSteps']){
+    const el=$(id);if(!el)continue;
+    el.textContent=text;el.classList.toggle('hidden',!text);
+  }
+}
+
 function showWebAccessGate(reason){
   const message=reason==='VERIFY'
     ? 'Não foi possível confirmar seu plano agora. Conecte-se à internet e verifique novamente. Seu histórico permanece preservado.'
@@ -457,6 +472,7 @@ function renderApp(){
   setText('activityStatus',activityProtected?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
   setText('activityCount',String(todayActivities.length));
   setText('activityHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger este escudo.');
+  renderDeviceSteps(today);
   if($('activityHistory'))$('activityHistory').innerHTML=todayActivities
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
     .map(item=>'<div class="history-row"><span>'+escapeText(activityLabels[item.type]||item.type)+(item.duration?' • '+Number(item.duration)+' min':'')+'</span><strong>'+fmtDate(item.at)+'</strong></div>')
@@ -975,6 +991,13 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
     const remoteTreatment=normalizeRemoteTreatment(data?.treatment);
     if(remoteTreatment&&remoteTreatment.updatedAtMs>=Number(state.treatment?.updatedAtMs||0)){
       state.treatment=remoteTreatment;
+    }
+
+    // Day step total sent by the Android app (Health Connect); shown read-only, today only.
+    const remoteSteps=(Array.isArray(primary?.steps)?primary.steps:[])
+      .find(item=>item?.date===today&&Number.isInteger(item?.steps)&&item.steps>=0&&item.steps<=200000);
+    if(remoteSteps&&Number(remoteSteps.updatedAtMs||0)>=Number(state.deviceSteps?.updatedAtMs||0)){
+      state.deviceSteps={date:today,steps:remoteSteps.steps,updatedAtMs:Number(remoteSteps.updatedAtMs)||0};
     }
 
     const waterDays=(Array.isArray(data?.water)?data.water:[])

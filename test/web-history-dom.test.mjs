@@ -243,6 +243,26 @@ async function liveSession({mode='PREMIUM',failure='',savedStorage,validationGat
     tick:async()=>{for(const t of timers.values())if(t.ms===30000)t.fn();await pause()}};
 }
 
+test('Web shows the Android Health Connect step total for today only, read-only',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const now=Date.now(),date=w.eval('localDayKey()');
+    const card=()=>w.document.getElementById('movementDeviceSteps');
+    assert.equal(card().classList.contains('hidden'),true,'no device steps yet');
+    h.setRemote({steps:[{date:'2000-01-01',steps:9999,updatedAtMs:now-86400000},{date,steps:1450,updatedAtMs:now}]});
+    for(const t of h.timers.values())t.fn();w.dispatchEvent(new w.Event('focus'));await pause();await pause();
+    assert.equal(card().classList.contains('hidden'),false);
+    assert.match(card().textContent,/1\.450 passos no celular/);
+    assert.match(w.document.getElementById('activityDeviceSteps').textContent,/1\.450 passos no celular/);
+    assert.doesNotMatch(card().textContent,/9\.999/);
+    // An older reading never replaces a newer one; manual Web steps stay separate.
+    h.setRemote({steps:[{date,steps:300,updatedAtMs:now-60000}]});
+    for(const t of h.timers.values())t.fn();w.dispatchEvent(new w.Event('focus'));await pause();
+    assert.match(card().textContent,/1\.450 passos/);
+    assert.equal(w.document.getElementById('activityStepsInput').value,'');
+  }finally{h.w.close()}
+});
+
 test('visible Web imports delayed Android movement, nutrition and water without navigation; preserves drafts and avoids overlap',async()=>{
   const h=await liveSession();const {w}=h;
   try{
