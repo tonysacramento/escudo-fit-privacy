@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url);
 const { JSDOM }=require('jsdom');
@@ -448,10 +448,13 @@ test('PWA name and startup use approved unmodified V43 artwork',()=>{
   const manifest=JSON.parse(readFileSync('app/manifest.webmanifest','utf8'));
   assert.equal(manifest.name,'Escudo Fit Web');assert.equal(manifest.short_name,'Escudo Fit Web');
   assert.equal(manifest.id,'./');assert.equal(manifest.start_url,'./');
-  assert.equal(manifest.icons[0].src,'./icon-approved-v43.png');
-  assert.match(html,/brand-mark-approved-v44\.png/);
-  // Opening matches the Android app: same background, mark and wordmark.
-  assert.match(html,/id="brandIntro"[^>]*aria-hidden="true"/);assert.match(html,/Escudo <span>Fit<\/span>/);
+  // Chrome splash: transparent shield (purpose any) on #0F2B33, like the APK native splash.
+  assert.equal(manifest.background_color,'#0F2B33');
+  assert.deepEqual(manifest.icons.map(i=>[i.src,i.purpose]),[['./brand-mark-approved-v44.png','any'],['./icon-maskable-v45.png','maskable']]);
+  assert.ok(existsSync('app/brand-splash-v45.png'));assert.ok(existsSync('app/icon-maskable-v45.png'));
+  // Opening matches the Android APK: shield only (no wordmark), then "Preparando seu escudo...".
+  assert.match(html,/id="brandIntro"[^>]*aria-hidden="true">\s*<img src="\.\/brand-splash-v45\.png"/);
+  assert.match(html,/Preparando seu escudo\.\.\./);
   assert.match(html,/theme-color" content="#0F2B33"/);
   assert.match(html,/Instalar Escudo Fit Web/);
 });

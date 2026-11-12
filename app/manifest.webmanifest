@@ -6,15 +6,21 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#102E35",
-  "theme_color": "#102E35",
+  "background_color": "#0F2B33",
+  "theme_color": "#0F2B33",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./icon-approved-v43.png",
-      "sizes": "1024x1024",
+      "src": "./brand-mark-approved-v44.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-v45.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
