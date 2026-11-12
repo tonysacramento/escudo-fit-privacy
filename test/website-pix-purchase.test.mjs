@@ -296,9 +296,8 @@ test('403 on purchase is a certain refusal: clear message, no retry, no uncertai
   assert(!events.some(e=>/pode ter sido registrada/.test(e.m||'')));
 });
 
-test('public purchase page drops the closed v2 pilot shortcut and names the Pix receiver',()=>{
+test('public purchase page drops the closed v2 pilot shortcut and shows no personal receiver data',()=>{
   const html=readFileSync(new URL('../app/comprar/index.html',import.meta.url),'utf8');
   assert.doesNotMatch(html,/legacy-pilot-link|href="\.\/simples\/"/);
-  assert.match(html,/id="pix-receiver"[^>]*>[\s\S]*?Tony Sacramento[\s\S]*?responsável pelo Escudo Fit/);
-  assert.match(html,/recebedor Tony Sacramento/);
+  assert.doesNotMatch(html,/pix-receiver|Sacramento|conta Mercado Pago/i);
 });
