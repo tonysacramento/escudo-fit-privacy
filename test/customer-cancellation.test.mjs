@@ -161,10 +161,10 @@ test('the period reaches the view from the listing and from the POST receipt',as
   assert.equal(reloaded.length,1);assert.deepEqual(reloaded[0][2],late);
 });
 
-test('cancellation page states rule A: first refund per account is automatic, later ones go to support within the 7 days',async()=>{
+test('cancellation page states CDC art. 49: every request within 7 days is refunded automatically',async()=>{
   const {readFileSync}=await import('node:fs');
   const html=readFileSync(new URL('../app/cancelar/index.html',import.meta.url),'utf8');
-  assert.match(html,/primeiro reembolso de cada conta, dentro desse prazo, é processado automaticamente/);
-  assert.match(html,/A partir do segundo pedido de reembolso da mesma conta, o pedido é analisado pelo suporte/);
-  assert.match(html,/direito ao reembolso integral dentro dos 7 dias continua garantido/);
+  assert.match(html,/Todo pedido feito dentro desse prazo é processado automaticamente, com reembolso integral/);
+  assert.match(html,/art\. 49/);
+  assert.doesNotMatch(html,/segundo pedido de reembolso|primeiro reembolso de cada conta/);
 });
