@@ -120,6 +120,9 @@ function webAccessAllowed(){
 // Android parity: the brand opening stays at least 1.75 s from page start and then
 // fades out over the ready screen (app/index.tsx). Never blocks the app underneath.
 const BRAND_INTRO_MIN_MS=1750;
+// Like the APK: the splash ends after its minimum time even while the app still loads;
+// "Preparando seu escudo..." (sessionLoading) covers the rest.
+if(typeof window!=='undefined')setTimeout(()=>dismissBrandIntro(),0);
 function dismissBrandIntro(){
   const el=$('brandIntro');if(!el||el.dataset.leaving)return;el.dataset.leaving='1';
   const elapsed=typeof performance!=='undefined'?performance.now():BRAND_INTRO_MIN_MS;

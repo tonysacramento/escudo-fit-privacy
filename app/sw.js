@@ -1,17 +1,19 @@
-const CACHE='escudo-fit-web-v35-carousel-six-approved-v7';
+const CACHE='escudo-fit-web-v45-splash-v1';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-recovery-24',
+  './styles.css?v=web-v43-sync-recovery-25',
   './history-sync-contract.js?v=web-v43-sync-recovery-20',
   './history-backup-bridge.js?v=web-v43-sync-recovery-20',
   './web-reminders.js?v=web-v43-sync-recovery-21',
-  './app.js?v=web-v43-sync-recovery-24',
+  './app.js?v=web-v43-sync-recovery-25',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',
   './splash-approved-v43.png',
   './brand-mark-approved-v44.png',
+  './brand-splash-v45.png',
+  './icon-maskable-v45.png',
   './campaign/escudo-fit-01-organize-rotina.png',
   './campaign/escudo-fit-02-hidratacao.png',
   './campaign/escudo-fit-03-movimento.png',
