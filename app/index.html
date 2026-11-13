@@ -61,14 +61,14 @@
             <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM MENSAL</span><strong style="font-size:1.35rem;">R$ 4,99</strong><span> /30 dias</span></div>
             <div style="border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:12px 16px;background:rgba(255,255,255,.05);"><span style="display:block;font-size:.78rem;opacity:.85;">PREMIUM ANUAL</span><strong style="font-size:1.35rem;">R$ 49,90</strong><span> /ano</span></div>
           </div>
-          <p style="font-size:.84rem;opacity:.85;margin:0 0 10px;">Experimente por 14 dias grátis. A contratação Premium é separada e depende da confirmação do pagamento.</p>
+          <p style="font-size:.84rem;opacity:.85;margin:0 0 10px;">Experimente por <span data-trial-days>7</span> dias grátis. A contratação Premium é separada e depende da confirmação do pagamento.</p>
           <div class="hero-ctas">
-            <button class="button button-primary trial-hero-button" data-scroll-trial>Começar 14 dias grátis</button>
+            <button class="button button-primary trial-hero-button" data-scroll-trial data-trial-start>Começar 7 dias grátis</button>
             <button class="button button-outline" data-scroll-login>Já tenho acesso</button>
             <a class="button button-ghost" href="https://play.google.com/store/apps/details?id=com.escudofit.app" target="_blank" rel="noopener">Android</a>
           </div>
           <div class="trust-row">
-            <span>✓ 14 dias grátis</span>
+            <span>✓ <span data-trial-days>7</span> dias grátis</span>
             <span>✓ Sem cartão</span>
             <span>✓ Ativação com Conta Google</span>
           </div>
@@ -141,7 +141,7 @@
         <div class="trial-panel">
           <div class="trial-copy">
             <span id="trialEyebrow" class="eyebrow">TESTE GRÁTIS</span>
-            <h2 id="trialTitle">Experimente o Escudo Fit Premium por 14 dias</h2>
+            <h2 id="trialTitle">Experimente o Escudo Fit Premium por <span data-trial-days>7</span> dias</h2>
             <p id="trialIntro">Faça um cadastro rápido. O período começa quando você entrar pela primeira vez com a mesma Conta Google.</p>
             <div class="trial-points">
               <span>✓ Nome + e-mail</span>
@@ -166,7 +166,7 @@
             <div class="trial-honeypot" aria-hidden="true">
               <label>Empresa<input id="trialCompany" name="company" type="text" tabindex="-1" autocomplete="off"></label>
             </div>
-            <button id="trialSubmit" class="button button-primary full-width" type="submit">Começar 14 dias grátis</button>
+            <button id="trialSubmit" class="button button-primary full-width" type="submit" data-trial-start>Começar 7 dias grátis</button>
             <p class="trial-note">Se você usar Gmail, seguiremos pelo login Google e Android. Outros e-mails serão cadastrados inicialmente para acesso pela Web. Se esse outro endereço também for uma Conta Google, o acesso poderá ser vinculado depois sem duplicar o cadastro.</p>
             <p id="trialStatus" class="trial-status hidden" aria-live="polite"></p>
             <button id="trialLoginButton" class="button button-outline full-width hidden" type="button" data-scroll-login>Entrar com Google e ativar trial</button>
@@ -745,7 +745,7 @@
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./web-reminders.js?v=web-v43-sync-recovery-21" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-26" defer></script>
+  <script src="./app.js?v=web-v43-sync-recovery-28" defer></script>
 </body>
 </html>
 
