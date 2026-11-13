@@ -580,7 +580,7 @@ test('quick trial signup reserves access before Google login', async ({ page }) 
   });
 
   await page.goto('http://127.0.0.1:4173/app/', { waitUntil:'networkidle' });
-  await expect(page.getByRole('button', { name:'Começar 14 dias grátis' }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name:'Começar 7 dias grátis' }).first()).toBeVisible();
 
   await page.locator('[data-scroll-trial]').first().click();
   await page.locator('#trialName').fill('Maria Silva');

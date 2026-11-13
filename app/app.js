@@ -26,6 +26,7 @@ const PROMO_CODE=new URLSearchParams(window.location.search).get('promo')||'';
 const PROMO_CAMPAIGNS=Object.freeze({
   MONISE30:{code:'Monise30',trialDays:30,requiresManualApproval:true},
   'CRF-SP':{code:'CRF-SP',trialDays:14,requiresManualApproval:false},
+  PATRIOTA22:{code:'Patriota22',trialDays:14,requiresManualApproval:false},
 });
 const ACTIVE_PROMO=PROMO_CAMPAIGNS[PROMO_CODE.trim().toUpperCase()]||null;
 
@@ -203,7 +204,11 @@ function setTrialStatus(message,isError=false){
   el.classList.toggle('hidden',!message);
 }
 
+// Standard free period of a quick sign-up (owner decision, 13/11); campaign coupons keep their own.
+const TRIAL_DAYS=ACTIVE_PROMO?.trialDays||7;
 function applyPromoLanding(){
+  document.querySelectorAll('[data-trial-days]').forEach(el=>{el.textContent=String(TRIAL_DAYS);});
+  document.querySelectorAll('[data-trial-start]').forEach(el=>{el.textContent='Começar '+TRIAL_DAYS+' dias grátis';});
   if(!ACTIVE_PROMO)return;
   if($('trialPromoCode'))$('trialPromoCode').value=ACTIVE_PROMO.code;
   if(!ACTIVE_PROMO.requiresManualApproval){
@@ -268,7 +273,7 @@ async function registerQuickTrial(event){
       $('trialLoginButton')?.classList.add('hidden');
       $('trialAndroidButton')?.classList.add('hidden');
     }else if(accessChannel==='GOOGLE_PLAY'){
-      setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus 14 dias grátis e acessar o Android.');
+      setTrialStatus('Cadastro concluído. Entre com esta mesma Conta Google para ativar seus '+TRIAL_DAYS+' dias grátis e acessar o Android.');
       $('trialLoginButton')?.classList.remove('hidden');
       $('trialAndroidButton')?.classList.remove('hidden');
     }else{
@@ -285,7 +290,7 @@ async function registerQuickTrial(event){
         : 'Não foi possível concluir o cadastro. Revise os dados e tente novamente.',
       true
     );
-    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?.requiresManualApproval?'Solicitar 30 dias grátis':'Começar 14 dias grátis'}
+    if(button){button.disabled=false;button.textContent=ACTIVE_PROMO?.requiresManualApproval?'Solicitar 30 dias grátis':'Começar '+TRIAL_DAYS+' dias grátis'}
   }
 }
 
@@ -1210,7 +1215,7 @@ async function handleGoogleCredential(response){
       reservedTrialEmail &&
       reservedTrialEmail===String(data?.user?.email||'').toLowerCase();
     if(trialActivated)sessionStorage.removeItem('escudofit_trial_email');
-    toast(trialActivated?'Trial de 14 dias ativado':'Bem-vindo ao Escudo Fit');
+    toast(trialActivated?'Período grátis ativado':'Bem-vindo ao Escudo Fit');
   }catch(error){
     const code=String(error?.message||'LOGIN_FAILED');
     const cors=/Failed to fetch|NetworkError|Load failed/i.test(code);

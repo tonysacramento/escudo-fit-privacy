@@ -35,6 +35,8 @@ test('campaign link ?promo=CRF-SP keeps the 14-day trial, shows the coupon and s
     assert.equal(d.getElementById('trialEyebrow').textContent,'CUPOM CRF-SP APLICADO');
     assert.match(d.getElementById('trialIntro').textContent,/Cupom CRF-SP aplicado.*14 dias grátis/);
     assert.equal(d.getElementById('trialSubmit').textContent,'Começar 14 dias grátis');
+    assert.equal(d.getElementById('trialTitle').textContent,'Experimente o Escudo Fit Premium por 14 dias');
+    assert.doesNotMatch(d.body.textContent,/\b7 dias grátis/);
     assert.equal(d.getElementById('trialPromoCode').value,'CRF-SP');
     await signUp(w);
     assert.equal(posts.length,1);assert.equal(posts[0].promoCode,'CRF-SP');
@@ -50,7 +52,34 @@ test('Monise30 keeps its 30-day manual approval flow; no promo sends no coupon',
   }finally{m.w.close();}
   const plain=await guest('');
   try{
-    assert.equal(plain.w.document.getElementById('trialEyebrow').textContent,'TESTE GRÁTIS');
+    const d=plain.w.document;
+    assert.equal(d.getElementById('trialEyebrow').textContent,'TESTE GRÁTIS');
+    // Standard sign-up: 7 free days everywhere on the page (owner decision, 13/11).
+    assert.equal(d.getElementById('trialTitle').textContent,'Experimente o Escudo Fit Premium por 7 dias');
+    assert.equal(d.getElementById('trialSubmit').textContent,'Começar 7 dias grátis');
+    assert.doesNotMatch(d.body.textContent,/14 dias/);
     await signUp(plain.w);assert.equal('promoCode' in plain.posts[0],false);
   }finally{plain.w.close();}
+});
+
+test('every campaign page links to a coupon the Web recognizes, with the period it promises',async()=>{
+  const {readdirSync}=await import('node:fs');
+  const js=readFileSync('app/app.js','utf8');
+  for(const dir of readdirSync('app/campanhas')){
+    const page=readFileSync('app/campanhas/'+dir+'/index.html','utf8');
+    const code=/href="\.\.\/\.\.\/\?promo=([A-Za-z0-9-]+)#trialSection"/.exec(page)?.[1];
+    assert.ok(code,dir+' links to a coupon');
+    const days=Number(/(\d+) dias grátis/.exec(page)?.[1]);
+    const entry=new RegExp("code:'"+code+"',trialDays:(\\d+)").exec(js);
+    assert.ok(entry,dir+': coupon '+code+' is recognized');
+    assert.equal(Number(entry[1]),days,dir+': page promise matches the coupon period');
+  }
+});
+
+test('Patriota22 campaign keeps its 14 days after the standard period became 7',async()=>{
+  const {w,posts}=await guest('?promo=Patriota22');
+  try{
+    assert.equal(w.document.getElementById('trialSubmit').textContent,'Começar 14 dias grátis');
+    await signUp(w);assert.equal(posts[0].promoCode,'Patriota22');
+  }finally{w.close();}
 });
