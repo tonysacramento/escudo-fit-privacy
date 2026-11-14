@@ -27,6 +27,7 @@ const PROMO_CAMPAIGNS=Object.freeze({
   MONISE30:{code:'Monise30',trialDays:30,requiresManualApproval:true},
   'CRF-SP':{code:'CRF-SP',trialDays:14,requiresManualApproval:false},
   PATRIOTA22:{code:'Patriota22',trialDays:14,requiresManualApproval:false},
+  ENS:{code:'ENS',trialDays:14,requiresManualApproval:false},
 });
 const ACTIVE_PROMO=PROMO_CAMPAIGNS[PROMO_CODE.trim().toUpperCase()]||null;
 

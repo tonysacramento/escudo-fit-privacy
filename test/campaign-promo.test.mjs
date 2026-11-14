@@ -83,3 +83,12 @@ test('Patriota22 campaign keeps its 14 days after the standard period became 7',
     await signUp(w);assert.equal(posts[0].promoCode,'Patriota22');
   }finally{w.close();}
 });
+
+test('ENS campaign gives 14 days and sends its coupon',async()=>{
+  const {w,posts}=await guest('?promo=ens');
+  try{
+    assert.equal(w.document.getElementById('trialEyebrow').textContent,'CUPOM ENS APLICADO');
+    assert.equal(w.document.getElementById('trialSubmit').textContent,'Começar 14 dias grátis');
+    await signUp(w);assert.equal(posts[0].promoCode,'ENS');
+  }finally{w.close();}
+});
