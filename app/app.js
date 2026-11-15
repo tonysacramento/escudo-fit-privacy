@@ -628,6 +628,14 @@ function renderApp(){
   const displayName=state.profile?.name||auth.user.name||auth.user.email.split('@')[0];
   setText('welcomeName',displayName);
   setText('appGreeting','Olá, '+displayName.split(' ')[0]);
+  // Home welcome (same as the Android app): profile first name, then Google name, never the e-mail.
+  const welcomeFirst=[state.profile?.name,auth.user.name].map(v=>String(v||'').trim().split(/\s+/)[0]).find(v=>v&&/\p{L}/u.test(v));
+  setText('welcomeTitle',welcomeFirst?'Olá, '+welcomeFirst.slice(0,24)+'!':'Olá!');
+  if($('welcomeAvatar')){
+    const pic=/^https:\/\//.test(auth.user.picture||'')?auth.user.picture:'./icon-approved-v43.png';
+    if($('welcomeAvatar').getAttribute('src')!==pic)$('welcomeAvatar').src=pic;
+    $('welcomeAvatar').classList.toggle('brand',!/^https:/.test(pic));
+  }
   setText('profileUserName',auth.user.name||displayName);
   setText('profileEmail',auth.user.email);
   if($('profilePicture'))$('profilePicture').src=auth.user.picture||'./icon-approved-v43.png';

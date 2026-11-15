@@ -1022,3 +1022,4 @@ body.is-app .reminder-card [hidden]{display:none!important}
 .missed-application-row select{width:100%;min-height:44px}
 #missedApplicationForm[hidden]{display:none}
 .device-steps{margin:6px 0 0;color:#00C2D1;font-weight:800}
+.welcome-row{display:flex;align-items:center;gap:14px;margin:2px 2px 14px}.welcome-avatar{width:56px;height:56px;flex:0 0 56px;border-radius:50%;border:2px solid var(--cyan);object-fit:cover;background:#0F2B33}.welcome-avatar.brand{object-fit:contain;padding:6px}.welcome-row h2{margin:0;font-size:1.4rem;font-weight:900;color:var(--white)}.welcome-row p{margin:2px 0 0;color:var(--muted);font-size:.95rem}

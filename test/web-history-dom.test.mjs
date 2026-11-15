@@ -651,3 +651,18 @@ test('weights keep two decimals in chart, summary and history list',async()=>{
     assert.equal(w.document.getElementById('weightInput').getAttribute('step'),'0.01');
   }finally{h.dom.window.close()}
 });
+
+test('home shows the welcome greeting with the first name and photo, never the e-mail',async()=>{
+  const {JSDOM}=require('jsdom');
+  const dom=new JSDOM(html,{url:'https://escudofit.example/app/',runScripts:'outside-only',pretendToBeVisual:true});
+  const w=dom.window;w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
+  w.localStorage.setItem('escudofit_web_auth_v1',JSON.stringify({user:{id:'u1',email:'camila.souza@example.invalid',name:'Camila Souza',picture:'https://lh3.example/photo.jpg'},access_token:'a',refresh_token:'r',entitlement:{mode:'PREMIUM'}}));
+  w.fetch=async url=>({ok:true,status:200,json:async()=>(/entitlement/.test(String(url))?{mode:'PREMIUM',isActive:true,expiresAt:null}:/\/me$/.test(String(url))?{user:{id:'u1',email:'camila.souza@example.invalid',name:'Camila Souza',picture:'https://lh3.example/photo.jpg'}}:/\/history\/backup/.test(String(url))?{revision:0,entries:[]}:{})});
+  try{
+    w.eval(contract);w.eval(bridge);w.eval(reminders);w.eval(js);for(let i=0;i<40&&w.document.getElementById("welcomeTitle").textContent==="Olá!";i++)await new Promise(r=>setTimeout(r,50));
+    assert.equal(w.document.getElementById('welcomeTitle').textContent,'Olá, Camila!');
+    assert.match(w.document.querySelector('.welcome-row p').textContent,/Vamos continuar com a sua rotina hoje\?/);
+    assert.equal(w.document.getElementById('welcomeAvatar').getAttribute('src'),'https://lh3.example/photo.jpg');
+    assert.doesNotMatch(w.document.querySelector('.welcome-row').textContent,/@/);
+  }finally{w.close();}
+});
