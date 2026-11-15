@@ -1,0 +1,27 @@
+name: Publish Escudo Fit 1.0.45 QA APK
+# One-shot: publishes the already-built APK (escudo-fit-app run 43662281118) as a
+# pre-release. No build. Not linked from the web download button.
+on:
+  push:
+    branches: [claude/v45-apk-qa-release]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact build bytes
+        run: |
+          echo '10a166cd946f900dbfde45fe1120e8079fceea76d563cc7dc391747379d47b99  escudo-fit-v45-full.apk' | sha256sum --check
+          sha256sum --check escudo-fit-v45-full.sha256
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create v45-full-qa escudo-fit-v45-full.apk escudo-fit-v45-full.sha256 \
+            --target main --prerelease \
+            --title "Escudo Fit 1.0.45 FULL — Android (teste)" \
+            --notes "APK do build #43662281118 (escudo-fit-app 18df954), versão 1.0.45, código 45. Novidades: saudação 'Olá, Nome!', lista de medicamentos atualizada, água lançada no web aparece sozinha, passos do celular na conta. Instala por cima da versão atual, mantendo os dados. SHA-256: 10a166cd946f900dbfde45fe1120e8079fceea76d563cc7dc391747379d47b99"
