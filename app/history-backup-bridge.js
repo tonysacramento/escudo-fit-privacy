@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   const DATE=/^\d{4}-\d{2}-\d{2}$/;
-  const MEDICATIONS=new Set(['NONE','OZEMPIC','WEGOVY','MOUNJARO','SAXENDA','OTHER']);
+  const MEDICATIONS=new Set(['OZEMPIC','WEGOVY','OZIVY','SEMAVY','OWOZY','SEEMASUN','ZEMPNEO','ORSEMA','SEMACLIQUE','RYBELSUS','SEMAGLUTIDE_GENERIC','MOUNJARO','LIPOLESS','SAXENDA','VICTOZA','OLIRE','LIRUX','TRULICITY','OTHER','NONE']);
   const validDate=date=>{
     if(typeof date!=='string'||!DATE.test(date))return false;
     const d=new Date(date+'T00:00:00.000Z');
