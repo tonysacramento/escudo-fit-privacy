@@ -666,3 +666,14 @@ test('home shows the welcome greeting with the first name and photo, never the e
     assert.doesNotMatch(w.document.querySelector('.welcome-row').textContent,/@/);
   }finally{w.close();}
 });
+
+test('medication picker offers the full catalog (Lipoless, Victoza, Olire, Lirux, Trulicity, Rybelsus) and the sync contract accepts it',()=>{
+  const ids=[...html.matchAll(/<option value="([A-Z_]+)"/g)].map(m=>m[1]);
+  for(const id of ['LIPOLESS','VICTOZA','OLIRE','LIRUX','TRULICITY','RYBELSUS','MOUNJARO','OZEMPIC','SAXENDA'])assert.ok(ids.includes(id),id);
+  assert.match(html,/<optgroup label="Tirzepatida">[\s\S]*?<option value="LIPOLESS">Lipoless<\/option>[\s\S]*?<\/optgroup>/);
+  for(const id of ids.filter(id=>/^[A-Z_]+$/.test(id)&&!['BREAKFAST','LUNCH','DINNER','SNACK'].includes(id))){
+    if(!/medication/i.test(html.slice(html.lastIndexOf('<select',html.indexOf('value="'+id+'"')),html.indexOf('value="'+id+'"'))))continue;
+    assert.match(contract,new RegExp("'"+id+"'"),'sync contract knows '+id);
+    assert.match(bridge,new RegExp("'"+id+"'"),'backup bridge knows '+id);
+  }
+});
