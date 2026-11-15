@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v45-campaign-ens-v1';
+const CACHE='escudo-fit-web-v45-carousel-app-real-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -14,12 +14,12 @@ const ASSETS=[
   './brand-mark-approved-v44.png',
   './brand-splash-v45.png',
   './icon-maskable-v45.png',
-  './campaign/escudo-fit-01-organize-rotina.png',
-  './campaign/escudo-fit-02-hidratacao.png',
-  './campaign/escudo-fit-03-movimento.png',
-  './campaign/escudo-fit-04-nutricao.png',
-  './campaign/escudo-fit-05-aplicacoes.png',
-  './campaign/escudo-fit-06-meu-progresso.png',
+  './campaign/escudo-fit-01-organize-rotina.png?v=app-real-1',
+  './campaign/escudo-fit-02-hidratacao.png?v=app-real-1',
+  './campaign/escudo-fit-03-movimento.png?v=app-real-1',
+  './campaign/escudo-fit-04-nutricao.png?v=app-real-1',
+  './campaign/escudo-fit-05-aplicacoes.png?v=app-real-1',
+  './campaign/escudo-fit-06-meu-progresso.png?v=app-real-1',
   './manifest.webmanifest',
   './icon.svg'
 ];
