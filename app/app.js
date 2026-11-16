@@ -94,7 +94,8 @@ function toast(msg){const t=$('toast');if(!t)return;t.textContent=msg;t.classLis
 function escapeText(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
 
 function planLabel(mode){
-  return ({FREE:'FREE',TRIAL_14D:'TRIAL',TRIAL_60D:'TRIAL 60D',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'VIP VITALÍCIO',PREMIUM:'PREMIUM'})[mode]||'FULL';
+  // Plain plan names for people (owner request, 16/11), never the internal codes.
+  return ({FREE:'Free',TRIAL_14D:'Teste grátis',TRIAL_60D:'Teste grátis',VIP_TEMPORARY:'VIP',VIP_LIFETIME:'Vitalício',PREMIUM:'Premium'})[mode]||'Free';
 }
 
 function webAccessDecision(entitlement,nowMs=Date.now()){
@@ -197,7 +198,7 @@ function applyExperience(){
   setText('experienceLabel','FULL');
   // Keep the real entitlement visible without using it to choose the Web edition.
   setText('planBadge',planLabel(mode));
-  setText('profilePlan','WEB FULL • '+planLabel(mode));
+  setText('profilePlan',planLabel(mode));
   renderInstallAction();
   return experience;
 }
@@ -655,7 +656,7 @@ function renderApp(){
   const p=planLabel(auth.entitlement?.mode);
   if(experience==='FULL'){
     setText('planBadge',p);
-    setText('profilePlan','WEB FULL • '+p);
+    setText('profilePlan',p);
   }
 
 }

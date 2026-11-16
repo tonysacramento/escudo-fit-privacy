@@ -140,8 +140,8 @@ test('landing -> login -> app -> logout -> landing', async ({ page }) => {
   await expect(page.locator('#marketingExperience')).toBeHidden();
   await expect(page.locator('#appExperience')).toBeVisible();
   await expect(page.locator('#welcomeName')).toHaveText('Elaine Queiroz Silva');
-  await expect(page.locator('#planBadge')).toHaveText('VIP VITALÍCIO');
-  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • VIP VITALÍCIO');
+  await expect(page.locator('#planBadge')).toHaveText('Vitalício');
+  await expect(page.locator('#profilePlan')).toHaveText('Vitalício');
   await expect(page.locator('#navMedication')).toBeVisible();
   await page.locator('[data-target="profile"]').click();
   await expect(page.locator('#installButtonFloating')).toHaveText('Instalar Escudo Fit Web');
@@ -223,7 +223,7 @@ test('mobile layout remains usable before and after login', async ({ page }) => 
   await page.locator('#mock-google-login-mobile').click();
 
   await expect(page.locator('#appExperience')).toBeVisible();
-  await expect(page.locator('#planBadge')).toHaveText('PREMIUM');
+  await expect(page.locator('#planBadge')).toHaveText('Premium');
 
   const appOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   expect(appOverflow).toBeFalsy();
@@ -408,8 +408,8 @@ test('valid 14-day trial opens Web Full and hydrates complete account history', 
 
   await expect(page.locator('#appExperience')).toBeVisible();
   await expect(page.locator('#experienceLabel')).toHaveText('FULL');
-  await expect(page.locator('#planBadge')).toHaveText('TRIAL');
-  await expect(page.locator('#profilePlan')).toHaveText('WEB FULL • TRIAL');
+  await expect(page.locator('#planBadge')).toHaveText('Teste grátis');
+  await expect(page.locator('#profilePlan')).toHaveText('Teste grátis');
   await expect(page.locator('.app-view[data-view="measurements"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('.app-view[data-view="activities"]')).not.toHaveClass(/entitlement-hidden/);
   await expect(page.locator('.app-view[data-view="applications"]')).not.toHaveClass(/entitlement-hidden/);
