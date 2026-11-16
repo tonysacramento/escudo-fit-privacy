@@ -395,7 +395,7 @@ for(const mode of ['VIP_LIFETIME','PREMIUM','TRIAL_14D','FREE'])test('installati
     event.prompt=async()=>{prompted++};event.userChoice=Promise.resolve({outcome:'accepted'});w.dispatchEvent(event);
     const button=w.document.getElementById('installButtonFloating');assert.equal(button.classList.contains('hidden'),false);assert.equal(event.defaultPrevented,true);
     assert.match(button.textContent,/^Instalar Escudo Fit Web$/);button.click();await pause();assert.equal(prompted,1);
-    assert.equal(w.document.getElementById('profilePlan').textContent,'WEB FULL • '+(mode==='PREMIUM'?'PREMIUM':mode==='VIP_LIFETIME'?'VIP VITALÍCIO':'TRIAL'));
+    assert.equal(w.document.getElementById('profilePlan').textContent,mode==='PREMIUM'?'Premium':mode==='VIP_LIFETIME'?'Vitalício':'Teste grátis');
     if(mode==='TRIAL_14D')assert.equal(w.document.getElementById('downloadAndroidFull').classList.contains('hidden'),true);
     w.document.getElementById('logoutButton').click();await pause();assert.equal(w.localStorage.getItem('escudofit_web_auth_v1'),null);assert.equal(button.classList.contains('hidden'),true);
   }finally{w.close()}
