@@ -139,7 +139,10 @@ function deviceStepsText(today,nowMs=Date.now()){
   if(!entry||entry.date!==today||!Number.isInteger(entry.steps))return '';
   const at=Number(entry.updatedAtMs)>0&&Number(entry.updatedAtMs)<=nowMs+60000
     ? ' • atualizado às '+new Date(entry.updatedAtMs).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-  return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+at;
+  // Same numbers as the phone (APK 1.0.46+ sends the distance and calories it shows).
+  const km=Number.isFinite(entry.distanceKm)?' • ≈ '+entry.distanceKm.toLocaleString('pt-BR',{maximumFractionDigits:1})+' km':'';
+  const kcal=Number.isInteger(entry.activityKcal)?' • ≈ '+entry.activityKcal.toLocaleString('pt-BR')+' kcal':'';
+  return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+km+kcal+at;
 }
 function renderDeviceSteps(today){
   const text=deviceStepsText(today);
@@ -1021,7 +1024,9 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
     const remoteSteps=(Array.isArray(primary?.steps)?primary.steps:[])
       .find(item=>item?.date===today&&Number.isInteger(item?.steps)&&item.steps>=0&&item.steps<=200000);
     if(remoteSteps&&Number(remoteSteps.updatedAtMs||0)>=Number(state.deviceSteps?.updatedAtMs||0)){
-      state.deviceSteps={date:today,steps:remoteSteps.steps,updatedAtMs:Number(remoteSteps.updatedAtMs)||0};
+      const km=Number(remoteSteps.distanceKm),kcal=Number(remoteSteps.activityKcal);
+      state.deviceSteps={date:today,steps:remoteSteps.steps,updatedAtMs:Number(remoteSteps.updatedAtMs)||0,
+        ...(Number.isFinite(km)&&km>=0&&km<=200?{distanceKm:km}:{}),...(Number.isInteger(kcal)&&kcal>=0&&kcal<=20000?{activityKcal:kcal}:{})};
     }
 
     const waterDays=(Array.isArray(data?.water)?data.water:[])
