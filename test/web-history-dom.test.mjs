@@ -263,7 +263,8 @@ test('Web shows the Android Health Connect step total for today only, read-only'
     // APK 1.0.46 also sends the distance and calories it shows: the Web repeats them.
     h.setRemote({steps:[{date,steps:1334,updatedAtMs:now+60000,distanceKm:0.9,activityKcal:49}]});
     for(const t of h.timers.values())t.fn();w.dispatchEvent(new w.Event('focus'));await pause();
-    assert.match(card().textContent,/1\.334 passos no celular • ≈ 0,9 km • ≈ 49 kcal/);
+    assert.match(card().textContent,/1\.334 passos no celular • ≈ 49 kcal/);
+    assert.doesNotMatch(card().textContent,/km/);
   }finally{h.w.close()}
 });
 

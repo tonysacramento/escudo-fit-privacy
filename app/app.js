@@ -139,10 +139,9 @@ function deviceStepsText(today,nowMs=Date.now()){
   if(!entry||entry.date!==today||!Number.isInteger(entry.steps))return '';
   const at=Number(entry.updatedAtMs)>0&&Number(entry.updatedAtMs)<=nowMs+60000
     ? ' • atualizado às '+new Date(entry.updatedAtMs).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-  // Same numbers as the phone (APK 1.0.46+ sends the distance and calories it shows).
-  const km=Number.isFinite(entry.distanceKm)?' • ≈ '+entry.distanceKm.toLocaleString('pt-BR',{maximumFractionDigits:1})+' km':'';
+  // Calories copied from the phone (APK 1.0.46+ sends the value it shows); owner asked for calories only.
   const kcal=Number.isInteger(entry.activityKcal)?' • ≈ '+entry.activityKcal.toLocaleString('pt-BR')+' kcal':'';
-  return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+km+kcal+at;
+  return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+kcal+at;
 }
 function renderDeviceSteps(today){
   const text=deviceStepsText(today);
