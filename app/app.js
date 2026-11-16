@@ -134,13 +134,22 @@ function dismissBrandIntro(){
   setTimeout(()=>{el.classList.add('leaving');setTimeout(()=>el.remove(),340);},Math.max(0,BRAND_INTRO_MIN_MS-elapsed));
 }
 
+// Same formula and rounding as the Android app (src/services/movementMetrics.ts).
+function phoneStepsKcal(steps){
+  const weight=Number(state.weights?.[0]?.value),height=Number(state.profileHeightCm);
+  if(!(steps>0)||!(weight>0))return null;
+  const stride=height>0?Math.max(0.45,Math.min(1.10,(height/100)*0.415)):0.70;
+  return Math.round((steps*stride/1000)*weight*0.53);
+}
 function deviceStepsText(today,nowMs=Date.now()){
   const entry=state.deviceSteps;
   if(!entry||entry.date!==today||!Number.isInteger(entry.steps))return '';
   const at=Number(entry.updatedAtMs)>0&&Number(entry.updatedAtMs)<=nowMs+60000
     ? ' • atualizado às '+new Date(entry.updatedAtMs).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-  // Calories copied from the phone (APK 1.0.46+ sends the value it shows); owner asked for calories only.
-  const kcal=Number.isInteger(entry.activityKcal)?' • ≈ '+entry.activityKcal.toLocaleString('pt-BR')+' kcal':'';
+  // Calories as the phone shows them: the value it sends (if any), else the same estimate the app makes
+  // (movementMetrics.ts) from the steps, the synced weight and the height in the phone's backup.
+  const value=Number.isInteger(entry.activityKcal)?entry.activityKcal:phoneStepsKcal(entry.steps);
+  const kcal=Number.isInteger(value)?' • ≈ '+value.toLocaleString('pt-BR')+' kcal':'';
   return '👟 '+entry.steps.toLocaleString('pt-BR')+' passos no celular'+kcal+at;
 }
 function renderDeviceSteps(today){
@@ -903,6 +912,7 @@ async function hydrateAccountHistoryOnce({silent=false}={}){
     const backupResponse=backupRes.ok?await backupRes.json():null;
     if(auth?.user?.id!==accountId||!webAccessAllowed())return false;
     const backup=backupBridge.unpackBackup(backupResponse);
+    if(Number.isFinite(backup.data?.profileHeightCm))state.profileHeightCm=backup.data.profileHeightCm;
     if(!primary&&!backupResponse){
       setText('historySyncStatus',
         'Falha na consulta do servidor. Histórico HTTP '+structured.status+

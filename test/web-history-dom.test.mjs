@@ -682,3 +682,18 @@ test('medication picker offers the full catalog (Lipoless, Victoza, Olire, Lirux
     assert.match(bridge,new RegExp("'"+id+"'"),'backup bridge knows '+id);
   }
 });
+
+test('Web repeats the phone calorie estimate next to its steps without a new APK (weight synced, phone height from backup)',async()=>{
+  const h=await liveSession();const {w}=h;
+  try{
+    const now=Date.now(),date=w.eval('localDayKey()');
+    const card=()=>w.document.getElementById('movementDeviceSteps');
+    h.setRemote({weights:[{id:'w1',weightKg:99,timestampMs:now-3600000,origin:'PROFILE'}],steps:[{date,steps:1334,updatedAtMs:now}]});
+    for(const t of h.timers.values())t.fn();w.dispatchEvent(new w.Event('focus'));await pause();await pause();
+    // Same as the Android dashboard: 1.334 passos • ≈ 49 kcal (fallback stride 0,70 m without height).
+    assert.match(card().textContent,/^👟 1\.334 passos no celular • ≈ 49 kcal • atualizado às \d{2}:\d{2}$/);
+    // The phone height comes from the Android backup profile (ignored if implausible).
+    const read=v=>w.EscudoBackupBridge.unpackBackup({revision:1,entries:[{key:'profile',value:JSON.stringify({heightCm:v})}]}).data.profileHeightCm;
+    assert.equal(read(170),170);assert.equal(read(900),undefined);
+  }finally{h.w.close()}
+});
