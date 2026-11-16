@@ -42,6 +42,10 @@
           })).slice(0,200);
         validEntries++;
       }else if(entry.key==='profile'&&isObj(value)){
+        // Height stays on the phone; the Web only reads it from the backup to repeat the phone's calorie
+        // estimate next to its steps (owner request, 16/11).
+        const height=Number(value.heightCm);
+        if(Number.isFinite(height)&&height>=50&&height<=260)data.profileHeightCm=height;
         const medication=String(value.medication||'NONE');
         if(ts(value.updatedAtMs)&&MEDICATIONS.has(medication)){
           data.treatment={
