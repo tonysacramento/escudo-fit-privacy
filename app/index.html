@@ -24,7 +24,7 @@
   <title>Escudo Fit Web</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon-approved-v43.png" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-27">
+  <link rel="stylesheet" href="./styles.css?v=web-v43-sync-recovery-28">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -242,6 +242,13 @@
             <img id="welcomeAvatar" class="welcome-avatar" src="./icon-approved-v43.png" alt="" width="56" height="56" referrerpolicy="no-referrer">
             <div><h2 id="welcomeTitle">Olá!</h2><p>Vamos continuar com a sua rotina hoje?</p></div>
           </div>
+          <article id="androidUpdateNotice" class="screen-card android-update-notice hidden" aria-live="polite">
+            <div class="section-title gold"><span>🔄</span><b id="androidUpdateTitle">NOVA VERSÃO DO APP ANDROID</b></div>
+            <p id="androidUpdateMessage" class="muted"></p>
+            <ul id="androidUpdateChanges"></ul>
+            <a id="androidUpdateLink" class="quick-access-button gold" href="#" target="_blank" rel="noopener">Atualizar o app Android</a>
+            <button id="androidUpdateLater" class="button full-width" type="button">Já atualizei / lembrar depois</button>
+          </article>
           <article class="screen-card hero-shield-card">
             <div id="dailyShieldBadge" class="shield-badge shield-gold shield-large" style="--fill:0%">
               <div class="shield-fill"></div><small>Escudo</small><strong id="dailyScore">0%</strong>
@@ -756,7 +763,7 @@
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-32" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./web-reminders.js?v=web-v43-sync-recovery-21" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-34" defer></script>
+  <script src="./app.js?v=web-v43-sync-recovery-35" defer></script>
 </body>
 </html>
 

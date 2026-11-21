@@ -1,12 +1,12 @@
-const CACHE='escudo-fit-web-v46-measure-chest-v1';
+const CACHE='escudo-fit-web-v46-android-update-v1';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-recovery-27',
+  './styles.css?v=web-v43-sync-recovery-28',
   './history-sync-contract.js?v=web-v43-sync-recovery-31',
   './history-backup-bridge.js?v=web-v43-sync-recovery-32',
   './web-reminders.js?v=web-v43-sync-recovery-21',
-  './app.js?v=web-v43-sync-recovery-34',
+  './app.js?v=web-v43-sync-recovery-35',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',
@@ -55,6 +55,9 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.startsWith(new URL('./comprar/',self.location.href).pathname))return;
   // A cancellation acknowledgement must never be replaced by an offline copy.
   if(url.pathname.startsWith(new URL('./cancelar/',self.location.href).pathname))return;
+
+  // The Android update notice must always see the latest published file.
+  if(url.pathname.endsWith('/update.json'))return;
 
   const networkFirst=
     request.mode==='navigate' ||
