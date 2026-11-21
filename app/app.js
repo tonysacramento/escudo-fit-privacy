@@ -1642,6 +1642,46 @@ $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 const PLAY_STORE_URL='https://play.google.com/store/apps/details?id=com.escudofit.app';
 function canInstallFullPwa(){return webAccessAllowed()}
 function canDownloadAndroidFull(){return webAccessAllowed()&&['VIP_LIFETIME','PREMIUM'].includes(auth?.entitlement?.mode)}
+// Android update notice (owner request, 21/11). The APK cannot warn people on 1.0.45, so
+// the web app does it for Android visitors who can download the full APK.
+let androidUpdate=null;
+const ANDROID_UPDATE_URL=/^https:\/\/(tonysacramento\.github\.io\/escudo-fit-privacy\/|github\.com\/tonysacramento\/escudo-fit-privacy\/releases\/)/;
+async function loadAndroidUpdate(){
+  try{
+    const response=await fetch('./update.json',{cache:'no-store'});
+    if(!response.ok)return;
+    const data=await response.json();
+    const build=Number(data?.latestBuild);
+    if(data?.available!==true||!Number.isInteger(build)||build<=0||!ANDROID_UPDATE_URL.test(String(data.updateUrl||'')))return;
+    androidUpdate={
+      build,
+      version:String(data.latestVersion||'').slice(0,20),
+      message:String(data.message||'').slice(0,240),
+      changes:(Array.isArray(data.changes)?data.changes:[]).filter(item=>typeof item==='string'&&item.trim()).slice(0,6).map(item=>item.trim().slice(0,120)),
+      url:String(data.updateUrl),
+    };
+    renderAndroidUpdate();
+  }catch{/* Offline or no file: no notice. */}
+}
+function androidUpdateDismissed(build){try{return localStorage.getItem('escudo_android_update_dismissed')===String(build)}catch{return false}}
+function renderAndroidUpdate(){
+  const box=$('androidUpdateNotice');
+  if(!box)return;
+  if(androidUpdate)$('downloadAndroidFull').href=androidUpdate.url; // The download button always points to the latest APK.
+  const isAndroid=/Android/i.test(navigator.userAgent||'');
+  const show=!!androidUpdate&&isAndroid&&canDownloadAndroidFull()&&!androidUpdateDismissed(androidUpdate.build);
+  box.classList.toggle('hidden',!show);
+  if(!show)return;
+  setText('androidUpdateTitle','NOVA VERSÃO DO APP ANDROID'+(androidUpdate.version?' — '+androidUpdate.version:''));
+  setText('androidUpdateMessage',androidUpdate.message||'Baixe e instale a nova versão do Escudo Fit no seu Android.');
+  const list=$('androidUpdateChanges');
+  list.replaceChildren(...androidUpdate.changes.map(change=>{const item=document.createElement('li');item.textContent=change;return item}));
+  $('androidUpdateLink').href=androidUpdate.url;
+}
+$('androidUpdateLater')?.addEventListener('click',()=>{
+  if(androidUpdate){try{localStorage.setItem('escudo_android_update_dismissed',String(androidUpdate.build))}catch{}}
+  renderAndroidUpdate();
+});
 function renderInstallAction(){
   const button=$('installButtonFloating');
   const standalone=window.matchMedia?.('(display-mode: standalone)').matches||navigator.standalone===true;
@@ -1651,6 +1691,7 @@ function renderInstallAction(){
   $('installDescription').classList.toggle('hidden',!auth?.user);
   $('downloadAndroidFull').classList.toggle('hidden',!canDownloadAndroidFull());
   $('androidFullDescription').classList.toggle('hidden',!canDownloadAndroidFull());
+  renderAndroidUpdate();
   setText('installDescription',canInstallFullPwa()
     ? installed?'Seu Escudo Fit Web já está instalado. Todos os seus escudos estão disponíveis aqui.'
       : installHelpRequested?'No menu ⋮ do Chrome, toque em Instalar e criar atalho. Se aparecer que o app já está instalado, escolha abrir o app. Em outros navegadores, procure Instalar aplicativo ou Adicionar à tela inicial.'
@@ -1775,6 +1816,7 @@ if('serviceWorker'in navigator){
 }
 
 (async function boot(){
+  void loadAndroidUpdate();
   if(auth&&await validateStoredSession())showApp();
   else{if(auth)saveAuth(null);auth=null;showMarketing()}
 })();
