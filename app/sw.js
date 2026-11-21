@@ -1,4 +1,4 @@
-const CACHE='escudo-fit-web-v46-plan-label-v1';
+const CACHE='escudo-fit-web-v46-measure-chest-v1';
 const ASSETS=[
   './',
   './index.html',
@@ -6,7 +6,7 @@ const ASSETS=[
   './history-sync-contract.js?v=web-v43-sync-recovery-31',
   './history-backup-bridge.js?v=web-v43-sync-recovery-32',
   './web-reminders.js?v=web-v43-sync-recovery-21',
-  './app.js?v=web-v43-sync-recovery-33',
+  './app.js?v=web-v43-sync-recovery-34',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',

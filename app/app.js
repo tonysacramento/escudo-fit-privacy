@@ -1,3 +1,4 @@
+const MEASUREMENT_LABELS=[['waist','Cintura'],['chest','Peito'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['abdomen','Abdômen']];
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 const historyContract=window.EscudoHistoryContract;
 const backupBridge=window.EscudoBackupBridge;
@@ -575,15 +576,16 @@ function renderApp(){
   try{renderMissedApplication();}catch(error){if(!(error instanceof ReferenceError))throw error;}
   const m=state.measurements||{};
   const latestMeasurement=(Array.isArray(state.measurementHistory)?state.measurementHistory:[])[0];
-  const measurementSummary=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']]
+  // Chest replaced abdomen on screen (owner request, 21/11); abdomen stays last so older records still show.
+  const measurementSummary=MEASUREMENT_LABELS
     .filter(([key])=>m[key]!=null&&Number.isFinite(Number(m[key]))&&Number(m[key])>0)
     .map(([key,label])=>label+': '+Number(m[key]).toLocaleString('pt-BR')+' cm');
   setText('profileMeasurementSummary',measurementSummary.length
     ? measurementSummary.join(' • ')+(latestMeasurement?.date?' • Último registro: '+new Date(latestMeasurement.date+'T12:00:00').toLocaleDateString('pt-BR'):'')
     : 'Nenhuma medida encontrada nesta conta. Toque abaixo para registrar ou consultar o histórico.');
-  [['mWaist','waist'],['mAbdomen','abdomen'],['mHip','hips'],['mArm','arm'],['mThigh','thigh'],['mChest','chest']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
+  [['mWaist','waist'],['mChest','chest'],['mHip','hips'],['mArm','arm'],['mThigh','thigh']].forEach(([id,k])=>{if($(id))$(id).value=m[k]??''});
   if($('measurementHistoryList')){
-    const fields=[['waist','Cintura'],['abdomen','Abdômen'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['chest','Peitoral']];
+    const fields=MEASUREMENT_LABELS;
     $('measurementHistoryList').innerHTML=(state.measurementHistory||[]).slice(0,6).map(entry=>{
       const values=fields.filter(([key])=>entry[key]!=null).map(([key,label])=>label+': '+Number(entry[key]).toLocaleString('pt-BR')+' cm').join(' • ');
       const date=new Date(entry.date+'T12:00:00').toLocaleDateString('pt-BR');
@@ -1429,7 +1431,6 @@ $('saveMeasurements').addEventListener('click',async()=>{
   const local={
     date,
     waist:num($('mWaist').value)||null,
-    abdomen:num($('mAbdomen').value)||null,
     hips:num($('mHip').value)||null,
     arm:num($('mArm').value)||null,
     thigh:num($('mThigh').value)||null,
@@ -1443,7 +1444,6 @@ $('saveMeasurements').addEventListener('click',async()=>{
   const remote={
     date,
     ...(local.waist?{waist:local.waist}:{}),
-    ...(local.abdomen?{abdomen:local.abdomen}:{}),
     ...(local.hips?{hips:local.hips}:{}),
     ...(local.chest?{chest:local.chest}:{}),
     ...(local.arm?{arm:local.arm}:{}),
