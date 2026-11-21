@@ -1,4 +1,4 @@
-const MEASUREMENT_LABELS=[['waist','Cintura'],['chest','Peito'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['abdomen','Abdômen']];
+const MEASUREMENT_LABELS=[['waist','Cintura'],['chest','Tórax'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['abdomen','Abdômen']];
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 const historyContract=window.EscudoHistoryContract;
 const backupBridge=window.EscudoBackupBridge;
