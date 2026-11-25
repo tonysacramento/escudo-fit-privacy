@@ -1,10 +1,17 @@
 {
-  "available": false,
-  "latestBuild": 41,
-  "latestVersion": "1.0.41",
+  "available": true,
+  "latestBuild": 46,
+  "latestVersion": "1.0.46",
   "title": "Nova atualização disponível",
-  "message": "Uma nova versão do Escudo Fit Wellness está disponível.",
-  "updateUrl": "https://tonysacramento.github.io/escudo-fit-privacy/app/",
+  "message": "Uma nova versão do Escudo Fit para Android está disponível. Instale por cima da atual: seus dados são mantidos.",
+  "changes": [
+    "Treinos do Hevy, Strava e outros apps no Movimento (Health Connect)",
+    "Medidas corporais: Tórax no lugar de Abdômen",
+    "Perfil com o nome do plano em linguagem simples",
+    "Aviso automático de novas versões",
+    "Correções de estabilidade e segurança"
+  ],
+  "updateUrl": "https://github.com/tonysacramento/escudo-fit-privacy/releases/download/v46-full-qa/escudo-fit-v46-full.apk",
   "mandatory": false,
-  "publishedAt": null
+  "publishedAt": "2026-11-25"
 }
