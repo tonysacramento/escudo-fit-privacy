@@ -1,0 +1,27 @@
+name: Publish Escudo Fit 1.0.46 QA APK
+# One-shot: publishes the already-built APK (escudo-fit-app run 45697692402) as a
+# pre-release. No build. Not linked from the web download button.
+on:
+  push:
+    branches: [claude/v46-apk-qa-release]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify exact build bytes
+        run: |
+          echo 'd5ac74ae758652afdc71922a31ab7eec4a7cc2ae71b23f85c6336ad21749cda6  escudo-fit-v46-full.apk' | sha256sum --check
+          sha256sum --check escudo-fit-v46-full.sha256
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create v46-full-qa escudo-fit-v46-full.apk escudo-fit-v46-full.sha256 \
+            --target main --prerelease \
+            --title "Escudo Fit 1.0.46 FULL — Android (teste)" \
+            --notes "APK do build #45697692402 (escudo-fit-app 8158183), versão 1.0.46, código 46. Novidades: treinos do Hevy, Strava e outros apps pelo Health Connect no Movimento; Tórax no lugar de Abdômen nas medidas; plano em linguagem simples no Perfil; aviso de nova versão na tela inicial; Expo atualizado. Instala por cima da versão atual, mantendo os dados. SHA-256: d5ac74ae758652afdc71922a31ab7eec4a7cc2ae71b23f85c6336ad21749cda6"
