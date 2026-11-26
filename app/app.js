@@ -511,6 +511,7 @@ function renderApp(){
   setText('activityCount',String(todayActivities.length));
   setText('activityHint',movementHintText);
   renderHeroContext(todayActivities,todayMinutes);
+  renderHevy();
   renderDeviceSteps(today);
   if($('activityHistory'))$('activityHistory').innerHTML=todayActivities
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
@@ -893,6 +894,8 @@ function hydrateAccountHistory(options={}){
   const task=hydrateAccountHistoryOnce(options);
   accountHistoryFlight={accountId:auth?.user?.id,task};
   void task.finally(()=>{if(accountHistoryFlight?.task===task)accountHistoryFlight=null;});
+  // Hevy runs after the account history is in, so workouts already imported by Android are not duplicated.
+  void task.then(ok=>{if(ok!==false)void syncHevy();}).catch(()=>undefined);
   return task;
 }
 
@@ -1709,6 +1712,94 @@ function renderHeroContext(todayActivities,todayMinutes){
     :`${todayMinutes>=MOVEMENT_GOAL_MIN?'✅':'🏃'} ${activityLabels[longest.type]||longest.type}${longest.duration?' • '+Number(longest.duration)+' min':''}${todayActivities.length>1?` (+${todayActivities.length-1})`:''} • ${todayMinutes>=MOVEMENT_GOAL_MIN?'movimento concluído':todayMinutes+' de '+MOVEMENT_GOAL_MIN+' min hoje'}`);
   renderWeather();
 }
+
+// Hevy on the Web (owner request, 26/11). Hevy's public API (Hevy Pro) accepts browser
+// calls with the person's own API key. The key stays in this browser only; workouts of the
+// last 7 days become Musculação records with their duration, synced to the account like a
+// manual activity (so they count for the 30-min Movement shield and show on Android).
+const HEVY_API='https://api.hevyapp.com/v1', HEVY_SYNC_MS=30*60*1000;
+const hevyKeyName=()=>'escudo_hevy_key_'+(auth?.user?.id||'');
+const hevyMetaName=()=>'escudo_hevy_meta_'+(auth?.user?.id||'');
+const hevyStore={
+  key(){try{return localStorage.getItem(hevyKeyName())||''}catch{return ''}},
+  setKey(v){try{v?localStorage.setItem(hevyKeyName(),v):localStorage.removeItem(hevyKeyName())}catch{}},
+  meta(){try{return JSON.parse(localStorage.getItem(hevyMetaName())||'null')||{}}catch{return {}}},
+  setMeta(v){try{localStorage.setItem(hevyMetaName(),JSON.stringify(v))}catch{}},
+};
+let hevyBusy=false;
+async function hevyGet(path,key){
+  const res=await fetch(HEVY_API+path,{headers:{'api-key':key,accept:'application/json'},cache:'no-store'});
+  if(res.status===401||res.status===403)throw Object.assign(new Error('HEVY_KEY'),{code:'HEVY_KEY'});
+  if(!res.ok)throw Object.assign(new Error('HEVY_HTTP_'+res.status),{code:'HEVY_HTTP'});
+  return res.json();
+}
+/** Hevy workout → Escudo Fit movement record, or null when it is not usable. */
+function hevyToActivity(workout,nowMs=Date.now()){
+  const start=Date.parse(workout?.start_time), end=Date.parse(workout?.end_time);
+  if(!workout?.id||!Number.isFinite(start)||!Number.isFinite(end)||end<=start)return null;
+  if(start<nowMs-7*86400000||start>nowMs+3600000)return null;
+  return {id:('hevy-'+workout.id).slice(0,120),type:'STRENGTH',duration:Math.min(1440,Math.max(1,Math.round((end-start)/60000))),
+    at:new Date(start).toISOString(),title:String(workout.title||'Treino').slice(0,60)};
+}
+/** Same workout already imported by the Android app from Health Connect (hc-…): same start ±5 min. */
+function hevyDuplicate(activity,existing){
+  const t=Date.parse(activity.at);
+  return existing.some(item=>item.id===activity.id||(String(item.id||'').startsWith('hc-')&&Math.abs(Date.parse(item.at)-t)<5*60000));
+}
+async function syncHevy({force=false}={}){
+  const key=hevyStore.key(); if(!key||hevyBusy||!webAccessAllowed())return;
+  const meta=hevyStore.meta();
+  if(!force&&meta.lastSyncAtMs&&Date.now()-meta.lastSyncAtMs<HEVY_SYNC_MS){renderHevy();return}
+  hevyBusy=true;renderHevy();
+  try{
+    const data=await hevyGet('/workouts?page=1&pageSize=10',key);
+    const workouts=Array.isArray(data?.workouts)?data.workouts:[];
+    const all=Array.isArray(state.activities)?state.activities:[];
+    const fresh=workouts.map(w=>hevyToActivity(w)).filter(Boolean).filter(a=>!hevyDuplicate(a,all));
+    const now=Date.now();
+    if(fresh.length){
+      state.activities=[...fresh.map(a=>({id:a.id,type:a.type,duration:a.duration,at:a.at,dayUpdatedAtMs:now})),...all].slice(0,500);
+      saveState();renderApp();
+      const days=[...new Set(fresh.map(a=>localDayKey(a.at)))];
+      await syncHistoryPatch({movement:days.map(date=>({date,updatedAtMs:now,records:state.activities
+        .filter(item=>localDayKey(item.at)===date)
+        .map(item=>({id:item.id,activityType:item.type,timestampMs:new Date(item.at).getTime(),...(item.duration?{durationMinutes:Number(item.duration)}:{})}))}))});
+    }
+    hevyStore.setMeta({lastSyncAtMs:now,error:'',recent:workouts.map(w=>hevyToActivity(w)).filter(Boolean).slice(0,7),added:(meta.added||0)+fresh.length});
+  }catch(error){
+    hevyStore.setMeta({...meta,error:error?.code==='HEVY_KEY'?'A chave do Hevy foi recusada. Confira se é a chave de API do Hevy Pro e conecte de novo.':'Não foi possível falar com o Hevy agora. Tente de novo em alguns minutos.'});
+  }finally{hevyBusy=false;renderHevy()}
+}
+function renderHevy(){
+  const connected=!!hevyStore.key(), meta=hevyStore.meta();
+  $('hevyDisconnected')?.classList.toggle('hidden',connected);
+  $('hevyConnected')?.classList.toggle('hidden',!connected);
+  if(!connected)return;
+  setText('hevyStatus',hevyBusy?'Buscando treinos no Hevy…':meta.error||(meta.lastSyncAtMs
+    ?`Conectado. Última leitura às ${new Date(meta.lastSyncAtMs).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}. Os treinos entram no Movimento e contam para os 30 min.`
+    :'Conectado.'));
+  const list=$('hevyList');
+  if(list)list.replaceChildren(...(meta.recent||[]).map(a=>{const row=document.createElement('div');row.className='history-row';
+    const span=document.createElement('span');span.textContent=`${a.title} • ${a.duration} min`;
+    const strong=document.createElement('strong');strong.textContent=new Date(a.at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    row.append(span,strong);return row}));
+  if($('hevyRefresh'))$('hevyRefresh').disabled=hevyBusy;
+}
+$('hevyConnect')?.addEventListener('click',async()=>{
+  const key=String($('hevyKey')?.value||'').trim();
+  if(!/^[A-Za-z0-9-]{16,80}$/.test(key)){toast('Cole a chave de API do Hevy');return}
+  const button=$('hevyConnect'); if(button)button.disabled=true;
+  try{
+    await hevyGet('/workouts/count',key);
+    hevyStore.setKey(key); if($('hevyKey'))$('hevyKey').value='';
+    hevyStore.setMeta({});
+    toast('Hevy conectado'); await syncHevy({force:true});
+  }catch(error){
+    toast(error?.code==='HEVY_KEY'?'Chave do Hevy recusada (precisa do Hevy Pro)':'Não foi possível falar com o Hevy agora');
+  }finally{if(button)button.disabled=false;renderHevy()}
+});
+$('hevyRefresh')?.addEventListener('click',()=>syncHevy({force:true}));
+$('hevyDisconnect')?.addEventListener('click',()=>{hevyStore.setKey('');hevyStore.setMeta({});renderHevy();toast('Hevy desconectado. Os treinos já importados continuam no seu histórico.')});
 
 // Android update notice (owner request, 21/11). The APK cannot warn people on 1.0.45, so
 // the web app does it for Android visitors who can download the full APK.

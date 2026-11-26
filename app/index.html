@@ -451,6 +451,24 @@
             <p class="muted">No Android, o Health Connect fornece a contagem automática. Na Web, os passos são informados manualmente e não substituem os dados do aparelho.</p>
           </article>
 
+          <article id="hevyCard" class="screen-card">
+            <div class="section-title green"><span>🏋️</span><b>TREINOS DO HEVY</b></div>
+            <div id="hevyDisconnected">
+              <p class="muted">Traga seus treinos do Hevy para o Escudo Fit, direto no navegador. Precisa do <strong>Hevy Pro</strong>: no site do Hevy, abra <em>Settings → Developer</em>, copie a chave de API e cole abaixo.</p>
+              <label class="app-field">Chave de API do Hevy<input id="hevyKey" type="password" autocomplete="off" spellcheck="false" placeholder="cole a chave aqui"></label>
+              <button id="hevyConnect" class="button button-primary full-width" type="button">Conectar Hevy</button>
+              <p class="muted small">A chave fica guardada só neste navegador e é usada apenas para ler seus treinos no Hevy. Ela não vai para a sua conta Escudo Fit.</p>
+            </div>
+            <div id="hevyConnected" class="hidden">
+              <p id="hevyStatus" class="muted"></p>
+              <div id="hevyList" class="history"></div>
+              <div class="water-actions">
+                <button id="hevyRefresh" class="quick-access-button" type="button">Atualizar treinos</button>
+                <button id="hevyDisconnect" class="quick-access-button" type="button">Desconectar</button>
+              </div>
+            </div>
+          </article>
+
           <article class="screen-card">
             <div class="section-title green"><span>＋</span><b>REGISTRAR ATIVIDADE</b></div>
             <div class="activity-form-grid">
@@ -770,7 +788,7 @@
   <script src="./history-backup-bridge.js?v=web-v43-sync-recovery-32" defer></script>
   <script src="./body-map.js?v=web-v43-sync-recovery-20" defer></script>
   <script src="./web-reminders.js?v=web-v43-sync-recovery-21" defer></script>
-  <script src="./app.js?v=web-v43-sync-recovery-36" defer></script>
+  <script src="./app.js?v=web-v43-sync-recovery-37" defer></script>
 </body>
 </html>
 
