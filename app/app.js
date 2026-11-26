@@ -1,4 +1,5 @@
 const MEASUREMENT_LABELS=[['waist','Cintura'],['chest','Tórax'],['hips','Quadril'],['arm','Braço'],['thigh','Coxa'],['abdomen','Abdômen']];
+const MOVEMENT_GOAL_MIN=30;
 const API='https://escudo-fit-api-v38-835029473980.us-central1.run.app/api/v38';
 const historyContract=window.EscudoHistoryContract;
 const backupBridge=window.EscudoBackupBridge;
@@ -449,7 +450,15 @@ function renderApp(){
   const waterGoal=hasWeight?waterGoalFromWeight(weight):0;
   const wp=waterGoal?pct(state.water,waterGoal):0;
   const sp=pct(state.steps,state.stepsGoal);
-  const activityProtected=todayActivities.length>0;
+  // Owner rule (26/11): the Movement shield completes with 30 minutes of activity today
+  // (one 30-min workout or several shorter ones). Imported workouts (Hevy, Strava…) count.
+  const todayMinutes=todayActivities.reduce((sum,item)=>sum+(Number(item.duration)>0?Number(item.duration):0),0);
+  const movementPctValue=Math.min(100,Math.round(todayMinutes/MOVEMENT_GOAL_MIN*100));
+  const activityProtected=todayMinutes>=MOVEMENT_GOAL_MIN;
+  const movementHintText=activityProtected?`Escudo concluído: ${todayMinutes} min de movimento hoje.`
+    :todayMinutes>0?`${todayMinutes} de ${MOVEMENT_GOAL_MIN} min hoje. Faltam ${MOVEMENT_GOAL_MIN-todayMinutes} min para concluir o escudo.`
+    :todayActivities.length?`Informe a duração da atividade: o escudo conclui com ${MOVEMENT_GOAL_MIN} min.`
+    :`Registre ${MOVEMENT_GOAL_MIN} min de atividade para proteger o escudo.`;
   const pp=pct(todayMeals.length,5); // Android shield: 5 meals, not 100 g protein
   const mealProtein=todayMeals.reduce((sum,item)=>sum+Number(item.proteinG||0),0);
   const medicationConfigured=!!(state.treatment?.medication&&state.treatment.medication!=='NONE');
@@ -466,7 +475,7 @@ function renderApp(){
   const evaluableCount=shields.length;
   const protectedCount=shields.filter(Boolean).length;
   const score=evaluableCount?Math.round(100*protectedCount/evaluableCount):0;
-  const activeCategories=[state.water>0,activityProtected,todayMeals.length>0,applicationConfirmed].filter(Boolean).length;
+  const activeCategories=[state.water>0,todayActivities.length>0,todayMeals.length>0,applicationConfirmed].filter(Boolean).length;
 
   setText('waterPct',wp+'%');
   setText('waterDetailPct',wp+'%');
@@ -485,22 +494,23 @@ function renderApp(){
   setText('waterStatusPill',!waterGoal?'META INDISPONÍVEL':wp>=100?'ESCUDO PROTEGIDO':'PENDENTE');
   setText('waterDetailStatus',wp>=100?'ESCUDO PROTEGIDO':'META SUGERIDA DO DIA');
 
-  setText('stepsPct',activityProtected?'100%':'0%');
-  if($('stepsBar'))$('stepsBar').style.width=(activityProtected?100:0)+'%';
-  setShieldFill('movementShieldBadge',activityProtected?100:0);
+  setText('stepsPct',movementPctValue+'%');
+  if($('stepsBar'))$('stepsBar').style.width=movementPctValue+'%';
+  setShieldFill('movementShieldBadge',movementPctValue);
   setText('movementCount',String(todayActivities.length));
   setText('movementCountLabel',todayActivities.length===1?'atividade registrada hoje':'atividades registradas hoje');
-  setText('movementStatusPill',activityProtected?'ESCUDO PROTEGIDO':'PENDENTE');
-  setText('movementHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger o escudo.');
+  setText('movementStatusPill',activityProtected?'ESCUDO PROTEGIDO':todayMinutes>0?'EM ANDAMENTO':'PENDENTE');
+  setText('movementHint',movementHintText);
   if($('stepsInput'))$('stepsInput').value=state.steps||'';
   if($('activityStepsInput'))$('activityStepsInput').value=state.steps||'';
   if($('activityStepsBar'))$('activityStepsBar').style.width=sp+'%';
   setText('activityStepsHint',sp>=100?'Meta de passos informada para hoje alcançada.':'Passos informados na Web • meta '+state.stepsGoal.toLocaleString('pt-BR')+'.');
-  setText('activityPct',activityProtected?'100%':'0%');
-  setShieldFill('activityShieldBadge',activityProtected?100:0);
+  setText('activityPct',movementPctValue+'%');
+  setShieldFill('activityShieldBadge',movementPctValue);
   setText('activityStatus',activityProtected?'ESCUDO PROTEGIDO':'ESCUDO PENDENTE');
   setText('activityCount',String(todayActivities.length));
-  setText('activityHint',activityProtected?'Ótimo trabalho! Seu movimento de hoje está registrado.':'Registre uma atividade para proteger este escudo.');
+  setText('activityHint',movementHintText);
+  renderHeroContext(todayActivities,todayMinutes);
   renderDeviceSteps(today);
   if($('activityHistory'))$('activityHistory').innerHTML=todayActivities
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
@@ -1642,6 +1652,64 @@ $('switchAccountButton')?.addEventListener('click',switchGoogleAccount);
 const PLAY_STORE_URL='https://play.google.com/store/apps/details?id=com.escudofit.app';
 function canInstallFullPwa(){return webAccessAllowed()}
 function canDownloadAndroidFull(){return webAccessAllowed()&&['VIP_LIFETIME','PREMIUM'].includes(auth?.entitlement?.mode)}
+// Local weather on the Web (owner request, 26/11). The browser asks for location once;
+// coordinates are rounded to ~1 km and only sent to the Escudo Fit weather service
+// (Google Weather behind Apps Script, key kept server-side). Nothing is stored on the account.
+const WEATHER_URL='https://script.google.com/macros/s/AKfycbydVppcY4thISqs0bBS6auVZQo2W6uGVD8nW4ior51QAyVdYaE7mPS4l0Zu5sAeefDW/exec';
+const WEATHER_KEY='escudo_weather_v1', WEATHER_ON_KEY='escudo_weather_enabled', WEATHER_TTL_MS=60*60*1000;
+let weatherBusy=false, weatherError='';
+const weatherStore={
+  get(){try{const v=JSON.parse(localStorage.getItem(WEATHER_KEY)||'null');return v&&Number.isFinite(v.temperatureC)?v:null}catch{return null}},
+  set(v){try{localStorage.setItem(WEATHER_KEY,JSON.stringify(v))}catch{}},
+  on(){try{return localStorage.getItem(WEATHER_ON_KEY)==='1'}catch{return false}},
+  enable(){try{localStorage.setItem(WEATHER_ON_KEY,'1')}catch{}},
+};
+function weatherHint(t){
+  if(t>=30)return 'Dia muito quente: beba água com mais frequência.';
+  if(t>=26)return 'Dia quente: reforce a hidratação.';
+  if(t<=15)return 'Dia frio: a sede diminui, mas a meta de água continua.';
+  return 'Temperatura amena: mantenha a meta de água do dia.';
+}
+function renderWeather(){
+  const w=weatherStore.get(), on=weatherStore.on();
+  const text=w?`🌡️ ${Number(w.temperatureC).toLocaleString('pt-BR',{maximumFractionDigits:1})} °C agora • ${weatherHint(w.temperatureC)}`
+    :weatherBusy?'🌡️ Consultando o clima local…'
+    :weatherError||'🌡️ Clima local desativado.';
+  setText('heroWeather',text);
+  setText('weatherDetail',w?text+` Atualizado às ${new Date(w.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}.`:text);
+  for(const id of ['weatherEnable','heroWeatherEnable']){
+    const b=$(id); if(!b)continue;
+    b.classList.toggle('hidden',on&&!weatherError);
+    b.disabled=weatherBusy;
+  }
+}
+async function loadWeather(force=false){
+  const cached=weatherStore.get();
+  if(!force&&cached&&Date.now()-cached.at<WEATHER_TTL_MS){renderWeather();return}
+  if(!navigator.geolocation){weatherError='🌡️ Este navegador não informa a localização.';renderWeather();return}
+  weatherBusy=true;weatherError='';renderWeather();
+  try{
+    const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:false,maximumAge:30*60*1000,timeout:15000}));
+    const lat=pos.coords.latitude.toFixed(2), lng=pos.coords.longitude.toFixed(2);
+    const res=await fetch(`${WEATHER_URL}?action=weather&lat=${lat}&lng=${lng}`,{cache:'no-store'});
+    const data=await res.json();
+    if(!data?.ok||!Number.isFinite(Number(data.temperatureC)))throw new Error(data?.error||'WEATHER_UNAVAILABLE');
+    weatherStore.set({temperatureC:Number(data.temperatureC),at:Date.now()});
+  }catch(error){
+    weatherError=error?.code===1?'🌡️ Localização não permitida. Libere a localização deste site no navegador para ver o clima.'
+      :cached?'':'🌡️ Clima indisponível agora. Tente de novo mais tarde.';
+  }finally{weatherBusy=false;renderWeather()}
+}
+function enableWeather(){weatherStore.enable();loadWeather(true)}
+for(const id of ['weatherEnable','heroWeatherEnable'])$(id)?.addEventListener('click',enableWeather);
+// Main shield card: today's movement summary next to the weather.
+function renderHeroContext(todayActivities,todayMinutes){
+  const longest=todayActivities.slice().sort((a,b)=>(Number(b.duration)||0)-(Number(a.duration)||0))[0];
+  setText('heroWorkout',!todayActivities.length?`🏃 Nenhuma atividade hoje • meta de ${MOVEMENT_GOAL_MIN} min`
+    :`${todayMinutes>=MOVEMENT_GOAL_MIN?'✅':'🏃'} ${activityLabels[longest.type]||longest.type}${longest.duration?' • '+Number(longest.duration)+' min':''}${todayActivities.length>1?` (+${todayActivities.length-1})`:''} • ${todayMinutes>=MOVEMENT_GOAL_MIN?'movimento concluído':todayMinutes+' de '+MOVEMENT_GOAL_MIN+' min hoje'}`);
+  renderWeather();
+}
+
 // Android update notice (owner request, 21/11). The APK cannot warn people on 1.0.45, so
 // the web app does it for Android visitors who can download the full APK.
 let androidUpdate=null;
@@ -1816,6 +1884,7 @@ if('serviceWorker'in navigator){
 }
 
 (async function boot(){
+  if(weatherStore.on())void loadWeather();
   void loadAndroidUpdate();
   if(auth&&await validateStoredSession())showApp();
   else{if(auth)saveAuth(null);auth=null;showMarketing()}
