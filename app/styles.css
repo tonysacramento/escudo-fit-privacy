@@ -1027,3 +1027,8 @@ body.is-app .reminder-card [hidden]{display:none!important}
 .android-update-notice ul{margin:6px 0 12px;padding-left:20px}
 .android-update-notice li{margin:3px 0}
 .android-update-notice .quick-access-button{display:block;text-align:center;margin-bottom:8px}
+
+.hero-context{grid-column:1/-1;display:grid;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+.hero-context p{margin:0;font-size:.92rem}
+.small-button{justify-self:start;padding:6px 12px;font-size:.85rem}
+.muted.small{font-size:.8rem}

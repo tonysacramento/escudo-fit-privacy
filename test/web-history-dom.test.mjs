@@ -32,7 +32,7 @@ test('synthetic authenticated Web session renders all categories and posts two-w
     weights:[{id:'w1',weightKg:87.2,timestampMs:now,origin:'PROFILE'}],
     measurements:[{date:apiDate,waist:90,hips:95}],
     applications:[{id:'a1',appliedAtMs:now,applicationSite:'ABDOMEN_LEFT',scheduledDateIso:apiDate}],
-    movement:[{date:apiDate,updatedAtMs:now,records:[{id:'mv1',activityType:'WALKING',timestampMs:now}]}],
+    movement:[{date:apiDate,updatedAtMs:now,records:[{id:'mv1',activityType:'WALKING',durationMinutes:30,timestampMs:now}]}],
     nutrition:[{date:apiDate,updatedAtMs:now,meals:[{id:'ml1',mealType:'LUNCH',proteinG:22,timestampMs:now}]}],
     treatment:{medication:'MOUNJARO',updatedAtMs:now,treatmentStartDateIso:apiDate,history:[]},
     water:[{date:apiDate,consumedMl:500,updatedAtMs:now}],
