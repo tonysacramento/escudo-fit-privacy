@@ -1,12 +1,12 @@
-const CACHE='escudo-fit-web-v47-weather-movement-v1';
+const CACHE='escudo-fit-web-v47-movement-workouts-v1';
 const ASSETS=[
   './',
   './index.html',
-  './styles.css?v=web-v43-sync-recovery-29',
+  './styles.css?v=web-v43-sync-recovery-30',
   './history-sync-contract.js?v=web-v43-sync-recovery-31',
   './history-backup-bridge.js?v=web-v43-sync-recovery-32',
   './web-reminders.js?v=web-v43-sync-recovery-21',
-  './app.js?v=web-v43-sync-recovery-36',
+  './app.js?v=web-v43-sync-recovery-37',
   './body-map.js?v=web-v43-sync-recovery-20',
   './android-icon.svg',
   './icon-approved-v43.png',

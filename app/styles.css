@@ -1032,3 +1032,5 @@ body.is-app .reminder-card [hidden]{display:none!important}
 .hero-context p{margin:0;font-size:.92rem}
 .small-button{justify-self:start;padding:6px 12px;font-size:.85rem}
 .muted.small{font-size:.8rem}
+
+#movementWorkouts p{margin:2px 0;font-weight:700;color:var(--app-green,#58d68d)}
