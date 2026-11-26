@@ -511,6 +511,7 @@ function renderApp(){
   setText('activityCount',String(todayActivities.length));
   setText('activityHint',movementHintText);
   renderHeroContext(todayActivities,todayMinutes);
+  renderMovementWorkouts(todayActivities);
   renderDeviceSteps(today);
   if($('activityHistory'))$('activityHistory').innerHTML=todayActivities
     .sort((a,b)=>new Date(b.at)-new Date(a.at))
@@ -1702,6 +1703,20 @@ async function loadWeather(force=false){
 }
 function enableWeather(){weatherStore.enable();loadWeather(true)}
 for(const id of ['weatherEnable','heroWeatherEnable'])$(id)?.addEventListener('click',enableWeather);
+// Movement card (owner request, 26/11): today's workouts brought from the phone. The Android app
+// imports them from Health Connect (Hevy, Strava…) with ids "hc-…"; the account keeps type and
+// duration only, so the card names the channel, not the source app.
+function renderMovementWorkouts(todayActivities){
+  const box=$('movementWorkouts'); if(!box)return;
+  const imported=todayActivities.filter(item=>String(item.id||'').startsWith('hc-'))
+    .sort((a,b)=>new Date(b.at)-new Date(a.at));
+  box.classList.toggle('hidden',!imported.length);
+  box.replaceChildren(...imported.slice(0,3).map(item=>{
+    const p=document.createElement('p');
+    p.textContent=`🏋️ ${activityLabels[item.type]||item.type}${item.duration?' • '+Number(item.duration)+' min':''} • ${new Date(item.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} • Hevy / Health Connect`;
+    return p;
+  }));
+}
 // Main shield card: today's movement summary next to the weather.
 function renderHeroContext(todayActivities,todayMinutes){
   const longest=todayActivities.slice().sort((a,b)=>(Number(b.duration)||0)-(Number(a.duration)||0))[0];
